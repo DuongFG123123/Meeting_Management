@@ -79,19 +79,6 @@ export default function Header({
 
           {/* Right Icons */}
           <div className="flex items-center gap-2 sm:gap-4">
-            <button
-              onClick={toggleTheme}
-              className="p-2 text-muted-foreground hover:bg-muted rounded-lg transition"
-              aria-label="Toggle theme"
-            >
-              {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
-            </button>
-
-            <button className="relative p-2 text-muted-foreground hover:bg-muted rounded-lg transition">
-              <Bell size={20} />
-              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-destructive"></span>
-            </button>
-
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-foreground">
                 <UserIcon size={18} />
@@ -102,41 +89,53 @@ export default function Header({
                   </span>
                 )}
               </div>
+            </div>
 
-              <div className="relative">
-                <button
-                  onClick={() => setSettingsMenuOpen(!settingsMenuOpen)}
-                  className="p-2 text-muted-foreground hover:bg-muted rounded-lg transition"
-                  title="Cài đặt"
-                >
-                  <Settings size={20} />
-                </button>
+            <button className="relative p-2 text-muted-foreground hover:bg-muted rounded-lg transition">
+              <Bell size={20} />
+              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-destructive"></span>
+            </button>
 
-                {settingsMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg z-50">
-                    <button
-                      onClick={() => {
-                        setSettingsMenuOpen(false)
-                        // TODO: Add settings page functionality
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted transition rounded-t-lg flex items-center gap-2"
-                    >
-                      <Settings size={16} />
-                      Cài đặt
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSettingsMenuOpen(false)
-                        logout()
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm text-destructive hover:bg-destructive/10 transition rounded-b-lg flex items-center gap-2"
-                    >
-                      <LogOut size={16} />
-                      Đăng xuất
-                    </button>
-                  </div>
-                )}
-              </div>
+            <div className="relative">
+              <button
+                onClick={() => setSettingsMenuOpen(!settingsMenuOpen)}
+                className="p-2 text-muted-foreground hover:bg-muted rounded-lg transition"
+                title="Cài đặt"
+              >
+                <Settings size={20} />
+              </button>
+
+              {settingsMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg z-50">
+                  <button
+                    onClick={toggleTheme}
+                    className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted transition rounded-t-lg flex items-center gap-2"
+                  >
+                    {theme === "light" ? <Moon size={16} /> : <Sun size={16} />}
+                    {theme === "light" ? "Chế độ tối" : "Chế độ sáng"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSettingsMenuOpen(false)
+                      // TODO: Add settings page functionality
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted transition flex items-center gap-2"
+                  >
+                    <Settings size={16} />
+                    Cài đặt
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSettingsMenuOpen(false)
+                      logout()
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-destructive hover:bg-destructive/10 transition rounded-b-lg flex items-center gap-2"
+                  >
+                    <LogOut size={16} />
+                    Đăng xuất
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
