@@ -18,6 +18,7 @@ export default function Header({
 }) {
   const { logout } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false)
   const [theme, setTheme] = useState<"light" | "dark">("light")
   const [mounted, setMounted] = useState(false)
 
@@ -54,7 +55,10 @@ export default function Header({
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center gap-3">
+          <button
+            onClick={() => onTabChange?.("dashboard")}
+            className="flex items-center gap-3 hover:opacity-80 transition cursor-pointer"
+          >
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80">
               <span className="text-lg font-bold text-primary-foreground">📅</span>
             </div>
@@ -62,7 +66,7 @@ export default function Header({
               <h1 className="text-xl font-bold text-foreground">MeetFlow</h1>
               <p className="text-xs text-muted-foreground">Quản lý cuộc họp</p>
             </div>
-          </div>
+          </button>
 
           {/* Desktop Navigation */}
           <nav className="hidden items-center gap-1 md:flex">
@@ -71,7 +75,6 @@ export default function Header({
               <NavItem label="Quản lý User" active={activeTab === "users"} onClick={() => onTabChange?.("users")} />
             )}
             <NavItem label="Báo cáo" />
-            <NavItem label="Cài đặt" />
           </nav>
 
           {/* Right Icons */}
@@ -88,9 +91,6 @@ export default function Header({
               <Bell size={20} />
               <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-destructive"></span>
             </button>
-            <button className="p-2 text-muted-foreground hover:bg-muted rounded-lg transition hidden sm:block">
-              <Settings size={20} />
-            </button>
 
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-foreground">
@@ -102,13 +102,41 @@ export default function Header({
                   </span>
                 )}
               </div>
-              <button
-                onClick={logout}
-                className="p-2 text-muted-foreground hover:bg-destructive/20 hover:text-destructive rounded-lg transition"
-                title="Đăng xuất"
-              >
-                <LogOut size={18} />
-              </button>
+
+              <div className="relative">
+                <button
+                  onClick={() => setSettingsMenuOpen(!settingsMenuOpen)}
+                  className="p-2 text-muted-foreground hover:bg-muted rounded-lg transition"
+                  title="Cài đặt"
+                >
+                  <Settings size={20} />
+                </button>
+
+                {settingsMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg z-50">
+                    <button
+                      onClick={() => {
+                        setSettingsMenuOpen(false)
+                        // TODO: Add settings page functionality
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted transition rounded-t-lg flex items-center gap-2"
+                    >
+                      <Settings size={16} />
+                      Cài đặt
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSettingsMenuOpen(false)
+                        logout()
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-destructive hover:bg-destructive/10 transition rounded-b-lg flex items-center gap-2"
+                    >
+                      <LogOut size={16} />
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Mobile Menu Button */}
@@ -144,7 +172,6 @@ export default function Header({
                 />
               )}
               <MobileNavItem label="Báo cáo" />
-              <MobileNavItem label="Cài đặt" />
             </nav>
           </div>
         )}
