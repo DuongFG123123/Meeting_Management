@@ -1,9 +1,22 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Bell, Settings, User, Menu, X, Moon, Sun } from "lucide-react"
+import { Bell, Settings, UserIcon, Menu, X, Moon, Sun, LogOut } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
+import type { User } from "@/hooks/use-auth"
 
-export default function Header() {
+export default function Header({
+  user,
+  activeTab,
+  onTabChange,
+  isAdmin,
+}: {
+  user: User
+  activeTab?: "dashboard" | "users"
+  onTabChange?: (tab: "dashboard" | "users") => void
+  isAdmin?: boolean
+}) {
+  const { logout } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [theme, setTheme] = useState<"light" | "dark">("light")
   const [mounted, setMounted] = useState(false)
@@ -53,8 +66,10 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden items-center gap-1 md:flex">
-            <NavItem label="Dashboard" active />
-            <NavItem label="Cuộc họp" />
+            <NavItem label="Dashboard" active={activeTab === "dashboard"} onClick={() => onTabChange?.("dashboard")} />
+            {isAdmin && (
+              <NavItem label="Quản lý User" active={activeTab === "users"} onClick={() => onTabChange?.("users")} />
+            )}
             <NavItem label="Báo cáo" />
             <NavItem label="Cài đặt" />
           </nav>
@@ -76,10 +91,25 @@ export default function Header() {
             <button className="p-2 text-muted-foreground hover:bg-muted rounded-lg transition hidden sm:block">
               <Settings size={20} />
             </button>
-            <button className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-foreground hover:bg-muted/80 transition">
-              <User size={18} />
-              <span className="hidden sm:inline text-sm font-medium">Admin</span>
-            </button>
+
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-foreground">
+                <UserIcon size={18} />
+                <span className="hidden sm:inline text-sm font-medium">{user.fullName}</span>
+                {isAdmin && (
+                  <span className="ml-2 px-2 py-1 bg-primary text-primary-foreground rounded text-xs font-semibold">
+                    Admin
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={logout}
+                className="p-2 text-muted-foreground hover:bg-destructive/20 hover:text-destructive rounded-lg transition"
+                title="Đăng xuất"
+              >
+                <LogOut size={18} />
+              </button>
+            </div>
 
             {/* Mobile Menu Button */}
             <button
@@ -95,8 +125,24 @@ export default function Header() {
         {mobileMenuOpen && (
           <div className="border-t border-border py-4 md:hidden">
             <nav className="flex flex-col gap-2">
-              <MobileNavItem label="Dashboard" active />
-              <MobileNavItem label="Cuộc họp" />
+              <MobileNavItem
+                label="Dashboard"
+                active={activeTab === "dashboard"}
+                onClick={() => {
+                  onTabChange?.("dashboard")
+                  setMobileMenuOpen(false)
+                }}
+              />
+              {isAdmin && (
+                <MobileNavItem
+                  label="Quản lý User"
+                  active={activeTab === "users"}
+                  onClick={() => {
+                    onTabChange?.("users")
+                    setMobileMenuOpen(false)
+                  }}
+                />
+              )}
               <MobileNavItem label="Báo cáo" />
               <MobileNavItem label="Cài đặt" />
             </nav>
@@ -107,10 +153,19 @@ export default function Header() {
   )
 }
 
-function NavItem({ label, active }: { label: string; active?: boolean }) {
+function NavItem({
+  label,
+  active,
+  onClick,
+}: {
+  label: string
+  active?: boolean
+  onClick?: () => void
+}) {
   return (
     <button
-      className={`px-4 py-2 text-sm font-medium rounded-lg transition ${
+      onClick={onClick}
+      className={`px-4 py-2 text-sm font-medium rounded-lg transition cursor-pointer ${
         active ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-muted"
       }`}
     >
@@ -119,10 +174,19 @@ function NavItem({ label, active }: { label: string; active?: boolean }) {
   )
 }
 
-function MobileNavItem({ label, active }: { label: string; active?: boolean }) {
+function MobileNavItem({
+  label,
+  active,
+  onClick,
+}: {
+  label: string
+  active?: boolean
+  onClick?: () => void
+}) {
   return (
     <button
-      className={`px-4 py-2 text-sm font-medium rounded-lg text-left transition ${
+      onClick={onClick}
+      className={`px-4 py-2 text-sm font-medium rounded-lg text-left transition cursor-pointer ${
         active ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-muted"
       }`}
     >
