@@ -14,7 +14,6 @@ import type { User } from "@/hooks/use-auth"
 export default function OverviewPage({ user }: { user: User }) {
   const [activeTab, setActiveTab] = useState<"dashboard" | "users" | "devices" | "rooms" | "reports">("dashboard")
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const isAdmin = user.role === "admin"
 
@@ -25,7 +24,7 @@ export default function OverviewPage({ user }: { user: User }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header user={user} />
+      <Header user={user} onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
 
       <div className="flex">
         {/* Sidebar */}
@@ -35,13 +34,10 @@ export default function OverviewPage({ user }: { user: User }) {
           activeTab={activeTab}
           onTabChange={handleTabChange}
           user={user}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-          isCollapsed={sidebarCollapsed}
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
         />
 
-        {/* Main Content */}
-        <div className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? "md:ml-20" : "md:ml-64"}`}>
+        <div className="flex-1 transition-all duration-300 w-full">
           <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
             {activeTab === "dashboard" ? (
               <>
