@@ -25,7 +25,7 @@ export default function OverviewPage({ user }: { user: User }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header user={user} onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+      <Header user={user} />
 
       <div className="flex">
         {/* Sidebar */}
@@ -37,6 +37,7 @@ export default function OverviewPage({ user }: { user: User }) {
           user={user}
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           isCollapsed={sidebarCollapsed}
+          onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
         />
 
         {/* Main Content */}
