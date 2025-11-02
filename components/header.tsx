@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Bell, Settings, UserIcon, Menu, X, Moon, Sun, LogOut } from "lucide-react"
+import { Bell, Settings, UserIcon, Menu, X, Moon, Sun, LogOut, ChevronDown } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import type { User } from "@/hooks/use-auth"
 
@@ -12,13 +12,14 @@ export default function Header({
   isAdmin,
 }: {
   user: User
-  activeTab?: "dashboard" | "users"
-  onTabChange?: (tab: "dashboard" | "users") => void
+  activeTab?: "dashboard" | "users" | "devices" | "rooms" | "reports"
+  onTabChange?: (tab: "dashboard" | "users" | "devices" | "rooms" | "reports") => void
   isAdmin?: boolean
 }) {
   const { logout } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false)
+  const [managementMenuOpen, setManagementMenuOpen] = useState(false)
   const [theme, setTheme] = useState<"light" | "dark">("light")
   const [mounted, setMounted] = useState(false)
 
@@ -72,9 +73,48 @@ export default function Header({
           <nav className="hidden items-center gap-1 md:flex">
             <NavItem label="Dashboard" active={activeTab === "dashboard"} onClick={() => onTabChange?.("dashboard")} />
             {isAdmin && (
-              <NavItem label="Quản lý User" active={activeTab === "users"} onClick={() => onTabChange?.("users")} />
+              <div className="relative group">
+                <button className="px-4 py-2 text-sm font-medium rounded-lg transition cursor-pointer flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted">
+                  Quản lý
+                  <ChevronDown size={16} />
+                </button>
+                <div className="absolute left-0 mt-0 w-48 bg-card border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <ManagementMenuItem
+                    label="Người dùng & quyền hạn"
+                    onClick={() => {
+                      onTabChange?.("users")
+                      setManagementMenuOpen(false)
+                    }}
+                    active={activeTab === "users"}
+                  />
+                  <ManagementMenuItem
+                    label="Quản lý thiết bị"
+                    onClick={() => {
+                      onTabChange?.("devices")
+                      setManagementMenuOpen(false)
+                    }}
+                    active={activeTab === "devices"}
+                  />
+                  <ManagementMenuItem
+                    label="Quản lý phòng họp"
+                    onClick={() => {
+                      onTabChange?.("rooms")
+                      setManagementMenuOpen(false)
+                    }}
+                    active={activeTab === "rooms"}
+                  />
+                  <ManagementMenuItem
+                    label="Thống kê và báo cáo"
+                    onClick={() => {
+                      onTabChange?.("reports")
+                      setManagementMenuOpen(false)
+                    }}
+                    active={activeTab === "reports"}
+                    isLast
+                  />
+                </div>
+              </div>
             )}
-            <NavItem label="Báo cáo" />
           </nav>
 
           {/* Right Icons */}
@@ -161,16 +201,41 @@ export default function Header({
                 }}
               />
               {isAdmin && (
-                <MobileNavItem
-                  label="Quản lý User"
-                  active={activeTab === "users"}
-                  onClick={() => {
-                    onTabChange?.("users")
-                    setMobileMenuOpen(false)
-                  }}
-                />
+                <>
+                  <MobileNavItem
+                    label="Người dùng & quyền hạn"
+                    active={activeTab === "users"}
+                    onClick={() => {
+                      onTabChange?.("users")
+                      setMobileMenuOpen(false)
+                    }}
+                  />
+                  <MobileNavItem
+                    label="Quản lý thiết bị"
+                    active={activeTab === "devices"}
+                    onClick={() => {
+                      onTabChange?.("devices")
+                      setMobileMenuOpen(false)
+                    }}
+                  />
+                  <MobileNavItem
+                    label="Quản lý phòng họp"
+                    active={activeTab === "rooms"}
+                    onClick={() => {
+                      onTabChange?.("rooms")
+                      setMobileMenuOpen(false)
+                    }}
+                  />
+                  <MobileNavItem
+                    label="Thống kê và báo cáo"
+                    active={activeTab === "reports"}
+                    onClick={() => {
+                      onTabChange?.("reports")
+                      setMobileMenuOpen(false)
+                    }}
+                  />
+                </>
               )}
-              <MobileNavItem label="Báo cáo" />
             </nav>
           </div>
         )}
@@ -194,6 +259,29 @@ function NavItem({
       className={`px-4 py-2 text-sm font-medium rounded-lg transition cursor-pointer ${
         active ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-muted"
       }`}
+    >
+      {label}
+    </button>
+  )
+}
+
+function ManagementMenuItem({
+  label,
+  active,
+  onClick,
+  isLast,
+}: {
+  label: string
+  active?: boolean
+  onClick?: () => void
+  isLast?: boolean
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted transition flex items-center gap-2 ${
+        active ? "bg-primary/10 text-primary" : ""
+      } ${isLast ? "rounded-b-lg" : ""}`}
     >
       {label}
     </button>
