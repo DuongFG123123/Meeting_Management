@@ -9,25 +9,39 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AlertCircle, CheckCircle } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 
+// ===== COMPONENT: Auth Form (Đăng nhập / Đăng ký) =====
 export default function AuthForm() {
   const { login, register } = useAuth()
+
+  // State: isLogin = true (đăng nhập), isLogin = false (đăng ký)
   const [isLogin, setIsLogin] = useState(true)
+
+  // State: đang xử lý request (hiển thị loading)
   const [isLoading, setIsLoading] = useState(false)
+
+  // State: thông báo thành công
   const [successMessage, setSuccessMessage] = useState("")
+
+  // State: thông báo lỗi
   const [errorMessage, setErrorMessage] = useState("")
+
+  // State: dữ liệu form (email, password, fullName)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     fullName: "",
   })
 
+  // ===== HÀM: Cập nhật input field =====
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    // Xóa thông báo khi user nhập
     setErrorMessage("")
     setSuccessMessage("")
   }
 
+  // ===== HÀM: Submit form (Đăng nhập hoặc Đăng ký) =====
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage("")
@@ -36,17 +50,22 @@ export default function AuthForm() {
 
     try {
       if (isLogin) {
+        // Nếu là đăng nhập: gọi hàm login
         await login(formData.email, formData.password)
         window.location.reload()
       } else {
+        // Nếu là đăng ký: kiểm tra fullName
         if (!formData.fullName.trim()) {
           throw new Error("Vui lòng nhập họ và tên")
         }
+        // Gọi hàm register
         await register(formData.email, formData.password, formData.fullName)
+        // Sau đó tự động đăng nhập
         await login(formData.email, formData.password)
         window.location.reload()
       }
     } catch (error) {
+      // Hiển thị lỗi nếu có
       setErrorMessage(error instanceof Error ? error.message : "Có lỗi xảy ra")
       setIsLoading(false)
     }
@@ -56,11 +75,14 @@ export default function AuthForm() {
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-accent/10 flex items-center justify-center px-4 py-8">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-2">
+          {/* Logo */}
           <div className="flex justify-center mb-2">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80">
               <span className="text-2xl">📅</span>
             </div>
           </div>
+
+          {/* Tiêu đề */}
           <CardTitle className="text-center text-2xl">MeetFlow</CardTitle>
           <CardDescription className="text-center">
             {isLogin ? "Đăng nhập vào tài khoản" : "Tạo tài khoản mới"}
@@ -68,6 +90,7 @@ export default function AuthForm() {
         </CardHeader>
 
         <CardContent>
+          {/* Thông báo thành công */}
           {successMessage && (
             <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-950 p-3 text-sm text-green-700 dark:text-green-300">
               <CheckCircle size={18} />
@@ -75,6 +98,7 @@ export default function AuthForm() {
             </div>
           )}
 
+          {/* Thông báo lỗi */}
           {errorMessage && (
             <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 dark:bg-red-950 p-3 text-sm text-red-700 dark:text-red-300">
               <AlertCircle size={18} />
@@ -83,6 +107,7 @@ export default function AuthForm() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Input Họ và tên (chỉ hiển thị khi đang đăng ký) */}
             {!isLogin && (
               <div className="space-y-2">
                 <Label htmlFor="fullName">Họ và Tên</Label>
@@ -98,6 +123,7 @@ export default function AuthForm() {
               </div>
             )}
 
+            {/* Input Email */}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -112,6 +138,7 @@ export default function AuthForm() {
               />
             </div>
 
+            {/* Input Mật khẩu */}
             <div className="space-y-2">
               <Label htmlFor="password">Mật khẩu</Label>
               <Input
@@ -126,17 +153,20 @@ export default function AuthForm() {
               />
             </div>
 
+            {/* Nút submit */}
             <Button className="w-full" type="submit" disabled={isLoading}>
               {isLoading ? "Đang xử lý..." : isLogin ? "Đăng nhập" : "Đăng ký"}
             </Button>
           </form>
 
+          {/* Dòng phân cách */}
           <div className="mt-4 flex items-center gap-2">
             <div className="flex-1 h-px bg-border"></div>
             <span className="text-xs text-muted-foreground">hoặc</span>
             <div className="flex-1 h-px bg-border"></div>
           </div>
 
+          {/* Nút chuyển đổi giữa Đăng nhập / Đăng ký */}
           <button
             onClick={() => {
               setIsLogin(!isLogin)
