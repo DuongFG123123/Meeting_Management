@@ -103,7 +103,14 @@ export default function DeviceManagement() {
     }
     return labels[status] || status
   }
-
+  const deviceTypeLabels: { [key: string]: string } = {
+    projector: "Máy chiếu",
+    speaker: "Loa",
+    microphone: "Microphone",
+    camera: "Camera",
+    screen: "Màn hình",
+    other: "Khác",
+  }
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -152,7 +159,7 @@ export default function DeviceManagement() {
                 {filteredDevices.map((device) => (
                   <tr key={device.id} className="border-b border-border hover:bg-muted/50 transition">
                     <td className="px-6 py-4 text-sm text-foreground font-medium">{device.name}</td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">{device.type}</td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">{deviceTypeLabels[device.type] || device.type}</td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">{device.location}</td>
                     <td className="px-6 py-4 text-sm">
                       <span
