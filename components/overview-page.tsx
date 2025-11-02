@@ -5,16 +5,18 @@ import UpcomingMeetings from "./upcoming-meetings"
 import QuickActions from "./quick-actions"
 import Header from "./header"
 import UserManagement from "./user-management"
+import DeviceManagement from "./device-management"
+import MeetingRoomManagement from "./meeting-room-management"
+import StatisticsReports from "./statistics-reports"
 import type { User } from "@/hooks/use-auth"
 
 export default function OverviewPage({ user }: { user: User }) {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "users">("dashboard")
+  const [activeTab, setActiveTab] = useState<"dashboard" | "users" | "devices" | "rooms" | "reports">("dashboard")
 
   const isAdmin = user.role === "admin"
 
-  // Reset tab to dashboard if non-admin tries to access users
-  const handleTabChange = (tab: "dashboard" | "users") => {
-    if (tab === "users" && !isAdmin) return
+  const handleTabChange = (tab: "dashboard" | "users" | "devices" | "rooms" | "reports") => {
+    if (tab !== "dashboard" && !isAdmin) return
     setActiveTab(tab)
   }
 
@@ -43,8 +45,14 @@ export default function OverviewPage({ user }: { user: User }) {
               </div>
             </div>
           </>
-        ) : (
+        ) : activeTab === "users" ? (
           <UserManagement />
+        ) : activeTab === "devices" ? (
+          <DeviceManagement />
+        ) : activeTab === "rooms" ? (
+          <MeetingRoomManagement />
+        ) : (
+          <StatisticsReports />
         )}
       </div>
     </div>
