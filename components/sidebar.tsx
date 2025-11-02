@@ -1,5 +1,5 @@
 "use client"
-import { X, LayoutDashboard, Users, Cog as Cog2, Building2, BarChart3 } from "lucide-react"
+import { LayoutDashboard, Users, Cog as Cog2, Building2, BarChart3, ChevronLeft, ChevronRight } from "lucide-react"
 import type { User } from "@/hooks/use-auth"
 
 export default function Sidebar({
@@ -8,12 +8,16 @@ export default function Sidebar({
   activeTab,
   onTabChange,
   user,
+  onToggleCollapse,
+  isCollapsed,
 }: {
   isOpen: boolean
   onClose: () => void
   activeTab: "dashboard" | "users" | "devices" | "rooms" | "reports"
   onTabChange: (tab: "dashboard" | "users" | "devices" | "rooms" | "reports") => void
   user: User
+  onToggleCollapse: () => void
+  isCollapsed: boolean
 }) {
   const isAdmin = user.role === "admin"
 
@@ -29,26 +33,37 @@ export default function Sidebar({
 
       {/* Sidebar */}
       <div
-        className={`fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-card border-r border-border shadow-lg transform transition-transform duration-300 z-40 overflow-y-auto md:translate-x-0 ${
-          isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-card border-r border-border shadow-lg transform transition-all duration-300 z-40 overflow-y-auto flex flex-col ${
+          isCollapsed ? "w-20" : "w-64"
         }`}
       >
-        {/* Close Button - Mobile Only */}
+        {/* Collapse Button - Desktop Only */}
         <button
-          onClick={onClose}
-          className="absolute right-4 top-4 p-1 text-muted-foreground hover:bg-muted rounded-lg md:hidden"
+          onClick={onToggleCollapse}
+          className="hidden md:flex absolute -right-3 top-4 p-1 bg-card border border-border text-muted-foreground hover:bg-muted rounded-full transition"
+          title="Thu gọn"
         >
-          <X size={20} />
+          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
 
+        {/* Logo Section - Show only when collapsed */}
+        {isCollapsed && (
+          <div className="flex items-center justify-center h-16 border-b border-border">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80">
+              <span className="text-sm font-bold text-primary-foreground">📅</span>
+            </div>
+          </div>
+        )}
+
         {/* Navigation Items */}
-        <nav className="flex flex-col gap-1 p-4 mt-8 md:mt-0">
+        <nav className={`flex flex-col gap-1 ${isCollapsed ? "p-2" : "p-4"} flex-1`}>
           {/* Dashboard */}
           <SidebarItem
             icon={LayoutDashboard}
             label="Dashboard"
             active={activeTab === "dashboard"}
             onClick={() => handleTabClick("dashboard")}
+            isCollapsed={isCollapsed}
           />
 
           {isAdmin && (
@@ -58,6 +73,7 @@ export default function Sidebar({
                 label="Người dùng & quyền hạn"
                 active={activeTab === "users"}
                 onClick={() => handleTabClick("users")}
+                isCollapsed={isCollapsed}
               />
 
               <SidebarItem
@@ -65,6 +81,7 @@ export default function Sidebar({
                 label="Quản lý thiết bị"
                 active={activeTab === "devices"}
                 onClick={() => handleTabClick("devices")}
+                isCollapsed={isCollapsed}
               />
 
               <SidebarItem
@@ -72,6 +89,7 @@ export default function Sidebar({
                 label="Quản lý phòng họp"
                 active={activeTab === "rooms"}
                 onClick={() => handleTabClick("rooms")}
+                isCollapsed={isCollapsed}
               />
 
               <SidebarItem
@@ -79,6 +97,7 @@ export default function Sidebar({
                 label="Thống kê và báo cáo"
                 active={activeTab === "reports"}
                 onClick={() => handleTabClick("reports")}
+                isCollapsed={isCollapsed}
               />
             </>
           )}
@@ -93,21 +112,24 @@ function SidebarItem({
   label,
   active,
   onClick,
+  isCollapsed,
 }: {
   icon: any
   label: string
   active: boolean
   onClick: () => void
+  isCollapsed: boolean
 }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition text-sm font-medium ${
+      className={`flex items-center gap-3 px-4 py-2 rounded-lg transition text-sm font-medium ${
         active ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-      }`}
+      } ${isCollapsed ? "justify-center px-2" : ""}`}
+      title={isCollapsed ? label : ""}
     >
       <Icon size={18} />
-      <span>{label}</span>
+      {!isCollapsed && <span>{label}</span>}
     </button>
   )
 }
