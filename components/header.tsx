@@ -1,16 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Bell, Settings, UserIcon, Menu, Moon, Sun, LogOut } from "lucide-react"
+import { Bell, Settings, UserIcon, Moon, Sun, LogOut } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import type { User } from "@/hooks/use-auth"
 
 export default function Header({
   user,
-  onMenuClick,
 }: {
   user: User
-  onMenuClick: () => void
 }) {
   const { logout } = useAuth()
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false)
@@ -49,28 +47,16 @@ export default function Header({
     <header className="sticky top-0 z-40 border-b border-border bg-card shadow-sm">
       <div className="mx-auto w-full px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onMenuClick}
-              className="p-2 text-muted-foreground hover:bg-muted rounded-lg transition"
-              title="Mở menu"
-            >
-              <Menu size={20} />
-            </button>
-
-            {/* Logo */}
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80">
-                <span className="text-lg font-bold text-primary-foreground">📅</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">MeetFlow</h1>
-                <p className="text-xs text-muted-foreground">Quản lý cuộc họp</p>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80">
+              <span className="text-lg font-bold text-primary-foreground">📅</span>
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">MeetFlow</h1>
+              <p className="text-xs text-muted-foreground">Quản lý cuộc họp</p>
             </div>
           </div>
 
-          {/* Right Icons */}
           <div className="flex items-center gap-2 sm:gap-4">
             <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-foreground">
               <UserIcon size={18} />
