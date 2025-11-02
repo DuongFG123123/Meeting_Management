@@ -51,13 +51,8 @@ export default function Sidebar({
             onClick={() => handleTabClick("dashboard")}
           />
 
-          {/* Management Section - Admin Only */}
           {isAdmin && (
             <>
-              <div className="my-4 px-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quản lý</p>
-              </div>
-
               <SidebarItem
                 icon={Users}
                 label="Người dùng & quyền hạn"
