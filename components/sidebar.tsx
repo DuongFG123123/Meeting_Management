@@ -1,5 +1,5 @@
 "use client"
-import { LayoutDashboard, Users, Cog as Cog2, Building2, BarChart3, ChevronLeft, ChevronRight } from "lucide-react"
+import { LayoutDashboard, Users, Cog as Cog2, Building2, BarChart3, Menu, X } from "lucide-react"
 import type { User } from "@/hooks/use-auth"
 
 export default function Sidebar({
@@ -37,18 +37,18 @@ export default function Sidebar({
           isCollapsed ? "w-20" : "w-64"
         }`}
       >
-        {/* Collapse Button - Desktop Only */}
+        {/* Collapse Button - Desktop Only with Hamburger Icon */}
         <button
           onClick={onToggleCollapse}
-          className="hidden md:flex absolute -right-3 top-4 p-1 bg-card border border-border text-muted-foreground hover:bg-muted rounded-full transition"
-          title="Thu gọn"
+          className="hidden md:flex items-center justify-center p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition m-2"
+          title={isCollapsed ? "Mở menu" : "Thu gọn menu"}
         >
-          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          {isCollapsed ? <Menu size={20} /> : <X size={20} />}
         </button>
 
         {/* Logo Section - Show only when collapsed */}
         {isCollapsed && (
-          <div className="flex items-center justify-center h-16 border-b border-border">
+          <div className="flex items-center justify-center h-12 border-b border-border">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80">
               <span className="text-sm font-bold text-primary-foreground">📅</span>
             </div>
