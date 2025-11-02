@@ -22,9 +22,14 @@ export default function OverviewPage({ user }: { user: User }) {
     setActiveTab(tab)
   }
 
+  const handleGoToDashboard = () => {
+    setActiveTab("dashboard")
+    setSidebarOpen(false)
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <Header user={user} onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
+      <Header user={user} onMenuToggle={() => setSidebarOpen(!sidebarOpen)} onGoToDashboard={handleGoToDashboard} />
 
       <div className="flex">
         {/* Sidebar */}
