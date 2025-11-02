@@ -8,9 +8,11 @@ import type { User } from "@/hooks/use-auth"
 export default function Header({
   user,
   onMenuToggle,
+  onGoToDashboard,
 }: {
   user: User
   onMenuToggle: () => void
+  onGoToDashboard?: () => void
 }) {
   const { logout } = useAuth()
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false)
@@ -58,13 +60,19 @@ export default function Header({
               <Menu size={24} />
             </button>
 
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80">
-              <span className="text-lg font-bold text-primary-foreground">📅</span>
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">MeetFlow</h1>
-              <p className="text-xs text-muted-foreground">Quản lý cuộc họp</p>
-            </div>
+            <button
+              onClick={onGoToDashboard}
+              className="flex items-center gap-2 hover:opacity-80 transition"
+              title="Về dashboard"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80">
+                <span className="text-lg font-bold text-primary-foreground">📅</span>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-foreground">MeetFlow</h1>
+                <p className="text-xs text-muted-foreground">Quản lý cuộc họp</p>
+              </div>
+            </button>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
