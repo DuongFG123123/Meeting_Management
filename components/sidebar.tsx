@@ -31,7 +31,7 @@ export default function Sidebar({
 
       <div
         className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-card border-r border-border shadow-lg transition-all duration-300 z-40 overflow-y-auto flex flex-col ${
-          isOpen ? "w-64" : "hidden md:flex md:w-64"
+          isOpen ? "w-64" : "w-0"
         }`}
       >
         {/* Navigation Items */}
