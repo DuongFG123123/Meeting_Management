@@ -1,6 +1,7 @@
 "use client"
 import { LayoutDashboard, Users, Cog as Cog2, Building2, BarChart3 } from "lucide-react"
 import type { User } from "@/hooks/use-auth"
+import { motion } from "framer-motion"
 
 export default function Sidebar({
   isOpen,
@@ -26,17 +27,17 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Backdrop for mobile */}
+      {/* Backdrop cho mobile */}
       {isOpen && <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={onClose} />}
 
-      <div
-        className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-card border-r border-border shadow-lg transition-all duration-300 z-40 overflow-y-auto flex flex-col ${
-          isOpen ? "w-64" : "w-0"
-        }`}
+      <motion.div
+        animate={{ width: isOpen ? "auto" : 0, opacity: isOpen ? 1 : 0 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className="fixed left-0 top-16 h-[calc(100vh-4rem)] bg-card border-r border-border shadow-lg z-40 overflow-y-auto overflow-x-hidden flex flex-col"
+        style={{ minWidth: isOpen ? "17rem" : "0rem", maxWidth: "20rem" }} // Giới hạn chiều rộng
       >
         {/* Navigation Items */}
         <nav className="flex flex-col gap-1 p-4 flex-1">
-          {/* Dashboard */}
           <SidebarItem
             icon={LayoutDashboard}
             label="Dashboard"
@@ -69,14 +70,14 @@ export default function Sidebar({
 
               <SidebarItem
                 icon={BarChart3}
-                label="Thống kê và báo cáo"
+                label="Thống kê & báo cáo"
                 active={activeTab === "reports"}
                 onClick={() => handleTabClick("reports")}
               />
             </>
           )}
         </nav>
-      </div>
+      </motion.div>
     </>
   )
 }
@@ -95,7 +96,7 @@ function SidebarItem({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 px-4 py-2 rounded-lg transition text-sm font-medium ${
+      className={`flex items-center gap-3 px-4 py-2 rounded-lg transition text-sm font-medium whitespace-nowrap ${
         active ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-muted"
       }`}
     >
