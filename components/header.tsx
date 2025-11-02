@@ -1,14 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Bell, Settings, UserIcon, Moon, Sun, LogOut } from "lucide-react"
+import { Bell, Settings, UserIcon, Moon, Sun, LogOut, Menu } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import type { User } from "@/hooks/use-auth"
 
 export default function Header({
   user,
+  onMenuToggle,
 }: {
   user: User
+  onMenuToggle: () => void
 }) {
   const { logout } = useAuth()
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false)
@@ -48,6 +50,14 @@ export default function Header({
       <div className="mx-auto w-full px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
+            <button
+              onClick={onMenuToggle}
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition"
+              title="Mở menu"
+            >
+              <Menu size={24} />
+            </button>
+
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80">
               <span className="text-lg font-bold text-primary-foreground">📅</span>
             </div>
