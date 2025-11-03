@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle, CheckCircle } from "lucide-react"
+import { AlertCircle, CheckCircle, Facebook, Loader2 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 
 // ===== COMPONENT: Auth Form (Đăng nhập / Đăng ký) =====
 export default function AuthForm() {
-  const { login, register } = useAuth()
+  const { login, register, loginWithProvider } = useAuth() // ✅ thêm loginWithProvider
 
   // State: isLogin = true (đăng nhập), isLogin = false (đăng ký)
   const [isLogin, setIsLogin] = useState(true)
@@ -29,8 +29,10 @@ export default function AuthForm() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    confirmPassword: "",
     fullName: "",
   })
+  
 
   // ===== HÀM: Cập nhật input field =====
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,6 +60,10 @@ export default function AuthForm() {
         if (!formData.fullName.trim()) {
           throw new Error("Vui lòng nhập họ và tên")
         }
+        // 🧠 Kiểm tra mật khẩu xác nhận có khớp không
+        if (formData.password !== formData.confirmPassword) {
+          throw new Error("Mật khẩu xác nhận không khớp") // 🆕 thêm kiểm tra
+        }
         // Gọi hàm register
         await register(formData.email, formData.password, formData.fullName)
         // Sau đó tự động đăng nhập
@@ -67,6 +73,19 @@ export default function AuthForm() {
     } catch (error) {
       // Hiển thị lỗi nếu có
       setErrorMessage(error instanceof Error ? error.message : "Có lỗi xảy ra")
+      setIsLoading(false)
+    }
+  }
+
+  // ===== HÀM: Đăng nhập qua Google / Facebook =====
+  const handleOAuth = async (provider: "google" | "facebook") => {
+    try {
+      setIsLoading(true)
+      await loginWithProvider(provider)
+      window.location.reload()
+    } catch (error) {
+      setErrorMessage("Không thể đăng nhập bằng " + provider)
+    } finally {
       setIsLoading(false)
     }
   }
@@ -152,12 +171,58 @@ export default function AuthForm() {
                 disabled={isLoading}
               />
             </div>
+             {/* 🆕 Thêm ô Xác nhận mật khẩu (chỉ khi đăng ký) */}
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  placeholder="Nhập lại mật khẩu"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            )}
 
             {/* Nút submit */}
             <Button className="w-full" type="submit" disabled={isLoading}>
+              {isLoading ? (
+                <Loader2 className="animate-spin mr-2 h-4 w-4" />
+              ) : null}
               {isLoading ? "Đang xử lý..." : isLogin ? "Đăng nhập" : "Đăng ký"}
             </Button>
           </form>
+
+          {/* ===== Nút đăng nhập bằng Google / Facebook ===== */}
+          <div className="flex flex-col gap-2 mt-4">
+            <Button
+              variant="outline"
+              className="w-full flex items-center justify-center gap-2"
+              onClick={() => handleOAuth("google")}
+              disabled={isLoading}
+            >
+              <img
+                src="https://www.svgrepo.com/show/475656/google-color.svg"
+                alt="Google"
+                className="h-5 w-5"
+              />
+              Đăng nhập với Google
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full flex items-center justify-center gap-2"
+              onClick={() => handleOAuth("facebook")}
+              disabled={isLoading}
+            >
+              <Facebook className="text-blue-600 h-5 w-5" />
+              Đăng nhập với Facebook
+            </Button>
+          </div>
 
           {/* Dòng phân cách */}
           <div className="mt-4 flex items-center gap-2">
@@ -172,7 +237,7 @@ export default function AuthForm() {
               setIsLogin(!isLogin)
               setErrorMessage("")
               setSuccessMessage("")
-              setFormData({ email: "", password: "", fullName: "" })
+              setFormData({ email: "", password: "", fullName: "",confirmPassword: "" })
             }}
             className="mt-4 w-full text-sm text-primary hover:text-primary/80 font-medium transition"
           >
