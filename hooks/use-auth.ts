@@ -28,6 +28,16 @@ export interface AuthContextType {
 
 // ===== MAIN HOOK FUNCTION =====
 export function useAuth() {
+  const loginWithProvider = async (provider: "google" | "facebook") => {
+  const fakeUser = {
+    email: `${provider}_user@example.com`,
+    fullName:
+      provider === "google"
+        ? "Người dùng Google"
+        : "Người dùng Facebook",
+  }
+  localStorage.setItem("user", JSON.stringify(fakeUser))
+}
   // State: lưu thông tin user hiện tại
   const [user, setUser] = useState<User | null>(null)
   // State: lưu trạng thái đang load dữ liệu
@@ -186,5 +196,6 @@ export function useAuth() {
     register,
     logout,
     createUserByAdmin,
+    loginWithProvider,
   }
 }
