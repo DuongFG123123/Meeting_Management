@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Bell, Settings, UserIcon, Moon, Sun, LogOut, Menu } from "lucide-react"
+import { Bell, Settings, UserIcon, Moon, Sun, LogOut, PanelRight  } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import type { User } from "@/hooks/use-auth"
 
@@ -57,7 +57,7 @@ export default function Header({
               className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition"
               title="Mở menu"
             >
-              <Menu size={24} />
+              <PanelRight size={24} />
             </button>
 
             <button
