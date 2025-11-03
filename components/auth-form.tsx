@@ -149,7 +149,7 @@ export default function AuthForm() {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="your@email.com"
+                placeholder="Nhập email của bạn"
                 value={formData.email}
                 onChange={handleInputChange}
                 required
@@ -164,7 +164,7 @@ export default function AuthForm() {
                 id="password"
                 name="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="Nhập mật khẩu của bạn"
                 value={formData.password}
                 onChange={handleInputChange}
                 required
