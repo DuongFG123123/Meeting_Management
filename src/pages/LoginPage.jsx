@@ -1,28 +1,55 @@
-import { useState } from "react";
-import { useAuth } from "../context/AuthContext";
+// src/pages/LoginPage.jsx
+import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate, Link } from 'react-router-dom';
+import api from '../utils/api'; // Import Axios
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState("admin");
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    login(email, role);
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // 1. Gọi API Backend
+      const response = await api.post('/auth/login', {
+        username: email,
+        password: password,
+      });
+
+      // 2. Lấy accessToken từ response
+      const accessToken = response.data.accessToken;
+
+      // 3. Gọi hàm login của Context để lưu token
+      login(accessToken); 
+      
+      // 4. Chuyển hướng
+      navigate('/'); // Chuyển đến trang Dashboard
+    } catch (err) {
+      if (err.response && (err.response.status === 401 || err.response.status === 404)) {
+        setError('Sai tên đăng nhập hoặc mật khẩu.');
+      } else {
+        setError('Đã xảy ra lỗi kết nối. Vui lòng thử lại.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center mb-3">
-            <span className="text-3xl text-white font-bold">🗓️</span>
-          </div>
-          <h1 className="text-2xl font-semibold text-gray-900">MeetFlow</h1>
-          <p className="text-gray-500 mt-1">Đăng nhập vào tài khoản</p>
-        </div>
-
+        <h1 className="text-2xl font-semibold text-gray-900 text-center mb-6">
+          Đăng nhập
+        </h1>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -34,7 +61,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
               required
-              className="w-full rounded-xl border border-gray-300 px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-xl border border-gray-300 px-3 py-2"
             />
           </div>
 
@@ -47,30 +74,32 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full rounded-xl border border-gray-300 px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-xl border border-gray-300 px-3 py-2"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Vai trò
-            </label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 px-3 py-2 bg-gray-50 focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="admin">Admin</option>
-              <option value="user">Nhân viên</option>
-            </select>
-          </div>
+          {/* XÓA BỎ Ô CHỌN VAI TRÒ (ROLE) */}
+
+          {error && (
+            <div className="text-red-600 text-sm text-center">{error}</div>
+          )}
 
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl mt-4"
+            disabled={isLoading}
+            className="w-full rounded-xl bg-blue-600 text-white px-3 py-3 font-semibold"
           >
-            Đăng nhập
+            {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
+          
+          <div className="text-sm text-center">
+            <Link 
+              to="/forgot-password" 
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
+              Quên mật khẩu?
+            </Link>
+          </div>
         </form>
       </div>
     </div>
