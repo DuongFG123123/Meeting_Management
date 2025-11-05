@@ -11,9 +11,10 @@ import LoginPage from "./pages/LoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import DashboardPage from "./pages/admin/DashboardPage";
 import UsersPage from "./pages/admin/UsersPage";
+import RoomsPage from "./pages/admin/RoomsPage"; // ✅ Thêm trang Quản lý phòng họp
 import DevicesPage from "./pages/admin/DevicesPage";
 import ReportsPage from "./pages/admin/ReportsPage";
-// import UserDashboard from "./pages/user/UserDashboard"; // (Trang cho User)
+// import UserDashboard from "./pages/user/UserDashboard"; // (Trang cho User sau này)
 
 // Guards (Gác cổng)
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -24,53 +25,48 @@ export default function App() {
 
   return (
     <Routes>
-      {/* === 1. PUBLIC ROUTES (Login, Forgot Password) === */}
-      {/* Các route này dùng PublicLayout (không có Sidebar) */}
+      {/* === 1️⃣ PUBLIC ROUTES (Login, Forgot Password) === */}
       <Route element={<PublicLayout />}>
-        <Route 
-          path="/login" 
-          element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} 
+        <Route
+          path="/login"
+          element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />}
         />
-        <Route 
-          path="/forgot-password" 
-          element={!isAuthenticated ? <ForgotPasswordPage /> : <Navigate to="/" />} 
+        <Route
+          path="/forgot-password"
+          element={!isAuthenticated ? <ForgotPasswordPage /> : <Navigate to="/" />}
         />
-        {/* <Route path="/reset-password" element={<ResetPasswordPage />} /> */}
       </Route>
 
-      {/* === 2. PRIVATE ROUTES (Yêu cầu đăng nhập) === */}
-      {/* Các route này dùng AdminLayout (có Sidebar/Navbar) */}
-      <Route 
-        path="/" // Đặt đường dẫn cha là "/"
+      {/* === 2️⃣ PRIVATE ROUTES (Yêu cầu đăng nhập) === */}
+      <Route
+        path="/"
         element={
-          <ProtectedRoute> {/* Gác cổng 1: Phải đăng nhập */}
+          <ProtectedRoute>
             <AdminLayout />
           </ProtectedRoute>
         }
       >
-        {/* --- 2a. ADMIN Routes (Yêu cầu ROLE_ADMIN) --- */}
-        {/* Các route này lồng trong AdminOnlyRoute */}
+        {/* --- ADMIN ROUTES (Chỉ cho ROLE_ADMIN) --- */}
         <Route element={<AdminOnlyRoute />}>
-          {/* SỬA LỖI: Bỏ dấu / ở đầu */}
           <Route path="admin/dashboard" element={<DashboardPage />} />
           <Route path="admin/users" element={<UsersPage />} />
+          <Route path="admin/rooms" element={<RoomsPage />} /> {/* ✅ Quản lý phòng họp */}
           <Route path="admin/devices" element={<DevicesPage />} />
           <Route path="admin/reports" element={<ReportsPage />} />
-          
-          {/* Đặt trang dashboard admin làm trang chủ */}
+
+          {/* Trang mặc định khi vào "/" */}
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
         </Route>
 
-        {/* --- 2b. USER Routes (Ví dụ) --- */}
-        {/* (Chúng ta sẽ làm trang User sau) */}
+        {/* --- USER ROUTES (để sau) --- */}
         {/* <Route path="user/dashboard" element={<UserDashboard />} /> */}
-        {/* <Route path="my-meetings" element={<MyMeetingsPage />} /> */}
-        
-        {/* Trang mặc định (nếu chỉ vào "/") */}
-        {/* <Route index element={<Navigate to="/user/dashboard" replace />} /> */}
-
       </Route>
 
+      {/* === 3️⃣ TRANG MẶC ĐỊNH (404 hoặc điều hướng) === */}
+      <Route
+        path="*"
+        element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />}
+      />
     </Routes>
   );
 }
