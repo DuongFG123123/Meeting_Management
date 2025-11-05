@@ -6,13 +6,13 @@ import {
   FiHardDrive,
   FiBarChart2,
   FiLogOut,
-} from "react-icons/fi"; // (Cài đặt: npm install react-icons)
-import { useAuth } from "../context/AuthContext"; // (Giả sử bạn đã có AuthContext)
+  FiBriefcase, // 🆕 icon phòng họp
+} from "react-icons/fi";
+import { useAuth } from "../context/AuthContext";
 
 const Sidebar = () => {
-  const { logout } = useAuth(); // (Lấy hàm logout)
+  const { logout } = useAuth();
 
-  // CSS cho NavLink (link đang active và link thường)
   const commonLinkClass =
     "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors";
   const activeLinkClass =
@@ -32,9 +32,10 @@ const Sidebar = () => {
 
         {/* Navigation Links */}
         <nav className="flex-1 p-4 space-y-2">
+          {/* Dashboard */}
           <NavLink
-            to="/admin" // Link tới Dashboard (dùng "end" để nó không bị active khi vào /admin/users)
-            end 
+            to="/admin"
+            end
             className={({ isActive }) =>
               `${commonLinkClass} ${isActive ? activeLinkClass : inactiveLinkClass}`
             }
@@ -43,38 +44,52 @@ const Sidebar = () => {
             Dashboard
           </NavLink>
 
+          {/* Người dùng & quyền hạn */}
           <NavLink
-            to="/admin/users" // Link tới Người dùng
+            to="/admin/users"
             className={({ isActive }) =>
               `${commonLinkClass} ${isActive ? activeLinkClass : inactiveLinkClass}`
             }
           >
             <FiUsers />
-            Người dùng & Quyền hạn
+            Người dùng & quyền hạn
           </NavLink>
 
+          {/* 🏢 Quản lý phòng họp */}
           <NavLink
-            to="/admin/devices" // Link tới Thiết bị
+            to="/admin/rooms"
+            className={({ isActive }) =>
+              `${commonLinkClass} ${isActive ? activeLinkClass : inactiveLinkClass}`
+            }
+          >
+            <FiBriefcase />
+            Quản lý phòng họp
+          </NavLink>
+
+          {/* Quản lý thiết bị */}
+          <NavLink
+            to="/admin/devices"
             className={({ isActive }) =>
               `${commonLinkClass} ${isActive ? activeLinkClass : inactiveLinkClass}`
             }
           >
             <FiHardDrive />
-            Quản lý Thiết bị
+            Quản lý thiết bị
           </NavLink>
 
+          {/* Thống kê & báo cáo */}
           <NavLink
-            to="/admin/reports" // Link tới Báo cáo
+            to="/admin/reports"
             className={({ isActive }) =>
               `${commonLinkClass} ${isActive ? activeLinkClass : inactiveLinkClass}`
             }
           >
             <FiBarChart2 />
-            Thống kê & Báo cáo
+            Thống kê & báo cáo
           </NavLink>
         </nav>
 
-        {/* Logout Button */}
+        {/* Logout */}
         <div className="p-4 border-t dark:border-slate-800">
           <button
             onClick={logout}
