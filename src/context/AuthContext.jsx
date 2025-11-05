@@ -1,60 +1,94 @@
-// src/context/AuthContext.jsx
-import { createContext, useContext, useState, useEffect } from 'react';
-import { jwtDecode } from 'jwt-decode'; // Cài đặt: npm install jwt-decode
-import api from '../utils/api'; // Import axios đã cấu hình
+import { createContext, useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import * as authApi from "../services/authService";
+import api from "../utils/api";
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null); // Lưu thông tin (id, username, roles)
-  const [token, setToken] = useState(localStorage.getItem('token'));
-  const [loading, setLoading] = useState(true); // Đang check token khi tải trang
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
+  const [loading, setLoading] = useState(false);
 
+  // 🔁 Load từ localStorage khi refresh trang (fix lỗi parse)
   useEffect(() => {
-    if (token) {
-      try {
-        const decodedToken = jwtDecode(token);
-        const isExpired = decodedToken.exp * 1000 < Date.now();
+    const storedToken = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("user");
 
-        if (isExpired) {
-          logout();
-        } else {
-          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-          setUser({
-            id: decodedToken.sub, // 'sub' (subject) là ID user
-            username: decodedToken.username,
-            roles: decodedToken.roles || [], // (Backend cần thêm 'roles' vào token)
-          });
-        }
-      } catch (error) {
-        console.error("Invalid token", error);
-        logout();
+    if (storedToken) {
+      setToken(storedToken);
+    }
+
+    if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (err) {
+        console.warn("⚠️ Lỗi parse user từ localStorage:", err);
+        localStorage.removeItem("user");
       }
     }
-    setLoading(false);
-  }, [token]);
+  }, []);
 
-  const login = (newToken) => {
-    localStorage.setItem('token', newToken);
-    setToken(newToken);
+  // 🟢 Hàm login
+  const login = async (username, password) => {
+    setLoading(true);
+    try {
+      const res = await authApi.login(username, password);
+
+      // ✅ Backend trả về { accessToken, tokenType }
+      const { accessToken, tokenType } = res.data;
+      const fullToken = `${tokenType} ${accessToken}`;
+
+      // Lưu token
+      localStorage.setItem("token", fullToken);
+      setToken(fullToken);
+
+      // ⚙️ Gọi thêm API lấy thông tin user nếu backend có
+      let userInfo = null;
+      try {
+        // ✅ Nếu backend có /api/v1/admin/users/me hoặc /api/v1/users/me thì thay URL tại đây
+        const userRes = await api.get("/api/v1/admin/users/me");
+        userInfo = userRes.data;
+      } catch {
+        // Nếu backend chưa có endpoint /me thì mock tạm user
+        userInfo = { username, role: "ADMIN" };
+      }
+
+      // Lưu user
+      localStorage.setItem("user", JSON.stringify(userInfo));
+      setUser(userInfo);
+
+      // ✅ Điều hướng theo role
+      if (userInfo.role === "ADMIN") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/user/dashboard");
+      }
+    } catch (error) {
+      console.error("❌ Login failed:", error);
+      throw error; // để LoginPage hiển thị lỗi đẹp
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // 🔴 Logout
   const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
+    localStorage.clear();
     setUser(null);
-    delete api.defaults.headers.common['Authorization'];
+    setToken(null);
+    navigate("/login");
   };
 
+  // 🧩 Helper state
   const isAuthenticated = !!token;
-  const isAdmin = user?.roles.includes('ROLE_ADMIN');
-
-  if (loading) {
-    return <div>Loading application...</div>;
-  }
+  const isAdmin = user?.role === "ADMIN";
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isAdmin, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, token, isAuthenticated, isAdmin, login, logout, loading }}
+    >
       {children}
     </AuthContext.Provider>
   );
