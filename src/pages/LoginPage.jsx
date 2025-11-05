@@ -1,105 +1,82 @@
-// src/pages/LoginPage.jsx
-import { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
-import api from '../utils/api'; // Import Axios
+import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage() {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const { login, loading } = useAuth();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-
+    setError("");
     try {
-      // 1. Gọi API Backend
-      const response = await api.post('/auth/login', {
-        username: email,
-        password: password,
-      });
-
-      // 2. Lấy accessToken từ response
-      const accessToken = response.data.accessToken;
-
-      // 3. Gọi hàm login của Context để lưu token
-      login(accessToken); 
-      
-      // 4. Chuyển hướng
-      navigate('/'); // Chuyển đến trang Dashboard
+      await login(username, password);
     } catch (err) {
-      if (err.response && (err.response.status === 401 || err.response.status === 404)) {
-        setError('Sai tên đăng nhập hoặc mật khẩu.');
-      } else {
-        setError('Đã xảy ra lỗi kết nối. Vui lòng thử lại.');
-      }
-    } finally {
-      setIsLoading(false);
+      const msg =
+        err?.response?.data?.message ||
+        "Sai tài khoản hoặc mật khẩu. Vui lòng thử lại!";
+      setError(msg);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-        <h1 className="text-2xl font-semibold text-gray-900 text-center mb-6">
-          Đăng nhập
-        </h1>
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              required
-              className="w-full rounded-xl border border-gray-300 px-3 py-2"
-            />
-          </div>
+    <div className="min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-blue-50 to-blue-100">
+      {/* Hình minh họa bên trái */}
+      <div className="hidden md:flex w-1/2 items-center justify-center p-10">
+        <img
+          src="https://cdn.dribbble.com/users/1162077/screenshots/3848914/programmer.gif"
+          alt="Meeting illustration"
+          className="w-3/4 rounded-xl shadow-lg"
+        />
+      </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mật khẩu
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full rounded-xl border border-gray-300 px-3 py-2"
-            />
-          </div>
-
-          {/* XÓA BỎ Ô CHỌN VAI TRÒ (ROLE) */}
+      {/* Form đăng nhập */}
+      <div className="flex w-full md:w-1/2 items-center justify-center p-6">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white shadow-2xl p-10 rounded-2xl w-full max-w-md"
+        >
+          <h2 className="text-3xl font-bold text-center mb-8 text-blue-700">
+            🗓️ Meeting Management
+          </h2>
 
           {error && (
-            <div className="text-red-600 text-sm text-center">{error}</div>
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4 text-sm">
+              {error}
+            </div>
           )}
+
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Tên đăng nhập (email)"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              type="password"
+              placeholder="Mật khẩu"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
 
           <button
             type="submit"
-            disabled={isLoading}
-            className="w-full rounded-xl bg-blue-600 text-white px-3 py-3 font-semibold"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white font-semibold py-3 mt-6 rounded-lg hover:bg-blue-700 transition duration-300 disabled:opacity-50"
           >
-            {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </button>
-          
-          <div className="text-sm text-center">
-            <Link 
-              to="/forgot-password" 
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              Quên mật khẩu?
-            </Link>
-          </div>
+
+          <p className="text-sm text-gray-500 text-center mt-4">
+            © 2025 CMC Global - Meeting Management
+          </p>
         </form>
       </div>
     </div>
