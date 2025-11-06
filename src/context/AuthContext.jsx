@@ -11,20 +11,17 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // 🔁 Load từ localStorage khi refresh trang (fix lỗi parse)
+  // 🔁 Giữ đăng nhập khi reload trang
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
 
-    if (storedToken) {
-      setToken(storedToken);
-    }
+    if (storedToken) setToken(storedToken);
 
     if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
       try {
         setUser(JSON.parse(storedUser));
-      } catch (err) {
-        console.warn("⚠️ Lỗi parse user từ localStorage:", err);
+      } catch {
         localStorage.removeItem("user");
       }
     }
@@ -34,40 +31,43 @@ export const AuthProvider = ({ children }) => {
   const login = async (username, password) => {
     setLoading(true);
     try {
+      // 1️⃣ Gọi API login lấy token
       const res = await authApi.login(username, password);
-
-      // ✅ Backend trả về { accessToken, tokenType }
       const { accessToken, tokenType } = res.data;
       const fullToken = `${tokenType} ${accessToken}`;
 
-      // Lưu token
       localStorage.setItem("token", fullToken);
       setToken(fullToken);
 
-      // ⚙️ Gọi thêm API lấy thông tin user nếu backend có
+      // 2️⃣ Gọi API lấy thông tin user bằng email
+      // ✅ Tùy backend, nếu không có /me, dùng /admin/users/{id}
       let userInfo = null;
+
       try {
-        // ✅ Nếu backend có /api/v1/admin/users/me hoặc /api/v1/users/me thì thay URL tại đây
-        const userRes = await api.get("/api/v1/admin/users/me");
+        // bạn có thể tùy chỉnh id theo user hiện tại nếu backend hỗ trợ lấy từ JWT
+        // ví dụ: tạm thời hardcode admin có id = 3 (hoặc lấy từ decode token)
+        const userRes = await api.get("/api/v1/admin/users/3"); 
         userInfo = userRes.data;
-      } catch {
-        // Nếu backend chưa có endpoint /me thì mock tạm user
-        userInfo = { username, role: "ADMIN" };
+      } catch (error) {
+        console.warn("⚠️ Không thể lấy thông tin user, dùng dữ liệu tạm.");
+        userInfo = {
+          username,
+          fullName: "Admin Mock",
+          roles: ["ROLE_ADMIN"],
+          active: true,
+        };
       }
 
-      // Lưu user
       localStorage.setItem("user", JSON.stringify(userInfo));
       setUser(userInfo);
 
-      // ✅ Điều hướng theo role
-      if (userInfo.role === "ADMIN") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/user/dashboard");
-      }
+      // 3️⃣ Điều hướng theo role
+      const role = userInfo.roles?.[0];
+      if (role === "ROLE_ADMIN") navigate("/admin/dashboard");
+      else navigate("/user/dashboard");
     } catch (error) {
       console.error("❌ Login failed:", error);
-      throw error; // để LoginPage hiển thị lỗi đẹp
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -81,13 +81,21 @@ export const AuthProvider = ({ children }) => {
     navigate("/login");
   };
 
-  // 🧩 Helper state
+  // 🔎 Helper
   const isAuthenticated = !!token;
-  const isAdmin = user?.role === "ADMIN";
+  const isAdmin = user?.roles?.includes("ROLE_ADMIN");
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isAuthenticated, isAdmin, login, logout, loading }}
+      value={{
+        user,
+        token,
+        login,
+        logout,
+        loading,
+        isAuthenticated,
+        isAdmin,
+      }}
     >
       {children}
     </AuthContext.Provider>
