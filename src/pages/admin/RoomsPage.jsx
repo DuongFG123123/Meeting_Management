@@ -29,7 +29,7 @@ export default function RoomsPage() {
       const res = await getRooms();
       setRooms(res.data);
     } catch (error) {
-      console.error("Lỗi khi tải phòng:", error);
+      console.error("Lỗi khi tải danh sách phòng:", error);
     } finally {
       setLoading(false);
     }
