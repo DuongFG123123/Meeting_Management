@@ -141,19 +141,41 @@ export default function UsersPage() {
       return;
     }
 
+    const isDark = document.documentElement.classList.contains("dark");
+
     toast.info(
-      <div className="text-center">
-        <p className="font-medium mb-2">🗑️ Bạn có chắc muốn xoá người dùng này?</p>
-        <div className="flex justify-center gap-3 mt-3">
+      <div className="p-5 text-center select-none">
+        <div className="flex justify-center items-center gap-3 mb-3">
+          <div
+            className={`flex items-center justify-center w-10 h-10 rounded-full ${
+              isDark ? "bg-blue-900" : "bg-blue-100"
+            }`}
+          >
+            <FiTrash2
+              className={`text-xl ${
+                isDark ? "text-blue-300" : "text-blue-600"
+              }`}
+            />
+          </div>
+          <h3
+            className={`text-lg font-semibold ${
+              isDark ? "text-gray-100" : "text-gray-800"
+            }`}
+          >
+            Xác nhận xoá người dùng?
+          </h3>
+        </div>
+
+        <div className="flex justify-center gap-4 mt-5">
           <button
             onClick={async () => {
               try {
                 await deleteUser(id);
                 toast.dismiss();
-                toast.success("✅ Đã xoá người dùng!");
+                toast.success("🗑️ Đã xoá người dùng!");
                 setUsers((prev) => prev.filter((u) => u.id !== id));
               } catch (err) {
-                console.error("❌ Lỗi khi xoá:", err.response?.data || err);
+                console.error("Lỗi khi xoá:", err.response?.data || err);
                 toast.dismiss();
                 toast.error(
                   err.response?.data?.message ||
@@ -161,13 +183,18 @@ export default function UsersPage() {
                 );
               }
             }}
-            className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition"
+            className="bg-red-600 hover:bg-red-700 text-white font-semibold px-5 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 active:scale-95"
           >
             Xoá
           </button>
+
           <button
             onClick={() => toast.dismiss()}
-            className="bg-gray-300 text-gray-800 px-3 py-1 rounded hover:bg-gray-400 transition"
+            className={`font-semibold px-5 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 ${
+              isDark
+                ? "bg-gray-700 hover:bg-gray-600 text-gray-100"
+                : "bg-gray-200 hover:bg-gray-300 text-gray-800"
+            }`}
           >
             Huỷ
           </button>
@@ -178,6 +205,16 @@ export default function UsersPage() {
         closeOnClick: false,
         draggable: false,
         position: "top-center",
+        style: {
+          background: isDark ? "#1e293b" : "#ffffff", // dark: slate-800
+          color: isDark ? "#e2e8f0" : "#1f2937", // dark: gray-200, light: gray-800
+          borderRadius: "14px",
+          boxShadow: isDark
+            ? "0 6px 25px rgba(0,0,0,0.45)"
+            : "0 6px 20px rgba(0,0,0,0.15)",
+          minWidth: "360px",
+        },
+        icon: false,
       }
     );
   };
@@ -236,16 +273,44 @@ export default function UsersPage() {
             className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none transition"
           />
           <button
-            onClick={handleCreateUser}
-            disabled={creating}
-            className={`${
+          onClick={handleCreateUser}
+          disabled={creating}
+          className={`relative overflow-hidden font-semibold rounded-lg px-5 py-2.5 transition-all duration-300
+            ${
               creating
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-            } text-white font-semibold rounded-lg px-4 py-2 transition`}
-          >
-            {creating ? "Đang thêm..." : "Thêm"}
-          </button>
+              ? "bg-gray-400 text-white cursor-not-allowed"
+              : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg dark:from-blue-400 dark:to-blue-500 dark:hover:from-blue-500 dark:hover:to-blue-600"
+            }
+            active:scale-95`}
+            >{creating ? (
+            <span className="flex items-center gap-2">
+              <svg
+              className="w-5 h-5 animate-spin text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              >
+                <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+                ></circle>
+                <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                ></path>
+                </svg>
+                Đang thêm...
+                </span>
+                ) : (
+                  "Thêm"
+                  )}
+                  </button>
+
         </div>
       </motion.div>
 
