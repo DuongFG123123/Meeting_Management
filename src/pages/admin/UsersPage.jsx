@@ -1,286 +1,275 @@
 // src/pages/admin/UsersPage.jsx
-import { useState, useMemo, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { FiEdit2, FiTrash2, FiPlus, FiX } from "react-icons/fi";
-import api from "../../utils/api"; // Import Axios đã cấu hình
+import { useEffect, useState } from "react";
+import {
+  getAllUsers,
+  updateUser,
+  createUser,
+  deleteUser,
+} from "../../services/userService";
+import { toast } from "react-toastify";
+import { FiUsers, FiPlus, FiTrash2 } from "react-icons/fi";
+import { motion } from "framer-motion";
 
-// (Component Modal - Giữ nguyên logic UI của bạn)
-const Modal = ({ children, isOpen, onClose }) => {
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={onClose}
+export default function UsersPage() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [newUser, setNewUser] = useState({
+    fullName: "",
+    username: "",
+    password: "",
+  });
+
+  // 🟢 Lấy danh sách người dùng
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const res = await getAllUsers();
+      console.log("Dữ liệu trả về:", res.data);
+      // Kiểm tra nếu backend trả mảng trực tiếp hoặc bọc trong object { data: [...] }
+      setUsers(Array.isArray(res.data) ? res.data : res.data.data || []);
+    } catch (err) {
+      console.error("❌ Lỗi fetchUsers:", err);
+      toast.error("Không thể tải danh sách người dùng!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  // 🟢 Tạo user mới
+// 🟢 Tạo user mới
+const handleCreateUser = async () => {
+  if (!newUser.username || !newUser.password || !newUser.fullName) {
+    toast.warning("⚠️ Vui lòng điền đầy đủ thông tin!");
+    return;
+  }
+
+  try {
+    setCreating(true);
+
+    const payload = {
+      username: newUser.username,
+      password: newUser.password,
+      fullName: newUser.fullName,
+    };
+
+    // ✅ Gọi service, service đã dùng đúng /auth/register rồi
+    await createUser(payload);
+
+    toast.success("✅ Tạo người dùng thành công!");
+    setNewUser({ fullName: "", username: "", password: "" });
+    fetchUsers();
+  } catch (err) {
+    console.error("❌ Lỗi tạo người dùng:", err);
+    toast.error(err.response?.data?.message || "Không thể tạo người dùng!");
+  } finally {
+    setCreating(false);
+  }
+};
+
+  // 🟢 Cập nhật vai trò
+  const handleUpdateRole = async (id, newRole) => {
+    try {
+      await updateUser(id, { roles: [newRole], isActive: true });
+      toast.success("Cập nhật quyền thành công!");
+      fetchUsers();
+    } catch (err) {
+      toast.error("Không thể cập nhật quyền!");
+    }
+  };
+
+  const handleDeleteUser = async (id) => {
+  if (!id) {
+    toast.error("❌ Không xác định được ID người dùng!");
+    return;
+  }
+
+  console.log("🗑️ Đang xóa user ID:", id);
+
+  toast.info(
+    <div className="text-center">
+      <p className="font-medium mb-2">Bạn có chắc muốn xóa người dùng này?</p>
+      <div className="flex justify-center gap-3 mt-3">
+        <button
+          onClick={async () => {
+            try {
+              await deleteUser(id);
+              toast.dismiss();
+              toast.success("✅ Đã xóa người dùng!");
+              setUsers((prev) => prev.filter((u) => u.id !== id));
+            } catch (err) {
+              console.error("❌ Lỗi khi xóa:", err.response?.data || err);
+              toast.dismiss();
+              toast.error(
+                err.response?.data?.message ||
+                  "Không thể xóa người dùng! Có thể do quyền hoặc ràng buộc dữ liệu."
+              );
+            }
+          }}
+          className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
         >
-          <motion.div
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 50, opacity: 0 }}
-            className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg w-full max-w-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {children}
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          Xóa
+        </button>
+        <button
+          onClick={() => toast.dismiss()}
+          className="bg-gray-300 text-gray-800 px-3 py-1 rounded hover:bg-gray-400"
+        >
+          Hủy
+        </button>
+      </div>
+    </div>,
+    {
+      autoClose: false,
+      closeOnClick: false,
+      draggable: false,
+      position: "top-center",
+    }
   );
 };
 
-
-export default function UsersPage() {
-  const [users, setUsers] = useState([]); // Dữ liệu thật từ API
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
-  
-  // State cho form (Khớp với AdminUserUpdateRequest DTO)
-  const [formData, setFormData] = useState({ 
-    roles: ["ROLE_USER"], 
-    isActive: true 
-  });
-
-  // --- 1. LẤY DỮ LIỆU TỪ BACKEND (US-19) ---
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-        const response = await api.get("/admin/users");
-        setUsers(response.data);
-        setError(null);
-      } catch (err) {
-        setError("Không thể tải danh sách người dùng. Vui lòng thử lại.");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUsers();
-  }, []); // Chạy 1 lần khi component tải
-
-  // --- 2. XỬ LÝ NGHIỆP VỤ (Update, Create, Delete) ---
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (editingUser) {
-      // CẬP NHẬT USER (US-18)
-      try {
-        const response = await api.put(`/admin/users/${editingUser.id}`, {
-          roles: formData.roles,
-          isActive: formData.isActive,
-        });
-        // Cập nhật state (giao diện)
-        setUsers(users.map(u => u.id === editingUser.id ? response.data : u));
-        closeModal();
-      } catch (err) {
-        setError("Lỗi khi cập nhật user.");
-        console.error(err);
-      }
-    } else {
-      // TẠO USER MỚI (Cần API `POST /admin/users` riêng)
-      // Hiện tại chúng ta dùng API /register (chỉ cần Admin)
-      console.log("Đang tạo user...", formData);
-      // try {
-      //   const response = await api.post("/auth/register", {
-      //     username: formData.username,
-      //     password: "DefaultPassword123", // Admin đặt pass mặc định
-      //     fullName: formData.fullName,
-      //   });
-      //   setUsers([...users, response.data]); // (API /register cần trả về User)
-      //   closeModal();
-      // } catch (err) {
-      //   setError("Lỗi khi tạo user.");
-      // }
-    }
-  };
-  
-  // (Chúng ta chưa làm API DELETE user, sẽ làm sau)
-  const handleDeleteUser = async (userId) => {
-    if (window.confirm("Bạn có chắc muốn xóa user này?")) {
-      console.log("Xóa user:", userId);
-      // await api.delete(`/admin/users/${userId}`);
-      // setUsers(users.filter(u => u.id !== userId));
-    }
-  };
-
-  // --- 3. HÀM MỞ/ĐÓNG MODAL ---
-
-  const openModal = (user = null) => {
-    if (user) {
-      // Sửa (Edit)
-      setEditingUser(user);
-      setFormData({ 
-        roles: user.roles, 
-        isActive: user.isActive 
-      });
-    } else {
-      // Tạo mới (Create)
-      setEditingUser(null);
-      setFormData({ 
-        fullName: "", 
-        username: "", 
-        roles: ["ROLE_USER"], 
-        isActive: true 
-      });
-    }
-    setIsModalOpen(true);
-  };
-  
-  const closeModal = () => setIsModalOpen(false);
-
-  if (loading) return <div className="p-6">Đang tải dữ liệu...</div>;
-  if (error) return <div className="p-6 text-red-500">{error}</div>;
-
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
-          Quản lý Người dùng
-        </h2>
-        <button
-          onClick={() => openModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700"
-        >
-          <FiPlus />
-          Thêm mới
-        </button>
-      </div>
+    <div className="p-8">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between mb-6"
+      >
+        <div className="flex items-center gap-2">
+          <FiUsers className="text-3xl text-blue-600" />
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
+            Quản lý người dùng
+          </h1>
+        </div>
+      </motion.div>
 
-      {/* Bảng dữ liệu thật */}
-      <div className="overflow-x-auto bg-white dark:bg-slate-800 rounded-2xl shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
-          <thead className="bg-gray-50 dark:bg-slate-900">
+      {/* Form tạo user mới */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md mb-8 border border-gray-100 dark:border-gray-700"
+      >
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800 dark:text-gray-100">
+          <FiPlus /> Thêm người dùng mới
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <input
+            type="text"
+            placeholder="Họ và tên"
+            value={newUser.fullName}
+            onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
+            className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-lg focus:ring focus:ring-blue-200"
+          />
+          <input
+            type="text"
+            placeholder="Tên người dùng"
+            value={newUser.username}
+            onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+            className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-lg focus:ring focus:ring-blue-200"
+          />
+          <input
+            type="password"
+            placeholder="Mật khẩu"
+            value={newUser.password}
+            onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+            className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-lg focus:ring focus:ring-blue-200"
+          />
+          <button
+            onClick={handleCreateUser}
+            disabled={creating}
+            className={`${
+              creating
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700"
+            } text-white font-semibold rounded-lg px-4 py-2 transition`}
+          >
+            {creating ? "Đang thêm..." : "Thêm"}
+          </button>
+        </div>
+      </motion.div>
+
+      {/* Bảng danh sách người dùng */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden"
+      >
+        <table className="min-w-full table-auto text-left">
+          <thead className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Họ Tên</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Email (Username)</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Quyền</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Trạng thái</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Hành động</th>
+              <th className="p-4">STT</th>
+              <th className="p-4">Họ và tên</th>
+              <th className="p-4">Tên người dùng</th>
+              <th className="p-4">Vai trò</th>
+              <th className="p-4 text-center">Trạng thái</th>
+              <th className="p-4 text-center">Hành động</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-            {users.map((user) => (
-              <tr key={user.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-gray-100">{user.fullName}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{user.username}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium 
-                    ${user.roles.includes('ROLE_ADMIN') ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                    {user.roles.join(', ')}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium 
-                    ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                    {user.isActive ? 'Hoạt động' : 'Vô hiệu hóa'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap flex gap-4">
-                  <button onClick={() => openModal(user)} className="text-blue-500 hover:text-blue-700">
-                    <FiEdit2 />
-                  </button>
-                  <button onClick={() => handleDeleteUser(user.id)} className="text-red-500 hover:text-red-700">
-                    <FiTrash2 />
-                  </button>
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            {loading ? (
+              <tr>
+                <td colSpan="6" className="text-center py-6 text-gray-500 dark:text-gray-400">
+                  Đang tải dữ liệu...
                 </td>
               </tr>
-            ))}
+            ) : users.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="text-center py-6 text-gray-500 dark:text-gray-400">
+                  Không có người dùng nào
+                </td>
+              </tr>
+            ) : (
+              users.map((user, idx) => (
+                <motion.tr
+                  key={user.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: idx * 0.03 }}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                >
+                  <td className="p-4">{idx + 1}</td>
+                  <td className="p-4">{user.fullName}</td>
+                  <td className="p-4">{user.username}</td>
+                  <td className="p-4">
+                    <select
+                      value={user.roles[0]}
+                      onChange={(e) => handleUpdateRole(user.id, e.target.value)}
+                      className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md p-1"
+                    >
+                      <option value="ROLE_USER">User</option>
+                      <option value="ROLE_ADMIN">Admin</option>
+                    </select>
+                  </td>
+                  <td className="p-4 text-center">
+                    <span
+                      className={`px-3 py-1 text-sm font-medium rounded-full ${
+                        user.active
+                          ? "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100"
+                          : "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100"
+                      }`}
+                    >
+                      {user.active ? "Đang hoạt động" : "Vô hiệu"}
+                    </span>
+                  </td>
+                  <td className="p-4 text-center">
+                    <button
+                      onClick={() => handleDeleteUser(user.id)}
+                      className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition"
+                    >
+                      <FiTrash2 size={18} />
+                    </button>
+                  </td>
+                </motion.tr>
+              ))
+            )}
           </tbody>
         </table>
-      </div>
-
-      {/* Modal (Giữ nguyên UI của bạn) */}
-      <Modal isOpen={isModalOpen} onClose={closeModal}>
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold dark:text-white">
-              {editingUser ? "Cập nhật User" : "Tạo User mới"}
-            </h3>
-            <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
-              <FiX />
-            </button>
-          </div>
-          <form onSubmit={handleSubmit}>
-            {/* Nếu là Tạo mới, hiển thị các trường này */}
-            {!editingUser && (
-              <>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 dark:text-gray-300">Họ Tên</label>
-                  <input type="text"
-                    value={formData.fullName}
-                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                    className="mt-1 w-full border dark:border-slate-700 dark:bg-slate-900 rounded-xl px-3 py-2"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 dark:text-gray-300">Email (Username)</label>
-                  <input type="email"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="mt-1 w-full border dark:border-slate-700 dark:bg-slate-900 rounded-xl px-3 py-2"
-                  />
-                </div>
-              </>
-            )}
-
-            {/* Nếu là Sửa, chỉ hiển thị 2 trường này */}
-            {editingUser && (
-              <div className="mb-4">
-                <h4 className="font-medium dark:text-white">{editingUser.fullName}</h4>
-                <p className="text-sm text-gray-500">{editingUser.username}</p>
-              </div>
-            )}
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1 dark:text-gray-300">Quyền (Roles)</label>
-              {/* (Đây là UI đơn giản, bạn có thể dùng Checkbox) */}
-              <select
-                value={formData.roles[0] || 'ROLE_USER'}
-                onChange={(e) => setFormData({ ...formData, roles: [e.target.value] })}
-                className="mt-1 w-full border dark:border-slate-700 dark:bg-slate-900 rounded-xl px-3 py-2"
-              >
-                <option value="ROLE_USER">User</option>
-                <option value="ROLE_ADMIN">Admin</option>
-                <option value="ROLE_VIP">VIP</option>
-              </select>
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1 dark:text-gray-300">Trạng thái</label>
-              <select
-                value={formData.isActive ? 'true' : 'false'}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'true' })}
-                className="mt-1 w-full border dark:border-slate-700 dark:bg-slate-900 rounded-xl px-3 py-2"
-              >
-                <option value="true">Hoạt động</option>
-                <option value="false">Vô hiệu hóa</option>
-              </select>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                type="button"
-                onClick={closeModal}
-                className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-slate-700"
-              >
-                Hủy
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 rounded-xl bg-blue-600 text-white"
-              >
-                {editingUser ? "Cập nhật" : "Tạo mới"}
-              </button>
-            </div>
-          </form>
-        </div>
-      </Modal>
+      </motion.div>
     </div>
   );
 }
