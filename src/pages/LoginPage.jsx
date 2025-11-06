@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage() {
@@ -73,6 +74,15 @@ export default function LoginPage() {
           >
             {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </button>
+
+          <div className="text-right mt-3">
+            <Link 
+              to="/forgot-password" 
+              className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+            >
+              Quên mật khẩu?
+            </Link>
+          </div>
 
           <p className="text-sm text-gray-500 text-center mt-4">
             © 2025 CMC Global - Meeting Management

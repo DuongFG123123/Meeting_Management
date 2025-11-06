@@ -9,7 +9,7 @@ import PublicLayout from "../layouts/PublicLayout";
 // ===== Public Pages =====
 import LoginPage from "../pages/LoginPage";
 import ForgotPasswordPage from "../pages/ForgotPasswordPage";
-// import ResetPasswordPage from "../pages/ResetPasswordPage"; // Nếu cần
+import ResetPasswordPage from "../pages/ResetPasswordPage";
 
 // ===== Admin Pages =====
 import Dashboard from "../pages/admin/DashboardPage";
@@ -49,7 +49,7 @@ export default function AppRouter() {
             )
           }
         />
-        {/* <Route path="/reset-password" element={<ResetPasswordPage />} /> */}
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
       </Route>
 
       {/* === 2. PRIVATE ROUTES (Yêu cầu đăng nhập) === */}
