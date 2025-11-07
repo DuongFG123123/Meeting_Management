@@ -1,3 +1,4 @@
+//deviceSevice.js
 import api from "../utils/api";
 
 export const getDevices = () => api.get("/devices");
