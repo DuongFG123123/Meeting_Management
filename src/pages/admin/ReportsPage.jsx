@@ -16,7 +16,6 @@ import {
   getRoomUsageReport,
   getCancelStats
 } from "../../services/reportService";
-import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
@@ -57,14 +56,33 @@ const ReportPage = () => {
     setTimeout(() => setIsLoading(false), 350);
   };
 
-  const exportToExcel = (data, filename) => {
+  // ✅ Xuất file CSV (Excel mở được)
+  const exportToCSV = (data, filename) => {
     if (!data.length) return alert("Không có dữ liệu để xuất");
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
-    XLSX.writeFile(workbook, `${filename}.xlsx`);
+    const headers = Object.keys(data[0]);
+    const rows = data.map((item) => Object.values(item));
+
+    const csvContent =
+      [headers, ...rows]
+        .map((row) =>
+          row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+        )
+        .join("\n");
+
+    const blob = new Blob([csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `${filename}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
+  // ✅ Xuất PDF
   const exportToPDF = (data, filename) => {
     if (!data.length) return alert("Không có dữ liệu để xuất");
     const doc = new jsPDF();
@@ -78,7 +96,7 @@ const ReportPage = () => {
 
   const renderActions = (data, filename) => (
     <div style={{ marginBottom: 16 }}>
-      <Button onClick={() => exportToExcel(data, filename)} style={{ marginRight: 8 }}>
+      <Button onClick={() => exportToCSV(data, filename)} style={{ marginRight: 8 }}>
         Xuất Excel
       </Button>
       <Button onClick={() => exportToPDF(data, filename)}>Xuất PDF</Button>
@@ -132,43 +150,47 @@ const ReportPage = () => {
       <Spin spinning={isLoading}>
         <Tabs activeKey={activeTab} onChange={(key) => setActiveTab(key)}>
           <TabPane tab="Phòng họp" key="1">
-  {renderActions(roomUsageData, "bao_cao_phong_hop")}
-  {roomUsageData.length ? (
-    <div style={{ width: "100%", height: 500 }}> {/* ↓ thêm div này để thu nhỏ */}
-      <Bar
-        data={roomChartData}
-        options={{
-          responsive: true,
-          maintainAspectRatio: false, // quan trọng để height có hiệu lực
-          animation: { duration: 1000, easing: "easeOutQuad" },
-          plugins: { legend: { position: "top" } },
-        }}
-      />
-    </div>
-  ) : (
-    <p>Không có dữ liệu phòng họp</p>
-  )}
-</TabPane>
+            {renderActions(roomUsageData, "bao_cao_phong_hop")}
+            {roomUsageData.length ? (
+              <div style={{ width: "100%", height: 500 }}>
+                <Bar
+                  data={roomChartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 1000, easing: "easeOutQuad" },
+                    plugins: { legend: { position: "top" } },
+                  }}
+                />
+              </div>
+            ) : (
+              <p>Không có dữ liệu phòng họp</p>
+            )}
+          </TabPane>
 
           <TabPane tab="Lý do hủy họp" key="2">
-  {renderActions(cancelStatsData, "bao_cao_huy_hop")}
-  {cancelStatsData.length ? (
-    <div style={{ width: 700, height: 500, margin: "0", display: "flex", justifyContent: "flex-start" }}>
-      <Pie
-        data={cancelChartData}
-        options={{
-          maintainAspectRatio: false,
-          plugins: { legend: { position: "right" } },
-        }}
-        cx="30%"  // di chuyển tâm Pie chart sang trái
-        cy="50%"
-        outerRadius={120} // tuỳ chỉnh kích thước
-      />
-    </div>
-  ) : (
-    <p>Không có dữ liệu hủy họp</p>
-  )}
-</TabPane>
+            {renderActions(cancelStatsData, "bao_cao_huy_hop")}
+            {cancelStatsData.length ? (
+              <div
+                style={{
+                  width: 700,
+                  height: 500,
+                  display: "flex",
+                  justifyContent: "flex-start",
+                }}
+              >
+                <Pie
+                  data={cancelChartData}
+                  options={{
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: "right" } },
+                  }}
+                />
+              </div>
+            ) : (
+              <p>Không có dữ liệu hủy họp</p>
+            )}
+          </TabPane>
         </Tabs>
       </Spin>
     </div>
