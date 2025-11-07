@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from "react";
-import { Button, Tabs, DatePicker, Space } from "antd";
+import { Button, Tabs, DatePicker, Space, Spin } from "antd";
 import { Bar, Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -30,6 +29,8 @@ const ReportPage = () => {
   const [roomUsageData, setRoomUsageData] = useState([]);
   const [cancelStatsData, setCancelStatsData] = useState([]);
   const [dateRange, setDateRange] = useState([]);
+  const [activeTab, setActiveTab] = useState("1");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const today = new Date();
@@ -40,6 +41,7 @@ const ReportPage = () => {
   }, []);
 
   const fetchReports = async (fromDate, toDate) => {
+    setIsLoading(true);
     const from = fromDate.toISOString().split("T")[0];
     const to = toDate.toISOString().split("T")[0];
     try {
@@ -52,6 +54,7 @@ const ReportPage = () => {
     } catch (error) {
       console.error("Lỗi tải báo cáo:", error);
     }
+    setTimeout(() => setIsLoading(false), 350);
   };
 
   const exportToExcel = (data, filename) => {
@@ -82,19 +85,22 @@ const ReportPage = () => {
     </div>
   );
 
-  // Biểu đồ phòng họp
   const roomChartData = {
     labels: roomUsageData.map((item) => item.roomName),
     datasets: [
       {
         label: "Số giờ sử dụng",
-        data: roomUsageData.map((item) => item.usageHours),
+        data: roomUsageData.map((item) => item.totalHoursBooked),
         backgroundColor: "rgba(75,192,192,0.6)",
       },
+      {
+        label: "Số lần đặt",
+        data: roomUsageData.map((item) => item.bookingCount),
+        backgroundColor: "rgba(153,102,255,0.6)",
+      }
     ],
   };
 
-  // Biểu đồ lý do hủy họp
   const cancelChartData = {
     labels: cancelStatsData.map((item) => item.reason),
     datasets: [
@@ -122,16 +128,49 @@ const ReportPage = () => {
           value={dateRange.map((d) => dayjs(d))}
         />
       </Space>
-      <Tabs defaultActiveKey="1">
-        <TabPane tab="Phòng họp" key="1">
-          {renderActions(roomUsageData, "bao_cao_phong_hop")}
-          {roomUsageData.length ? <Bar data={roomChartData} /> : <p>Không có dữ liệu phòng họp</p>}
-        </TabPane>
-        <TabPane tab="Lý do hủy họp" key="2">
-          {renderActions(cancelStatsData, "bao_cao_huy_hop")}
-          {cancelStatsData.length ? <Pie data={cancelChartData} /> : <p>Không có dữ liệu hủy họp</p>}
-        </TabPane>
-      </Tabs>
+
+      <Spin spinning={isLoading}>
+        <Tabs activeKey={activeTab} onChange={(key) => setActiveTab(key)}>
+          <TabPane tab="Phòng họp" key="1">
+  {renderActions(roomUsageData, "bao_cao_phong_hop")}
+  {roomUsageData.length ? (
+    <div style={{ width: "100%", height: 500 }}> {/* ↓ thêm div này để thu nhỏ */}
+      <Bar
+        data={roomChartData}
+        options={{
+          responsive: true,
+          maintainAspectRatio: false, // quan trọng để height có hiệu lực
+          animation: { duration: 1000, easing: "easeOutQuad" },
+          plugins: { legend: { position: "top" } },
+        }}
+      />
+    </div>
+  ) : (
+    <p>Không có dữ liệu phòng họp</p>
+  )}
+</TabPane>
+
+          <TabPane tab="Lý do hủy họp" key="2">
+  {renderActions(cancelStatsData, "bao_cao_huy_hop")}
+  {cancelStatsData.length ? (
+    <div style={{ width: 700, height: 500, margin: "0", display: "flex", justifyContent: "flex-start" }}>
+      <Pie
+        data={cancelChartData}
+        options={{
+          maintainAspectRatio: false,
+          plugins: { legend: { position: "right" } },
+        }}
+        cx="30%"  // di chuyển tâm Pie chart sang trái
+        cy="50%"
+        outerRadius={120} // tuỳ chỉnh kích thước
+      />
+    </div>
+  ) : (
+    <p>Không có dữ liệu hủy họp</p>
+  )}
+</TabPane>
+        </Tabs>
+      </Spin>
     </div>
   );
 };
