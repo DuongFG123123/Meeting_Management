@@ -1,10 +1,8 @@
+
 import api from "../utils/api";
 
-// Thống kê khách mời
-export const getVisitorReport = () => api.get("/reports/visitors");
+export const getRoomUsageReport = (from, to) =>
+  api.get("/reports/room-usage", { params: { from, to } });
 
-// Báo cáo tần suất sử dụng phòng
-export const getRoomUsageReport = () => api.get("/reports/room-usage");
-
-// Thống kê lý do hủy họp
-export const getCancelStats = () => api.get("/reports/cancelation-stats");
+export const getCancelStats = (from, to) =>
+  api.get("/reports/cancelation-stats", { params: { from, to } });
