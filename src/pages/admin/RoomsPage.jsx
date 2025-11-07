@@ -7,14 +7,17 @@ import {
   getAvailableRooms as fetchAvailableRooms,
 } from "../../services/roomService";
 
- const [newRoom, setNewRoom] = useState({
-    name: "",
-    capacity: "",
-    location: "",
-    fixedDivied:[],
-    requiedRoled:[],
-    status: "ACTIVE",
-  })
+export default function RoomsPage() {
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [newRoom, setNewRoom] = useState({  
+  name: "",
+  capacity: "",
+  location: "",
+  fixedDevices: [],
+  requiredRoles: [],
+  status: "ACTIVE",
+  });
   const [editingRoom, setEditingRoom] = useState(null);
   const [availableRooms, setAvailableRooms] = useState([]);
   const [checkForm, setCheckForm] = useState({
@@ -74,14 +77,7 @@ import {
       }
     }
   };
-  <select
-  value={newRoom.status}
-  onChange={(e) => setNewRoom({ ...newRoom, status: e.target.value })}
-  >
-  <option value="ACTIVE">Hoạt động</option>
-  <option value="MAINTENANCE">Bảo trì</option>
-  <option value="INACTIVE">Không sử dụng</option>
-  </select>
+
   // 🔍 Kiểm tra phòng trống
   const handleSubmitAvailableRooms = async (e) => {
     e.preventDefault();
