@@ -6,18 +6,19 @@ import { FiBriefcase } from "react-icons/fi";
 import { BsCalendar4Week } from "react-icons/bs";
 import { HiOutlineDeviceMobile } from "react-icons/hi";
 import ThemeToggle from "../components/ThemeToggle";
+import Navbar from "../components/admin/Navbar";
+
+const adminMenu = [
+  { to: "/admin", label: "Dashboard", icon: <BsCalendar4Week size={18} /> },
+  { to: "/admin/users", label: "Quản lý người dùng", icon: <FiUsers size={18} /> },
+  { to: "/admin/rooms", label: "Quản lý phòng họp", icon: <FiBriefcase size={18} /> },
+  { to: "/admin/devices", label: "Quản lý thiết bị", icon: <HiOutlineDeviceMobile size={18} /> },
+  { to: "/admin/reports", label: "Thống kê & báo cáo", icon: <FiBarChart2 size={18} /> },
+];
 
 export default function AdminLayout() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
-  const menu = [
-    { to: "/admin", label: "Dashboard", icon: <BsCalendar4Week size={18} /> },
-    { to: "/admin/users", label: "Quản lý người dùng", icon: <FiUsers size={18} /> },
-    { to: "/admin/rooms", label: "Quản lý phòng họp", icon: <FiBriefcase size={18} /> },
-    { to: "/admin/devices", label: "Quản lý thiết bị", icon: <HiOutlineDeviceMobile size={18} /> },
-    { to: "/admin/reports", label: "Thống kê & báo cáo", icon: <FiBarChart2 size={18} /> },
-  ];
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
@@ -25,12 +26,11 @@ export default function AdminLayout() {
       <header className="h-14 bg-[#0b132b] text-white dark:bg-slate-900 flex items-center justify-between px-5 shadow-md transition-colors">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            onClick={() => setIsSidebarOpen((prev) => !prev)}
             className="w-9 h-9 rounded-lg bg-[#1c2541] flex items-center justify-center hover:bg-[#3a506b] transition"
           >
             <FiMenu size={20} />
           </button>
-
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
               🗓️
@@ -38,9 +38,10 @@ export default function AdminLayout() {
             <span className="font-semibold text-lg">MeetFlow</span>
           </div>
         </div>
-
         <div className="flex items-center gap-4">
-          <span className="text-sm bg-blue-500 px-3 py-1 rounded-full shadow-md">Admin</span>
+          <span className="text-sm bg-blue-500 px-3 py-1 rounded-full shadow-md">
+            {user?.username || "Admin"}
+          </span>
           <button
             onClick={logout}
             className="text-xs border border-gray-400 rounded-full px-3 py-1 hover:bg-[#1c2541] transition"
@@ -61,13 +62,16 @@ export default function AdminLayout() {
         >
           <div className="flex flex-col items-center py-5 border-b border-gray-100 dark:border-slate-800">
             <div className="text-center">
-              <p className="font-semibold text-gray-700 dark:text-gray-100 text-base">MeetFlow Admin</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500">Quản lý cuộc họp</p>
+              <p className="font-semibold text-gray-700 dark:text-gray-100 text-base">
+                MeetFlow Admin
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Quản lý cuộc họp
+              </p>
             </div>
           </div>
-
           <nav className="mt-3 px-2">
-            {menu.map((m) => (
+            {adminMenu.map((m) => (
               <NavLink
                 key={m.to}
                 to={m.to}
@@ -85,7 +89,6 @@ export default function AdminLayout() {
               </NavLink>
             ))}
           </nav>
-
           {/* Footer */}
           <div className="mt-auto px-5 py-4 border-t border-gray-100 dark:border-slate-800">
             <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
@@ -94,7 +97,6 @@ export default function AdminLayout() {
             </div>
           </div>
         </aside>
-
         {/* Overlay cho mobile */}
         {isSidebarOpen && (
           <div
@@ -104,9 +106,12 @@ export default function AdminLayout() {
         )}
 
         {/* Main content */}
-        <main className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 transition-colors">
-          <Outlet />
-        </main>
+        <div className="flex-1">
+          <Navbar />
+          <main className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 transition-colors">
+            <Outlet />
+          </main>
+        </div>
       </div>
     </div>
   );
