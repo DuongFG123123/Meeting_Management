@@ -13,7 +13,7 @@ export default function AdminLayout() {
 
   const menu = [
     { to: "/admin", label: "Dashboard", icon: <BsCalendar4Week size={18} /> },
-    { to: "/admin/users", label: "Người dùng & quyền hạn", icon: <FiUsers size={18} /> },
+    { to: "/admin/users", label: "Quản lý người dùng", icon: <FiUsers size={18} /> },
     { to: "/admin/rooms", label: "Quản lý phòng họp", icon: <FiBriefcase size={18} /> },
     { to: "/admin/devices", label: "Quản lý thiết bị", icon: <HiOutlineDeviceMobile size={18} /> },
     { to: "/admin/reports", label: "Thống kê & báo cáo", icon: <FiBarChart2 size={18} /> },
