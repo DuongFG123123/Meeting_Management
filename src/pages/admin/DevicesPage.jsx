@@ -1,35 +1,62 @@
+// DevicesPage.jsx
 import { useEffect, useState } from "react";
 import { getDevices, createDevice, updateDevice, deleteDevice } from "../../services/deviceService";
-import { Search, Plus, Edit2, Trash2, X, Check, AlertCircle, AlertTriangle } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, X, Check, AlertTriangle } from "lucide-react";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-// Sử dụng size chữ giống UsersPage (ví dụ: tên tiêu đề text-3xl, table text-base, th: text-base font-semibold)
+const toastColors = {
+  success: "#10b981", // xanh ngọc dịu
+  error: "#ef4444", // đỏ ấm
+  warning: "#e4650aff", // vàng dịu
+  info: "#3b82f6", // xanh dương nhạt
+};
+
+/* Áp dụng màu cho Toastify */
+const setToastTheme = () => {
+  const root = document.documentElement;
+  root.style.setProperty("--toastify-color-success", toastColors.success);
+  root.style.setProperty("--toastify-color-error", toastColors.error);
+  root.style.setProperty("--toastify-color-warning", toastColors.warning);
+  root.style.setProperty("--toastify-color-info", toastColors.info);
+};
+setToastTheme();
+
 export default function DevicesPage() {
-  // States
+  // Danh sách thiết bị
   const [devices, setDevices] = useState([]);
   const [filteredDevices, setFilteredDevices] = useState([]);
+  
+  // Tìm kiếm & lọc
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  
+  // Modal thêm/sửa thiết bị
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [deviceToDelete, setDeviceToDelete] = useState(null);
   const [editingDevice, setEditingDevice] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     status: "AVAILABLE"
   });
-  const [notification, setNotification] = useState(null);
+  
+  // Modal xác nhận xóa
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deviceToDelete, setDeviceToDelete] = useState(null);
+  
+  // Trạng thái loading
   const [loading, setLoading] = useState(false);
 
-  // Fetch devices on mount
+  // Fetch danh sách thiết bị khi component mount
   useEffect(() => {
     fetchDevices();
   }, []);
 
-  // Filter devices when search/filter changes
+  // Lọc thiết bị theo search term và status filter
   useEffect(() => {
     let filtered = devices;
 
+    // Lọc theo từ khóa tìm kiếm
     if (searchTerm) {
       filtered = filtered.filter(d =>
         d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -37,6 +64,7 @@ export default function DevicesPage() {
       );
     }
 
+    // Lọc theo trạng thái
     if (statusFilter !== "ALL") {
       filtered = filtered.filter(d => d.status === statusFilter);
     }
@@ -44,7 +72,9 @@ export default function DevicesPage() {
     setFilteredDevices(filtered);
   }, [devices, searchTerm, statusFilter]);
 
-  // API Calls
+  /**
+   * Lấy danh sách tất cả thiết bị từ API
+   */
   const fetchDevices = async () => {
     try {
       setLoading(true);
@@ -52,20 +82,20 @@ export default function DevicesPage() {
       setDevices(response.data);
       setFilteredDevices(response.data);
     } catch (error) {
-      showNotification("Không thể tải danh sách thiết bị", "error");
-      console.error(error);
+      toast.error("❌ Không thể tải danh sách thiết bị!");
+      console.error("Fetch devices error:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const showNotification = (message, type = "success") => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  };
-
+  /**
+   * Mở modal thêm mới hoặc chỉnh sửa thiết bị
+   * @param {Object|null} device - Thiết bị cần sửa, null nếu thêm mới
+   */
   const handleOpenModal = (device = null) => {
     if (device) {
+      // Chế độ chỉnh sửa
       setEditingDevice(device);
       setFormData({
         name: device.name,
@@ -73,6 +103,7 @@ export default function DevicesPage() {
         status: device.status
       });
     } else {
+      // Chế độ thêm mới
       setEditingDevice(null);
       setFormData({ name: "", description: "", status: "AVAILABLE" });
     }
@@ -88,15 +119,16 @@ export default function DevicesPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validate tên thiết bị
     if (!formData.name.trim()) {
-      showNotification("Vui lòng nhập tên thiết bị", "error");
+      toast.warning("⚠️ Vui lòng nhập tên thiết bị!");
       return;
     }
 
     try {
       setLoading(true);
 
-      // Prepare data - ensure status is sent correctly
+      // Chuẩn bị dữ liệu gửi lên server
       const submitData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
@@ -104,53 +136,72 @@ export default function DevicesPage() {
       };
 
       if (editingDevice) {
+        // Cập nhật thiết bị
         await updateDevice(editingDevice.id, submitData);
-        showNotification("Cập nhật thiết bị thành công!");
+        toast.success("Cập nhật thiết bị thành công!");
       } else {
+        // Thêm mới thiết bị
         await createDevice(submitData);
-        showNotification("Thêm thiết bị mới thành công!");
+        toast.success("Thêm thiết bị mới thành công!");
       }
 
+      // Refresh danh sách và đóng modal
       await fetchDevices();
       handleCloseModal();
     } catch (error) {
-      showNotification(
-        `❌ ${editingDevice ? "Cập nhật" : "Thêm"} thiết bị thất bại: ${error.response?.data?.message || error.message}`,
-        "error"
-      );
+      const errorMsg = error.response?.data?.message || error.message || "Có lỗi xảy ra";
+      toast.error(`${editingDevice ? "Cập nhật" : "Thêm"} thiết bị thất bại: ${errorMsg}`);
       console.error("Submit error:", error.response?.data || error);
     } finally {
       setLoading(false);
     }
   };
 
+  /**
+   * Mở modal xác nhận xóa thiết bị
+   * @param {Object} device - Thiết bị cần xóa
+   */
   const handleOpenDeleteModal = (device) => {
     setDeviceToDelete(device);
     setIsDeleteModalOpen(true);
   };
 
+  /**
+   * Đóng modal xác nhận xóa
+   */
   const handleCloseDeleteModal = () => {
     setIsDeleteModalOpen(false);
     setDeviceToDelete(null);
   };
 
+  /**
+   * Xác nhận xóa thiết bị
+   */
   const handleConfirmDelete = async () => {
     if (!deviceToDelete) return;
 
     try {
       setLoading(true);
       await deleteDevice(deviceToDelete.id);
-      showNotification("Đã xóa thiết bị thành công!");
+      toast.success("Đã xóa thiết bị thành công!");
+      
+      // Refresh danh sách và đóng modal
       await fetchDevices();
       handleCloseDeleteModal();
     } catch (error) {
-      showNotification("Xóa thiết bị thất bại", "error");
-      console.error(error);
+      const errorMsg = error.response?.data?.message || "Có lỗi xảy ra";
+      toast.error(`Xóa thiết bị thất bại: ${errorMsg}`);
+      console.error("Delete error:", error);
     } finally {
       setLoading(false);
     }
   };
 
+  /**
+   * Tạo badge hiển thị trạng thái thiết bị
+   * @param {string} status - Trạng thái thiết bị (AVAILABLE, UNDER_MAINTENANCE)
+   * @returns {JSX.Element} Badge component
+   */
   const getStatusBadge = (status) => {
     const styles = {
       AVAILABLE:
@@ -174,21 +225,36 @@ export default function DevicesPage() {
     );
   };
 
+  /**
+   * Đếm số lượng thiết bị theo trạng thái
+   * @param {string} status - Trạng thái cần đếm
+   * @returns {number} Số lượng thiết bị
+   */
   const getStatsByStatus = (status) => {
     return devices.filter((d) => d.status === status).length;
   };
 
   return (
     <div className="p-8 min-h-screen transition-colors bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
+      {/* ==================== HEADER ==================== */}
       <div className="flex items-center gap-2 mb-8">
         <span>
-          <svg width={32} height={32} viewBox="0 0 24 24" className="text-blue-600 dark:text-blue-400">
-            <g>
-              <circle cx="12" cy="12" r="10" fill="#3b82f6" opacity="0.15" />
-              <path d="M9 9h6M9 13h3" stroke="#2563eb" strokeWidth="1.8" strokeLinecap="round" />
-              <circle cx="17" cy="7" r="1.5" fill="#2563eb" />
-            </g>
+          <svg 
+            width={32} 
+            height={32} 
+            viewBox="0 0 24 24" 
+            className="text-blue-600 dark:text-blue-400" 
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            aria-hidden="true"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" 
+            />
           </svg>
         </span>
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
@@ -196,27 +262,10 @@ export default function DevicesPage() {
         </h1>
       </div>
 
-      {/* Notification */}
-      {notification && (
-        <div
-          className={`mb-4 py-4 px-6 rounded-xl flex items-center gap-3 animate-slide-down border
-            ${
-              notification.type === "success"
-                ? "bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-400 border-green-200 dark:border-green-800"
-                : "bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-400 border-red-200 dark:border-red-800"
-            }
-            text-base`
-          }
-        >
-          <AlertCircle size={22} />
-          <span className="flex-1 text-base">{notification.message}</span>
-        </div>
-      )}
-
-      {/* Filters & Actions */}
+      {/* ==================== FILTERS & ACTIONS ==================== */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 mb-7 border border-gray-100 dark:border-gray-700 transition">
         <div className="flex flex-col md:flex-row gap-4">
-          {/* Search */}
+          {/* Ô tìm kiếm */}
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={20} />
             <input
@@ -231,7 +280,7 @@ export default function DevicesPage() {
             />
           </div>
 
-          {/* Status Filter */}
+          {/* Lọc theo trạng thái */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -244,7 +293,7 @@ export default function DevicesPage() {
             <option value="UNDER_MAINTENANCE">Đang bảo trì</option>
           </select>
 
-          {/* Add Button */}
+          {/* Nút thêm thiết bị */}
           <button
             onClick={() => handleOpenModal()}
             disabled={loading}
@@ -258,13 +307,15 @@ export default function DevicesPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* ==================== STATS CARDS ==================== */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-7">
+        {/* Tổng số thiết bị */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow transition">
           <div className="text-gray-500 dark:text-gray-400 text-base mb-0.5">Tổng số thiết bị</div>
           <div className="text-2xl font-bold text-gray-800 dark:text-white">{devices.length}</div>
         </div>
 
+        {/* Số thiết bị có sẵn */}
         <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl p-6 border border-green-200 dark:border-green-800 shadow transition">
           <div className="text-green-700 dark:text-green-400 text-base mb-0.5">Có sẵn</div>
           <div className="text-2xl font-bold text-green-700 dark:text-green-200">
@@ -272,6 +323,7 @@ export default function DevicesPage() {
           </div>
         </div>
 
+        {/* Số thiết bị đang bảo trì */}
         <div className="bg-orange-50 dark:bg-orange-900/20 rounded-2xl p-6 border border-orange-200 dark:border-orange-800 shadow transition">
           <div className="text-orange-700 dark:text-orange-400 text-base mb-0.5">Đang bảo trì</div>
           <div className="text-2xl font-bold text-orange-700 dark:text-orange-100">
@@ -280,8 +332,9 @@ export default function DevicesPage() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* ==================== TABLE - DANH SÁCH THIẾT BỊ ==================== */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-700 relative">
+        {/* Loading overlay */}
         {loading && (
           <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 flex items-center justify-center z-10">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -290,6 +343,7 @@ export default function DevicesPage() {
 
         <div className="overflow-x-auto">
           <table className="min-w-full table-auto text-base text-left">
+            {/* Table header */}
             <thead className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
               <tr>
                 <th className="p-4 text-base font-semibold">Tên thiết bị</th>
@@ -298,8 +352,11 @@ export default function DevicesPage() {
                 <th className="p-4 text-base font-semibold text-center">Hành động</th>
               </tr>
             </thead>
+            
+            {/* Table body */}
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-base">
               {filteredDevices.length === 0 ? (
+                // Empty state
                 <tr>
                   <td colSpan="4" className="p-10 text-center text-gray-500 dark:text-gray-400">
                     <div className="flex flex-col items-center gap-2">
@@ -310,6 +367,7 @@ export default function DevicesPage() {
                   </td>
                 </tr>
               ) : (
+                // Danh sách thiết bị
                 filteredDevices.map((device) => (
                   <tr key={device.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                     <td className="p-4 font-medium text-gray-900 dark:text-white">{device.name}</td>
@@ -321,6 +379,7 @@ export default function DevicesPage() {
                     <td className="p-4">{getStatusBadge(device.status)}</td>
                     <td className="p-4 text-center">
                       <div className="flex items-center justify-center gap-2">
+                        {/* Nút chỉnh sửa */}
                         <button
                           onClick={() => handleOpenModal(device)}
                           disabled={loading}
@@ -331,6 +390,8 @@ export default function DevicesPage() {
                         >
                           <Edit2 size={18} />
                         </button>
+                        
+                        {/* Nút xóa */}
                         <button
                           onClick={() => handleOpenDeleteModal(device)}
                           disabled={loading}
@@ -351,7 +412,7 @@ export default function DevicesPage() {
         </div>
       </div>
 
-      {/* Modal Create/Edit */}
+      {/* ==================== MODAL THÊM/SỬA THIẾT BỊ ==================== */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-700 animate-slide-up">
@@ -373,7 +434,7 @@ export default function DevicesPage() {
             {/* Modal Body - Form */}
             <div className="p-6">
               <div className="space-y-4">
-                {/* Name Field */}
+                {/* Trường tên thiết bị */}
                 <div>
                   <label className="block text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Tên thiết bị <span className="text-red-500">*</span>
@@ -394,7 +455,7 @@ export default function DevicesPage() {
                   />
                 </div>
 
-                {/* Description Field */}
+                {/* Trường mô tả */}
                 <div>
                   <label className="block text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Mô tả
@@ -414,7 +475,7 @@ export default function DevicesPage() {
                   />
                 </div>
 
-                {/* Status Field */}
+                {/* Trường trạng thái */}
                 <div>
                   <label className="block text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Trạng thái <span className="text-red-500">*</span>
@@ -436,7 +497,7 @@ export default function DevicesPage() {
                 </div>
               </div>
 
-              {/* Modal Footer - Actions */}
+              {/* Modal Footer - Nút hành động */}
               <div className="flex gap-3 pt-6">
                 <button
                   type="button"
@@ -475,7 +536,7 @@ export default function DevicesPage() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* ==================== MODAL XÁC NHẬN XÓA THIẾT BỊ ==================== */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-700 animate-slide-up">
@@ -504,6 +565,8 @@ export default function DevicesPage() {
               <p className="text-base text-gray-700 dark:text-gray-300 mb-4">
                 Bạn có chắc chắn muốn xóa thiết bị này không?
               </p>
+              
+              {/* Thông tin thiết bị sẽ bị xóa */}
               {deviceToDelete && (
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-4">
                   <div className="flex items-start gap-3">
@@ -519,12 +582,14 @@ export default function DevicesPage() {
                   </div>
                 </div>
               )}
+              
+              {/* Cảnh báo */}
               <p className="text-base text-red-600 dark:text-red-400">
                 ⚠️ Hành động này không thể hoàn tác!
               </p>
             </div>
 
-            {/* Modal Footer */}
+            {/* Modal Footer - Nút hành động */}
             <div className="flex gap-3 p-6 pt-0">
               <button
                 type="button"
