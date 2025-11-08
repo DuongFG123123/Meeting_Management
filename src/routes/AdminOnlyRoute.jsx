@@ -1,13 +1,14 @@
-import { Navigate, Outlet } from "react-router-dom";
+// src/routes/AdminOnlyRoute.jsx
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const AdminOnlyRoute = () => {
+const AdminOnlyRoute = ({ children }) => {
   const { isAuthenticated, isAdmin } = useAuth();
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (!isAdmin) return <Navigate to="/user/dashboard" replace />;
 
-  return <Outlet />;
+  return children;
 };
 
 export default AdminOnlyRoute;

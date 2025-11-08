@@ -1,4 +1,4 @@
-// src/components/Sidebar.jsx
+// src/components/admin/Sidebar.jsx
 import { NavLink } from "react-router-dom";
 import {
   FiHome,
@@ -8,7 +8,7 @@ import {
   FiLogOut,
   FiBriefcase, // 🆕 icon phòng họp
 } from "react-icons/fi";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 
 const Sidebar = () => {
   const { logout } = useAuth();

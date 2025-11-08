@@ -1,13 +1,12 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import AppRouter from "./routes/AppRouter";
+import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastContainer, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./index.css";
 
-// Tùy chỉnh màu Toast đẹp dịu hơn
 const toastColors = {
   success: "#10b981",
   error: "#ef4444",
@@ -15,7 +14,6 @@ const toastColors = {
   info: "#3b82f6",
 };
 
-// Áp dụng theme Toast ngay khi app khởi động
 const setToastTheme = () => {
   const root = document.documentElement;
   root.style.setProperty("--toastify-color-success", toastColors.success);
@@ -30,11 +28,10 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <AuthProvider>
         <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors">
-          <AppRouter />
+          <App />
         </div>
       </AuthProvider>
 
-      {/* Toast Container — nhẹ nhàng, đẹp, mượt */}
       <ToastContainer
         position="top-right"
         autoClose={2600}

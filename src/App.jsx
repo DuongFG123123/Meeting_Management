@@ -1,71 +1,138 @@
-// src/App.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 
-// Layouts
+// ===== Layouts =====
 import AdminLayout from "./layouts/AdminLayout";
+import UserLayout from "./layouts/UserLayout";
 import PublicLayout from "./layouts/PublicLayout";
 
-// Pages
+// ===== Public Pages =====
 import LoginPage from "./pages/LoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import DashboardPage from "./pages/admin/DashboardPage";
-import UsersPage from "./pages/admin/UsersPage";
-import RoomsPage from "./pages/admin/RoomsPage"; // ✅ Thêm trang Quản lý phòng họp
-import DevicesPage from "./pages/admin/DevicesPage";
-import ReportsPage from "./pages/admin/ReportsPage";
-// import UserDashboard from "./pages/user/UserDashboard"; // (Trang cho User sau này)
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
-// Guards (Gác cổng)
+// ===== Admin Pages =====
+import Dashboard from "./pages/admin/DashboardPage";
+import Users from "./pages/admin/UsersPage";
+import Rooms from "./pages/admin/RoomsPage";
+import Devices from "./pages/admin/DevicesPage";
+import Reports from "./pages/admin/ReportsPage";
+
+// ===== User Pages =====
+import UserDashboard from "./pages/user/UserDashboard";
+import MyMeetingsPage from "./pages/user/MyMeetingsPage";
+import CreateMeetingPage from "./pages/user/CreateMeetingPage";
+import UserRoomsPage from "./pages/user/UserRoomsPage";
+import HistoryPage from "./pages/user/HistoryPage";
+import ProfilePage from "./pages/user/ProfilePage";
+
+// ===== Guards =====
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminOnlyRoute from "./routes/AdminOnlyRoute";
 
 export default function App() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
 
   return (
     <Routes>
-      {/* === 1️⃣ PUBLIC ROUTES (Login, Forgot Password) === */}
+      {/* === 1️⃣ PUBLIC ROUTES === */}
       <Route element={<PublicLayout />}>
         <Route
           path="/login"
-          element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />}
+          element={
+            !isAuthenticated ? (
+              <LoginPage />
+            ) : (
+              <Navigate
+                to={isAdmin ? "/admin/dashboard" : "/user/dashboard"}
+                replace
+              />
+            )
+          }
         />
         <Route
           path="/forgot-password"
-          element={!isAuthenticated ? <ForgotPasswordPage /> : <Navigate to="/" />}
+          element={
+            !isAuthenticated ? (
+              <ForgotPasswordPage />
+            ) : (
+              <Navigate
+                to={isAdmin ? "/admin/dashboard" : "/user/dashboard"}
+                replace
+              />
+            )
+          }
         />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
       </Route>
 
-      {/* === 2️⃣ PRIVATE ROUTES (Yêu cầu đăng nhập) === */}
+      {/* === 2️⃣ ADMIN ROUTES === */}
       <Route
-        path="/"
+        path="/admin"
         element={
           <ProtectedRoute>
-            <AdminLayout />
+            <AdminOnlyRoute>
+              <AdminLayout />
+            </AdminOnlyRoute>
           </ProtectedRoute>
         }
       >
-        {/* --- ADMIN ROUTES (Chỉ cho ROLE_ADMIN) --- */}
-        <Route element={<AdminOnlyRoute />}>
-          <Route path="admin/dashboard" element={<DashboardPage />} />
-          <Route path="admin/users" element={<UsersPage />} />
-          <Route path="admin/rooms" element={<RoomsPage />} /> {/* ✅ Quản lý phòng họp */}
-          <Route path="admin/devices" element={<DevicesPage />} />
-          <Route path="admin/reports" element={<ReportsPage />} />
-
-          {/* Trang mặc định khi vào "/" */}
-          <Route index element={<Navigate to="/admin/dashboard" replace />} />
-        </Route>
-
-        {/* --- USER ROUTES (để sau) --- */}
-        {/* <Route path="user/dashboard" element={<UserDashboard />} /> */}
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="users" element={<Users />} />
+        <Route path="rooms" element={<Rooms />} />
+        <Route path="devices" element={<Devices />} />
+        <Route path="reports" element={<Reports />} />
       </Route>
 
-      {/* === 3️⃣ TRANG MẶC ĐỊNH (404 hoặc điều hướng) === */}
+      {/* === 3️⃣ USER ROUTES === */}
+      <Route
+        path="/user"
+        element={
+          <ProtectedRoute>
+            <UserLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<UserDashboard />} />
+        <Route path="my-meetings" element={<MyMeetingsPage />} />
+        <Route path="create-meeting" element={<CreateMeetingPage />} />
+        <Route path="rooms" element={<UserRoomsPage />} />
+        <Route path="history" element={<HistoryPage />} />
+        <Route path="profile" element={<ProfilePage />} />
+      </Route>
+
+      {/* === 4️⃣ ROOT REDIRECT === */}
+      <Route
+        path="/"
+        element={
+          isAuthenticated ? (
+            <Navigate
+              to={isAdmin ? "/admin/dashboard" : "/user/dashboard"}
+              replace
+            />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+
+      {/* === 5️⃣ CATCH-ALL (404) === */}
       <Route
         path="*"
-        element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />}
+        element={
+          <Navigate
+            to={
+              isAuthenticated
+                ? isAdmin
+                  ? "/admin/dashboard"
+                  : "/user/dashboard"
+                : "/login"
+            }
+            replace
+          />
+        }
       />
     </Routes>
   );

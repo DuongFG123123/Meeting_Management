@@ -1,22 +1,53 @@
+// src/layouts/UserLayout.jsx
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { FiMenu, FiUsers, FiBarChart2 } from "react-icons/fi";
-import { FiBriefcase } from "react-icons/fi";
-import { BsCalendar4Week } from "react-icons/bs";
-import { HiOutlineDeviceMobile } from "react-icons/hi";
+import {
+  FiHome,
+  FiCalendar,
+  FiPlusCircle,
+  FiBriefcase,
+  FiClock,
+  FiUser,
+  FiMenu,
+} from "react-icons/fi";
 import ThemeToggle from "../components/ThemeToggle";
-import Navbar from "../components/admin/Navbar";
+import Navbar from "../components/user/Navbar";
 
-const adminMenu = [
-  { to: "/admin", label: "Dashboard", icon: <BsCalendar4Week size={18} /> },
-  { to: "/admin/users", label: "Quản lý người dùng", icon: <FiUsers size={18} /> },
-  { to: "/admin/rooms", label: "Quản lý phòng họp", icon: <FiBriefcase size={18} /> },
-  { to: "/admin/devices", label: "Quản lý thiết bị", icon: <HiOutlineDeviceMobile size={18} /> },
-  { to: "/admin/reports", label: "Thống kê & báo cáo", icon: <FiBarChart2 size={18} /> },
+const userMenu = [
+  {
+    to: "/user",
+    label: "Dashboard",
+    icon: <FiHome size={18} />,
+  },
+  {
+    to: "/user/my-meetings",
+    label: "Lịch họp của tôi",
+    icon: <FiCalendar size={18} />,
+  },
+  {
+    to: "/user/create-meeting",
+    label: "Tạo cuộc họp",
+    icon: <FiPlusCircle size={18} />,
+  },
+  {
+    to: "/user/rooms",
+    label: "Phòng họp trống",
+    icon: <FiBriefcase size={18} />,
+  },
+  {
+    to: "/user/history",
+    label: "Lịch sử họp",
+    icon: <FiClock size={18} />,
+  },
+  {
+    to: "/user/profile",
+    label: "Thông tin cá nhân",
+    icon: <FiUser size={18} />,
+  },
 ];
 
-export default function AdminLayout() {
+export default function UserLayout() {
   const { logout, user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -40,7 +71,7 @@ export default function AdminLayout() {
         </div>
         <div className="flex items-center gap-4">
           <span className="text-sm bg-blue-500 px-3 py-1 rounded-full shadow-md">
-            {user?.username || "Admin"}
+            {user?.username || "User"}
           </span>
           <button
             onClick={logout}
@@ -63,15 +94,15 @@ export default function AdminLayout() {
           <div className="flex flex-col items-center py-5 border-b border-gray-100 dark:border-slate-800">
             <div className="text-center">
               <p className="font-semibold text-gray-700 dark:text-gray-100 text-base">
-                MeetFlow Admin
+                MeetFlow User
               </p>
               <p className="text-xs text-gray-400 dark:text-gray-500">
-                Quản lý cuộc họp
+                Quản lý lịch họp cá nhân
               </p>
             </div>
           </div>
           <nav className="mt-3 px-2">
-            {adminMenu.map((m) => (
+            {userMenu.map((m) => (
               <NavLink
                 key={m.to}
                 to={m.to}
@@ -97,6 +128,7 @@ export default function AdminLayout() {
             </div>
           </div>
         </aside>
+
         {/* Overlay cho mobile */}
         {isSidebarOpen && (
           <div
