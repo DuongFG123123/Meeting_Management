@@ -1,34 +1,32 @@
-// src/App.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 
-// Layouts
+// ===== Layouts =====
 import AdminLayout from "./layouts/AdminLayout";
 import UserLayout from "./layouts/UserLayout";
 import PublicLayout from "./layouts/PublicLayout";
 
-// Public Pages
+// ===== Public Pages =====
 import LoginPage from "./pages/LoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 
-// Admin Pages
-import DashboardPage from "./pages/admin/DashboardPage";
-import UsersPage from "./pages/admin/UsersPage";
-import RoomsPage from "./pages/admin/RoomsPage";
-import DevicesPage from "./pages/admin/DevicesPage";
-import ReportsPage from "./pages/admin/ReportsPage";
+// ===== Admin Pages =====
+import Dashboard from "./pages/admin/DashboardPage";
+import Users from "./pages/admin/UsersPage";
+import Rooms from "./pages/admin/RoomsPage";
+import Devices from "./pages/admin/DevicesPage";
+import Reports from "./pages/admin/ReportsPage";
 
-// User Pages
+// ===== User Pages =====
 import UserDashboard from "./pages/user/UserDashboard";
-// TODO: Tạo các trang sau:
-// import MyMeetingsPage from "./pages/user/MyMeetingsPage";
-// import CreateMeetingPage from "./pages/user/CreateMeetingPage";
-// import UserRoomsPage from "./pages/user/UserRoomsPage";
-// import HistoryPage from "./pages/user/HistoryPage";
-// import ProfilePage from "./pages/user/ProfilePage";
+import MyMeetingsPage from "./pages/user/MyMeetingsPage";
+import CreateMeetingPage from "./pages/user/CreateMeetingPage";
+import UserRoomsPage from "./pages/user/UserRoomsPage";
+import HistoryPage from "./pages/user/HistoryPage";
+import ProfilePage from "./pages/user/ProfilePage";
 
-// Guards
+// ===== Guards =====
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminOnlyRoute from "./routes/AdminOnlyRoute";
 
@@ -37,20 +35,38 @@ export default function App() {
 
   return (
     <Routes>
-      {/* ===== 1️⃣ PUBLIC ROUTES ===== */}
+      {/* === 1️⃣ PUBLIC ROUTES === */}
       <Route element={<PublicLayout />}>
         <Route
           path="/login"
-          element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" replace />}
+          element={
+            !isAuthenticated ? (
+              <LoginPage />
+            ) : (
+              <Navigate
+                to={isAdmin ? "/admin/dashboard" : "/user/dashboard"}
+                replace
+              />
+            )
+          }
         />
         <Route
           path="/forgot-password"
-          element={!isAuthenticated ? <ForgotPasswordPage /> : <Navigate to="/" replace />}
+          element={
+            !isAuthenticated ? (
+              <ForgotPasswordPage />
+            ) : (
+              <Navigate
+                to={isAdmin ? "/admin/dashboard" : "/user/dashboard"}
+                replace
+              />
+            )
+          }
         />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
       </Route>
 
-      {/* ===== 2️⃣ ADMIN ROUTES (Chỉ cho ROLE_ADMIN) ===== */}
+      {/* === 2️⃣ ADMIN ROUTES === */}
       <Route
         path="/admin"
         element={
@@ -61,14 +77,15 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<DashboardPage />} />
-        <Route path="users" element={<UsersPage />} />
-        <Route path="rooms" element={<RoomsPage />} />
-        <Route path="devices" element={<DevicesPage />} />
-        <Route path="reports" element={<ReportsPage />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="users" element={<Users />} />
+        <Route path="rooms" element={<Rooms />} />
+        <Route path="devices" element={<Devices />} />
+        <Route path="reports" element={<Reports />} />
       </Route>
 
-      {/* ===== 3️⃣ USER ROUTES (Cho tất cả user đã đăng nhập) ===== */}
+      {/* === 3️⃣ USER ROUTES === */}
       <Route
         path="/user"
         element={
@@ -77,35 +94,45 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<UserDashboard />} />
-        {/* TODO: Uncomment khi đã tạo các trang */}
-        {/* <Route path="my-meetings" element={<MyMeetingsPage />} /> */}
-        {/* <Route path="create-meeting" element={<CreateMeetingPage />} /> */}
-        {/* <Route path="rooms" element={<UserRoomsPage />} /> */}
-        {/* <Route path="history" element={<HistoryPage />} /> */}
-        {/* <Route path="profile" element={<ProfilePage />} /> */}
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<UserDashboard />} />
+        <Route path="my-meetings" element={<MyMeetingsPage />} />
+        <Route path="create-meeting" element={<CreateMeetingPage />} />
+        <Route path="rooms" element={<UserRoomsPage />} />
+        <Route path="history" element={<HistoryPage />} />
+        <Route path="profile" element={<ProfilePage />} />
       </Route>
 
-      {/* ===== 4️⃣ ROOT REDIRECT ===== */}
+      {/* === 4️⃣ ROOT REDIRECT === */}
       <Route
         path="/"
         element={
           isAuthenticated ? (
-            isAdmin ? (
-              <Navigate to="/admin" replace />
-            ) : (
-              <Navigate to="/user" replace />
-            )
+            <Navigate
+              to={isAdmin ? "/admin/dashboard" : "/user/dashboard"}
+              replace
+            />
           ) : (
             <Navigate to="/login" replace />
           )
         }
       />
 
-      {/* ===== 5️⃣ 404 REDIRECT ===== */}
+      {/* === 5️⃣ CATCH-ALL (404) === */}
       <Route
         path="*"
-        element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />}
+        element={
+          <Navigate
+            to={
+              isAuthenticated
+                ? isAdmin
+                  ? "/admin/dashboard"
+                  : "/user/dashboard"
+                : "/login"
+            }
+            replace
+          />
+        }
       />
     </Routes>
   );
