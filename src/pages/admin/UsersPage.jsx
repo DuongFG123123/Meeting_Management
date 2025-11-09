@@ -12,7 +12,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 /* Tuỳ chỉnh màu cho Toast theo theme */
 const toastColors = {
-  success: "#10b981", // xanh ngọc dịu
+  success: "#079830ff", // xanh ngọc dịu
   error: "#ef4444", // đỏ ấm
   warning: "#e4650aff", // vàng dịu
   info: "#3b82f6", // xanh dương nhạt
@@ -209,7 +209,7 @@ export default function UsersPage() {
               try {
                 await deleteUser(id);
                 toast.dismiss();
-                toast.success("🗑️ Đã xoá người dùng!");
+                toast.success("Đã xoá người dùng!");
                 setUsers((prev) => prev.filter((u) => u.id !== id));
               } catch (err) {
                 console.error("Lỗi khi xoá:", err.response?.data || err);
