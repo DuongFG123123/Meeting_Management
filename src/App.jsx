@@ -17,7 +17,7 @@ import Users from "./pages/admin/UsersPage";
 import Rooms from "./pages/admin/RoomsPage";
 import Devices from "./pages/admin/DevicesPage";
 import Reports from "./pages/admin/ReportsPage";
-import ChangePasswordPage from './pages/admin/ChangePasswordPage';
+import ChangePasswordPageAdmin from './pages/admin/ChangePasswordPage';
 
 // ===== User Pages =====
 import UserDashboard from "./pages/user/UserDashboard";
@@ -26,6 +26,7 @@ import CreateMeetingPage from "./pages/user/CreateMeetingPage";
 import UserRoomsPage from "./pages/user/UserRoomsPage";
 import HistoryPage from "./pages/user/HistoryPage";
 import ProfilePage from "./pages/user/ProfilePage";
+import ChangePasswordPageUser from './pages/user/ChangePasswordPage';
 
 // ===== Guards =====
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -84,7 +85,7 @@ export default function App() {
         <Route path="rooms" element={<Rooms />} />
         <Route path="devices" element={<Devices />} />
         <Route path="reports" element={<Reports />} />
-        <Route path="change-password" element={<ChangePasswordPage />} />
+        <Route path="change-password" element={<ChangePasswordPageAdmin />} />
       </Route>
 
       {/* === 3️⃣ USER ROUTES === */}
@@ -103,6 +104,7 @@ export default function App() {
         <Route path="rooms" element={<UserRoomsPage />} />
         <Route path="history" element={<HistoryPage />} />
         <Route path="profile" element={<ProfilePage />} />
+        <Route path="change-password" element={<ChangePasswordPageUser />} />
       </Route>
 
       {/* === 4️⃣ ROOT REDIRECT === */}
