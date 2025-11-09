@@ -1,10 +1,11 @@
+// src/pages/user/MyMeetingsPage.jsx
 import React, { useEffect, useState } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { getMyMeetings, getMeetingById } from "../../services/meetingService";
-import { Modal, Spin, Descriptions } from "antd";
+import { Modal, Spin, Descriptions, Tag } from "antd"; // <-- Thêm Tag
 import { FiCalendar } from "react-icons/fi";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
@@ -17,18 +18,25 @@ const MyMeetingPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [meetingDetail, setMeetingDetail] = useState(null);
 
-  // 🟢 Lấy danh sách lịch họp
+  // 🟢 Lấy danh sách lịch họp (ĐÃ SỬA)
   const fetchMeetings = async () => {
     setLoading(true);
     try {
+      // API của bạn trả về { content: [...] }
       const res = await getMyMeetings();
-      const data = res.data?.content || res.data || [];
+      const data = res.data?.content || [];
+      
+      // === SỬA LỖI 1: SỬA LOGIC MAP ===
       const mappedEvents = data.map((m) => ({
         id: m.id,
         title: m.title || "Cuộc họp",
-        start: `${m.date}T${m.time}`,
-        backgroundColor: "#3b82f6",
-        borderColor: "#2563eb",
+        start: m.startTime, // <-- SỬA: Dùng startTime
+        end: m.endTime,     // <-- SỬA: Thêm endTime
+        backgroundColor: m.status === 'CONFIRMED' ? "#3b82f6" : "#f59e0b", // Xanh cho Confirmed, Vàng cho PENDING
+        borderColor: m.status === 'CONFIRMED' ? "#2563eb" : "#d97706",
+        extendedProps: {
+          status: m.status // Thêm các thuộc tính khác nếu cần
+        }
       }));
       setEvents(mappedEvents);
     } catch (err) {
@@ -39,16 +47,19 @@ const MyMeetingPage = () => {
     }
   };
 
-  // 🟠 Khi click vào 1 cuộc họp -> hiển thị chi tiết
+  // 🟠 Khi click vào 1 cuộc họp -> hiển thị chi tiết (ĐÃ SỬA)
   const handleEventClick = async (info) => {
     try {
       const id = info.event.id;
+      setMeetingDetail(null); // Xóa chi tiết cũ
+      setIsModalOpen(true);
+      
       const res = await getMeetingById(id);
       setMeetingDetail(res.data);
-      setIsModalOpen(true);
     } catch (err) {
       console.error("❌ Lỗi khi lấy chi tiết:", err);
       toast.error("Không thể tải chi tiết cuộc họp!");
+      setIsModalOpen(false); // Đóng modal nếu lỗi
     }
   };
 
@@ -56,9 +67,18 @@ const MyMeetingPage = () => {
     fetchMeetings();
   }, []);
 
+  // Hàm render chi tiết người tham gia
+  const renderParticipants = (participants) => {
+    if (!participants || participants.length === 0) {
+      return "Không có người tham gia.";
+    }
+    // API trả về mảng object, cần map qua
+    return participants.map(p => p.fullName).join(", ");
+  };
+
   return (
     <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-500">
-      {/* 🌟 Header đẹp hỗ trợ dark mode */}
+      {/* (Header giữ nguyên) */}
       <div className="flex items-center gap-4 mb-6 border-b pb-3 border-gray-200 dark:border-gray-700">
         <div className="p-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-blue-500 shadow-md">
           <FiCalendar className="text-white text-2xl" />
@@ -73,7 +93,7 @@ const MyMeetingPage = () => {
         </div>
       </div>
 
-      {/* 📅 Lịch họp */}
+      {/* 📅 Lịch họp (Giữ nguyên) */}
       {loading ? (
         <div className="flex justify-center items-center h-96">
           <Spin size="large" />
@@ -89,8 +109,8 @@ const MyMeetingPage = () => {
               right: "dayGridMonth,timeGridWeek,timeGridDay",
             }}
             allDaySlot={false}
-            slotMinTime="07:00:00"
-            slotMaxTime="20:00:00"
+            slotMinTime="00:00:00" // <-- SỬA: Bắt đầu từ 0 giờ
+            slotMaxTime="24:00:00" // <-- SỬA: Kết thúc lúc 24 giờ
             events={events}
             eventClick={handleEventClick}
             height="75vh"
@@ -99,7 +119,7 @@ const MyMeetingPage = () => {
         </div>
       )}
 
-      {/* 🧾 Modal chi tiết cuộc họp */}
+      {/* 🧾 Modal chi tiết cuộc họp (ĐÃ SỬA HOÀN TOÀN) */}
       <Modal
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
@@ -114,23 +134,26 @@ const MyMeetingPage = () => {
             column={1}
             className="dark:[&_.ant-descriptions-item-label]:text-gray-300 dark:[&_.ant-descriptions-item-content]:text-gray-100"
           >
+            {/* === SỬA LỖI 2: ĐỌC ĐÚNG TRƯỜNG DỮ LIỆU === */}
             <Descriptions.Item label="Tên cuộc họp">
               {meetingDetail.title}
             </Descriptions.Item>
-            <Descriptions.Item label="Ngày họp">
-              {dayjs(meetingDetail.date).format("DD/MM/YYYY")}
-            </Descriptions.Item>
             <Descriptions.Item label="Thời gian">
-              {dayjs(meetingDetail.time, "HH:mm:ss").format("HH:mm")}
+              {`${dayjs(meetingDetail.startTime).format("HH:mm")} - ${dayjs(meetingDetail.endTime).format("HH:mm, DD/MM/YYYY")}`}
+            </Descriptions.Item>
+            <Descriptions.Item label="Trạng thái">
+              <Tag color={meetingDetail.status === 'CONFIRMED' ? 'blue' : 'warning'}>
+                {meetingDetail.status}
+              </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="Phòng họp">
-              {meetingDetail.roomName || "Chưa xác định"}
+              {meetingDetail.room?.name || "Chưa xác định"}
             </Descriptions.Item>
             <Descriptions.Item label="Người tổ chức">
-              {meetingDetail.organizerName || "Không rõ"}
+              {meetingDetail.organizer?.fullName || "Không rõ"}
             </Descriptions.Item>
             <Descriptions.Item label="Người tham gia">
-              {meetingDetail.participants?.join(", ") || "Không có dữ liệu"}
+              {renderParticipants(meetingDetail.participants)}
             </Descriptions.Item>
             <Descriptions.Item label="Ghi chú">
               {meetingDetail.description || "Không có"}
