@@ -1,12 +1,21 @@
-import { useState } from "react";
+// src/layouts/AdminLayout.jsx
+import { useState, useRef, useEffect } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { FiMenu, FiUsers, FiBarChart2 } from "react-icons/fi";
-import { FiBriefcase } from "react-icons/fi";
+import {
+  FiMenu,
+  FiUsers,
+  FiBarChart2,
+  FiBriefcase,
+  FiBell,
+  FiSettings,
+  FiLock,
+  FiLogOut,
+} from "react-icons/fi";
 import { BsCalendar4Week } from "react-icons/bs";
 import { HiOutlineDeviceMobile } from "react-icons/hi";
 import ThemeToggle from "../components/ThemeToggle";
-import Navbar from "../components/admin/Navbar";
+// BỎ: import Navbar from "../components/admin/Navbar"; // <-- ĐÃ XÓA
 
 const adminMenu = [
   { to: "/admin", label: "Dashboard", icon: <BsCalendar4Week size={18} /> },
@@ -19,11 +28,42 @@ const adminMenu = [
 export default function AdminLayout() {
   const { logout, user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const notificationRef = useRef(null);
+  const settingsRef = useRef(null);
+
+  const handleNotificationClick = () => {
+    setIsNotificationOpen((prev) => !prev);
+    setIsSettingsOpen(false);
+  };
+
+  const handleSettingsClick = () => {
+    setIsSettingsOpen((prev) => !prev);
+    setIsNotificationOpen(false);
+  };
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setIsNotificationOpen(false);
+      }
+      if (settingsRef.current && !settingsRef.current.contains(event.target)) {
+        setIsSettingsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
       {/* Header */}
-      <header className="h-14 bg-[#0b132b] text-white dark:bg-slate-900 flex items-center justify-between px-5 shadow-md transition-colors">
+      <header className="h-14 bg-[#0b132b] text-white dark:bg-slate-900 flex items-center justify-between px-5 shadow-md transition-colors z-30 relative">
+        {/* (Phần bên trái header giữ nguyên) */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsSidebarOpen((prev) => !prev)}
@@ -38,28 +78,83 @@ export default function AdminLayout() {
             <span className="font-semibold text-lg">MeetFlow</span>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-sm bg-blue-500 px-3 py-1 rounded-full shadow-md">
+        
+        {/* (Phần bên phải header đã sửa link) */}
+        <div className="flex items-center gap-3">
+          <span className="text-sm bg-blue-500 px-3 py-1 rounded-full shadow-md hidden sm:block">
             {user?.username || "Admin"}
           </span>
-          <button
-            onClick={logout}
-            className="text-xs border border-gray-400 rounded-full px-3 py-1 hover:bg-[#1c2541] transition"
-          >
-            Đăng xuất
-          </button>
+
+          {/* Nút Chuông Thông Báo */}
+          <div className="relative" ref={notificationRef}>
+            <button
+              onClick={handleNotificationClick}
+              className="w-9 h-9 rounded-lg bg-[#1c2541] flex items-center justify-center hover:bg-[#3a506b] transition"
+            >
+              <FiBell size={20} />
+            </button>
+            {isNotificationOpen && (
+              <div className="absolute top-12 right-0 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-xl border dark:border-slate-700">
+                <div className="p-3 border-b dark:border-slate-700">
+                  <h4 className="font-semibold text-gray-800 dark:text-white">Thông báo</h4>
+                </div>
+                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                  <p>Không có thông báo mới.</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Nút Cài Đặt (Bánh răng) */}
+          <div className="relative" ref={settingsRef}>
+            <button
+              onClick={handleSettingsClick}
+              className="w-9 h-9 rounded-lg bg-[#1c2541] flex items-center justify-center hover:bg-[#3a506b] transition"
+            >
+              <FiSettings size={20} />
+            </button>
+
+            {/* Dropdown Cài Đặt */}
+            {isSettingsOpen && (
+              <div className="absolute top-12 right-0 w-52 bg-white dark:bg-slate-800 rounded-lg shadow-xl border dark:border-slate-700 py-2">
+                
+                {/* === 🎯 THAY ĐỔI QUAN TRỌNG === */}
+                <NavLink
+                  to="/admin/change-password" // <-- ĐÃ SỬA
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+                  onClick={() => setIsSettingsOpen(false)} 
+                >
+                  <FiLock size={16} />
+                  <span>Đổi mật khẩu</span>
+                </NavLink>
+
+                {/* Nút Đăng xuất */}
+                <button
+                  onClick={() => {
+                    logout();
+                    setIsSettingsOpen(false);
+                  }}
+                  className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700"
+                >
+                  <FiLogOut size={16} />
+                  <span>Đăng xuất</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
       {/* Body */}
       <div className="flex flex-1 relative">
-        {/* Sidebar */}
+        {/* Sidebar (Giữ nguyên) */}
         <aside
           className={`fixed md:static top-14 md:top-0 left-0 bg-white dark:bg-slate-900 
-                      border-r dark:border-slate-800 shadow-md w-64 h-[calc(100%-56px)] md:h-auto 
-                      transform ${isSidebarOpen ? "translate-x-0" : "-translate-x-64"} 
-                      transition-transform duration-300 ease-in-out z-20`}
+                     border-r dark:border-slate-800 shadow-md w-64 h-[calc(100%-56px)] md:h-auto 
+                     transform ${isSidebarOpen ? "translate-x-0" : "-translate-x-64"} 
+                     transition-transform duration-300 ease-in-out z-20`}
         >
+          {/* (Nội dung Sidebar giữ nguyên... ) */}
           <div className="flex flex-col items-center py-5 border-b border-gray-100 dark:border-slate-800">
             <div className="text-center">
               <p className="font-semibold text-gray-700 dark:text-gray-100 text-base">
@@ -89,7 +184,6 @@ export default function AdminLayout() {
               </NavLink>
             ))}
           </nav>
-          {/* Footer */}
           <div className="mt-auto px-5 py-4 border-t border-gray-100 dark:border-slate-800">
             <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
               <span>Phiên bản 1.0</span>
@@ -97,7 +191,8 @@ export default function AdminLayout() {
             </div>
           </div>
         </aside>
-        {/* Overlay cho mobile */}
+        
+        {/* Overlay cho mobile (Giữ nguyên) */}
         {isSidebarOpen && (
           <div
             className="fixed inset-0 bg-black bg-opacity-30 md:hidden z-10"
@@ -107,7 +202,7 @@ export default function AdminLayout() {
 
         {/* Main content */}
         <div className="flex-1">
-          <Navbar />
+          {/* BỎ: <Navbar /> */} {/* <-- ĐÃ XÓA NAVABR BỊ TRÙNG */}
           <main className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 transition-colors">
             <Outlet />
           </main>
