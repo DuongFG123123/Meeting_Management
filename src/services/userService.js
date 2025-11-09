@@ -10,3 +10,11 @@ export const updateUser = (id, data) =>
   api.put(`/admin/users/${id}`, data);
 
 export const deleteUser = (id) => api.delete(`/admin/users/${id}`);
+
+export const searchUsers = (query) => {
+  return api.get('/users/search', {
+    params: { 
+      query: query 
+    }
+  });
+};

@@ -69,3 +69,4 @@ export const getDevices = () => {
 export const getAllUsers = () => {
   return api.get("/admin/users");
 };
+

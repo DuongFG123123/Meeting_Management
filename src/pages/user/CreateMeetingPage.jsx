@@ -1,5 +1,5 @@
-// src/pages/admin/CreateMeetingPage.jsx
-import React, { useEffect, useState } from "react";
+// src/pages/user/CreateMeetingPage.jsx
+import React, { useEffect, useState, useRef } from "react";
 import {
   DatePicker,
   TimePicker,
@@ -10,27 +10,43 @@ import {
   message,
   Card,
   Divider,
+  Checkbox,
+  Spin, // Spinner khi tìm kiếm
 } from "antd";
-import { FiPlusCircle, FiMail } from "react-icons/fi";
+import { FiPlusCircle, FiUsers } from "react-icons/fi";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import utc from "dayjs/plugin/utc";
 import { useAuth } from "../../context/AuthContext";
-import { createMeeting, getRooms, getDevices } from "../../services/meetingService";
+
+// Import các service cần thiết
+import {
+  createMeeting,
+  getRooms,
+  getDevices,
+} from "../../services/meetingService";
+import { searchUsers } from "../../services/userService"; // <-- API TÌM KIẾM MỚI
 
 dayjs.locale("vi");
-dayjs.extend(utc); // 🕒 kích hoạt plugin UTC
+dayjs.extend(utc);
 
 const { TextArea } = Input;
+const { Option } = Select;
 
 const CreateMeetingPage = () => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Loading khi submit form
   const [rooms, setRooms] = useState([]);
   const [devices, setDevices] = useState([]);
+  
+  // State cho việc tìm kiếm người dùng
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false); // Loading khi gõ tìm
+  const debounceTimer = useRef(null); // Bộ đếm thời gian (debounce)
+  
   const [form] = Form.useForm();
-  const { user } = useAuth();
+  const { user } = useAuth(); // Lấy user hiện tại
 
-  // 🌙 Style dropdown (AntD v5)
+  // Style cho dropdown AntD (giữ nguyên)
   const getDropdownStyle = () => {
     const isDark = document.documentElement.classList.contains("dark");
     return {
@@ -41,22 +57,32 @@ const CreateMeetingPage = () => {
     };
   };
 
-  // 🟢 Lấy danh sách phòng & thiết bị
+  // Tải dữ liệu ban đầu (Phòng & Thiết bị)
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchDropdownData = async () => {
+      // 1. Tải Phòng họp
       try {
-        const [roomRes, deviceRes] = await Promise.all([getRooms(), getDevices()]);
+        const roomRes = await getRooms();
         setRooms(roomRes.data || []);
+      } catch (err) {
+        console.error("❌ Lỗi tải phòng họp:", err);
+        message.error("Không thể tải danh sách phòng họp!");
+      }
+
+      // 2. Tải Thiết bị
+      try {
+        const deviceRes = await getDevices();
         setDevices(deviceRes.data || []);
       } catch (err) {
-        console.error("❌ Lỗi khi tải danh sách:", err);
-        message.error("Không thể tải dữ liệu phòng họp hoặc thiết bị!");
+        console.error("❌ Lỗi tải thiết bị:", err);
+        message.error("Không thể tải danh sách thiết bị!");
       }
     };
-    fetchData();
-  }, []);
+    
+    fetchDropdownData();
+  }, []); // Chạy 1 lần khi trang mở
 
-  // 🧩 CSS dark mode (giữ nguyên style)
+  // CSS cho dark mode (giữ nguyên)
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
@@ -69,55 +95,84 @@ const CreateMeetingPage = () => {
       html.dark .ant-input::placeholder, html.dark textarea.ant-input::placeholder {
         color: #94a3b8 !important;
       }
-      .ant-input:focus, .ant-select-focused .ant-select-selector, .ant-picker-focused {
-        border-color: #6366f1 !important;
-        box-shadow: none !important;
-      }
     `;
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
 
-  // 🟢 Gửi API tạo cuộc họp
+  // Hàm Tìm kiếm Người dùng (mới)
+  const handleSearchUsers = (query) => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    if (query && query.trim().length > 0) {
+      setIsSearching(true);
+      setSearchResults([]);
+      
+      debounceTimer.current = setTimeout(async () => {
+        try {
+          const res = await searchUsers(query);
+          // Lọc chính user hiện tại ra khỏi kết quả
+          const filteredResults = (res.data || []).filter(u => u.id !== user?.id);
+          setSearchResults(filteredResults);
+        } catch (err) {
+          console.error("Lỗi tìm kiếm người dùng:", err);
+          message.error("Không thể tìm kiếm người dùng.");
+          setSearchResults([]);
+        } finally {
+          setIsSearching(false);
+        }
+      }, 500); // Trễ 500ms
+    } else {
+      setSearchResults([]);
+      setIsSearching(false);
+    }
+  };
+
+  // Hàm Gửi Form (đã cập nhật)
   const handleCreateMeeting = async (values) => {
     try {
       setLoading(true);
 
       if (!user?.id) {
         message.error("Không lấy được thông tin người dùng hiện tại!");
+        setLoading(false);
         return;
       }
 
-      // ⚡ FIX: convert sang UTC+7 trước khi gửi (để backend hiểu đúng giờ VN)
+      // Tính toán thời gian
       const startTime = dayjs(values.date)
         .hour(values.time.hour())
         .minute(values.time.minute())
         .second(0)
-        .utcOffset(7, true) // ✅ quan trọng nhất
+        .utcOffset(7, true)
         .toISOString();
 
-      const endTime = dayjs(values.date)
-        .hour(values.time.hour() + 1)
-        .minute(values.time.minute())
-        .second(0)
-        .utcOffset(7, true) // ✅ quan trọng nhất
-        .toISOString();
+      const duration = values.duration || 60; // Mặc định 60 phút
+      const endTime = dayjs(startTime).add(duration, 'minute').toISOString();
+      
+      // Gộp người tạo và người được mời
+      const participantIds = Array.from(
+        new Set([user.id, ...(values.participantIds || [])])
+      );
 
+      // Tạo payload
       const payload = {
         title: values.title,
         description: values.description || "",
         startTime,
         endTime,
         roomId: values.roomId,
-        participantIds: [user.id],
+        participantIds: participantIds,
         deviceIds: values.deviceIds || [],
-        recurrenceRule: {
+        recurrenceRule: values.isRecurring ? {
           frequency: values.frequency || "DAILY",
           interval: 1,
           repeatUntil: dayjs(values.repeatUntil || values.date).format("YYYY-MM-DD"),
-        },
-        onBehalfOfUserId: 0,
-        guestEmails: values.guestEmails ? [values.guestEmails] : [],
+        } : null,
+        onBehalfOfUserId: null,
+        guestEmails: values.guestEmails || [],
       };
 
       console.log("📦 Payload gửi đi:", payload);
@@ -127,15 +182,18 @@ const CreateMeetingPage = () => {
       form.resetFields();
     } catch (err) {
       console.error("❌ Lỗi tạo cuộc họp:", err);
-      message.error(err.response?.data || "Không thể tạo cuộc họp!");
+      message.error(err.response?.data?.message || "Không thể tạo cuộc họp!");
     } finally {
       setLoading(false);
     }
   };
+  
+  // State cho logic lặp lại
+  const [isRecurring, setIsRecurring] = useState(false);
 
   return (
     <div className="p-6 min-h-screen bg-gray-100 dark:bg-[#0f172a] transition-all duration-500">
-      {/* 🌟 Header */}
+      {/* Header */}
       <div className="flex items-center gap-3 mb-6 border-b border-gray-200 dark:border-gray-700 pb-3">
         <div className="p-3 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 shadow-md">
           <FiPlusCircle className="text-white text-2xl" />
@@ -150,59 +208,49 @@ const CreateMeetingPage = () => {
         </div>
       </div>
 
-      {/* 📋 Form */}
+      {/* Form */}
       <div className="max-w-4xl mx-auto">
         <Card
           className="shadow-lg bg-white dark:bg-[#1e293b] dark:text-gray-100 border dark:border-gray-700"
           variant="borderless"
         >
-          <Form layout="vertical" form={form} onFinish={handleCreateMeeting}>
-            <Form.Item
-              label="Tên cuộc họp"
-              name="title"
-              rules={[{ required: true, message: "Vui lòng nhập tên cuộc họp" }]}
-            >
+          <Form 
+            layout="vertical" 
+            form={form} 
+            onFinish={handleCreateMeeting}
+            onValuesChange={(changedValues) => {
+              if (changedValues.isRecurring !== undefined) {
+                setIsRecurring(changedValues.isRecurring);
+              }
+            }}
+          >
+            {/* Tên cuộc họp */}
+            <Form.Item label="Tên cuộc họp" name="title" rules={[{ required: true, message: "Vui lòng nhập tên cuộc họp" }]}>
               <Input placeholder="Nhập tên cuộc họp..." />
             </Form.Item>
 
-            {/* Ngày + Giờ */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Form.Item
-                label="Ngày họp"
-                name="date"
-                rules={[{ required: true, message: "Vui lòng chọn ngày họp" }]}
-              >
+            {/* Thời gian */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Form.Item label="Ngày họp" name="date" rules={[{ required: true, message: "Vui lòng chọn ngày họp" }]}>
                 <DatePicker className="w-full" format="DD/MM/YYYY" />
               </Form.Item>
-
-              <Form.Item
-                label="Giờ họp"
-                name="time"
-                rules={[
-                  { required: true, message: "Vui lòng chọn giờ họp" },
-                  () => ({
-                    validator(_, value) {
-                      const date = form.getFieldValue("date");
-                      if (!date || !value) return Promise.resolve();
-                      const selected = dayjs(date).hour(value.hour()).minute(value.minute());
-                      if (selected.isBefore(dayjs())) {
-                        return Promise.reject("⏰ Thời gian họp phải ở tương lai!");
-                      }
-                      return Promise.resolve();
-                    },
-                  }),
-                ]}
-              >
+              <Form.Item label="Giờ bắt đầu" name="time" rules={[{ required: true, message: "Vui lòng chọn giờ họp" }]}>
                 <TimePicker format="HH:mm" className="w-full" />
+              </Form.Item>
+              <Form.Item label="Thời lượng" name="duration" initialValue={60}>
+                 <Select styles={getDropdownStyle()}>
+                    <Option value={15}>15 phút</Option>
+                    <Option value={30}>30 phút</Option>
+                    <Option value={45}>45 phút</Option>
+                    <Option value={60}>1 giờ</Option>
+                    <Option value={90}>1 giờ 30 phút</Option>
+                    <Option value={120}>2 giờ</Option>
+                 </Select>
               </Form.Item>
             </div>
 
             {/* Phòng họp */}
-            <Form.Item
-              label="Phòng họp"
-              name="roomId"
-              rules={[{ required: true, message: "Vui lòng chọn phòng họp" }]}
-            >
+            <Form.Item label="Phòng họp" name="roomId" rules={[{ required: true, message: "Vui lòng chọn phòng họp" }]}>
               <Select
                 placeholder="-- Chọn phòng họp --"
                 options={rooms.map((r) => ({
@@ -212,7 +260,7 @@ const CreateMeetingPage = () => {
                 styles={getDropdownStyle()}
               />
             </Form.Item>
-
+            
             {/* Thiết bị */}
             <Form.Item label="Thiết bị sử dụng" name="deviceIds">
               <Select
@@ -225,35 +273,92 @@ const CreateMeetingPage = () => {
                 styles={getDropdownStyle()}
               />
             </Form.Item>
-
+            
             <Divider />
 
-            {/* Tần suất */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Form.Item label="Tần suất" name="frequency" initialValue="DAILY">
-                <Select
-                  options={[
-                    { label: "Hằng ngày", value: "DAILY" },
-                    { label: "Hằng tuần", value: "WEEKLY" },
-                    { label: "Hằng tháng", value: "MONTHLY" },
-                  ]}
-                  styles={getDropdownStyle()}
-                />
-              </Form.Item>
-
-              <Form.Item label="Lặp lại đến" name="repeatUntil">
-                <DatePicker className="w-full" format="DD/MM/YYYY" />
-              </Form.Item>
-            </div>
-
-            <Form.Item label="Email khách mời" name="guestEmails">
-              <Input prefix={<FiMail />} placeholder="Nhập email khách mời (tùy chọn)" />
+            {/* Người tham gia (Nội bộ) - Đã nâng cấp */}
+            <Form.Item 
+              label={<span><FiUsers className="inline mr-2" />Người tham gia (Nội bộ)</span>}
+              name="participantIds"
+              tooltip="Gõ tên hoặc email để tìm đồng nghiệp. Bạn (người tạo) sẽ tự động được thêm."
+            >
+              <Select
+                mode="multiple"
+                placeholder="-- Gõ tên hoặc email để tìm người tham gia --"
+                // Hiển thị kết quả tìm kiếm
+                options={searchResults.map((u) => ({
+                  label: `${u.fullName} (${u.username})`, // API mới trả về fullName, username
+                  value: u.id,
+                }))}
+                // Kích hoạt tìm kiếm
+                onSearch={handleSearchUsers}
+                // Hiển thị spinner khi đang tìm
+                loading={isSearching}
+                // (Rất quan trọng) Tắt bộ lọc mặc định của AntD
+                filterOption={false} 
+                // Tùy chỉnh thông báo
+                notFoundContent={
+                  isSearching ? <Spin size="small" /> : "Không tìm thấy người dùng"
+                }
+                styles={getDropdownStyle()}
+              />
             </Form.Item>
 
+            {/* Email khách mời (Bên ngoài) - Đã nâng cấp */}
+            <Form.Item 
+              label="Email khách mời (Bên ngoài)" 
+              name="guestEmails"
+              tooltip="Nhập email của khách bên ngoài, nhấn Enter hoặc dấu phẩy (,) để thêm."
+              rules={[{ 
+                type: 'array', 
+                validator: (rule, value) => {
+                  if (!value || value.length === 0) return Promise.resolve();
+                  const invalidEmails = value.filter(email => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()));
+                  if (invalidEmails.length > 0) {
+                    return Promise.reject(`Email không hợp lệ: ${invalidEmails.join(', ')}`);
+                  }
+                  return Promise.resolve();
+                }
+              }]}
+            >
+              <Select
+                mode="tags" // <-- Chế độ 'tags'
+                tokenSeparators={[',', ';', ' ']} // Tự động tách email
+                placeholder="Ví dụ: guest1@email.com, guest2@email.com, ..."
+                styles={getDropdownStyle()}
+              />
+            </Form.Item>
+
+            <Divider />
+            
+            {/* Logic lặp lại */}
+            <Form.Item name="isRecurring" valuePropName="checked">
+              <Checkbox>Lặp lại cuộc họp này</Checkbox>
+            </Form.Item>
+            {isRecurring && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Form.Item label="Tần suất" name="frequency" initialValue="DAILY">
+                  <Select
+                    options={[
+                      { label: "Hằng ngày", value: "DAILY" },
+                      { label: "Hằng tuần", value: "WEEKLY" },
+                      { label: "Hằng tháng", value: "MONTHLY" },
+                    ]}
+                    styles={getDropdownStyle()}
+                  />
+                </Form.Item>
+                <Form.Item label="Lặp lại đến" name="repeatUntil">
+                  <DatePicker className="w-full" format="DD/MM/YYYY" />
+                </Form.Item>
+              </div>
+            )}
+            
+            {/* Mô tả */}
             <Form.Item label="Mô tả" name="description">
               <TextArea rows={4} placeholder="Nhập nội dung mô tả..." />
             </Form.Item>
-
+            
+            {/* Nút Submit */}
             <Form.Item>
               <Button
                 type="primary"
