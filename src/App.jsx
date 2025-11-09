@@ -17,6 +17,7 @@ import Users from "./pages/admin/UsersPage";
 import Rooms from "./pages/admin/RoomsPage";
 import Devices from "./pages/admin/DevicesPage";
 import Reports from "./pages/admin/ReportsPage";
+import ChangePasswordPage from './pages/admin/ChangePasswordPage';
 
 // ===== User Pages =====
 import UserDashboard from "./pages/user/UserDashboard";
@@ -83,6 +84,7 @@ export default function App() {
         <Route path="rooms" element={<Rooms />} />
         <Route path="devices" element={<Devices />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="change-password" element={<ChangePasswordPage />} />
       </Route>
 
       {/* === 3️⃣ USER ROUTES === */}
