@@ -78,10 +78,12 @@ const ReportPage = () => {
 
   const renderActions = (data, filename) => (
     <div style={{ marginBottom: 16 }}>
-      <Button onClick={() => exportToExcel(data, filename)} style={{ marginRight: 8 }}>
-        Xuất Excel
-      </Button>
-      <Button onClick={() => exportToPDF(data, filename)}>Xuất PDF</Button>
+      <Button type="primary" onClick={() => exportToExcel(data, filename)} style={{ marginRight: 8 }}>
+  Xuất Excel
+</Button>
+<Button type="default" onClick={() => exportToPDF(data, filename)}>
+  Xuất PDF
+</Button>
     </div>
   );
 
