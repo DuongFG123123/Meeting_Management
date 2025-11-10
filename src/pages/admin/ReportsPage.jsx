@@ -164,9 +164,12 @@ const ReportPage = () => {
       <Pie
         data={cancelChartData}
         options={{
-          maintainAspectRatio: false,
-          plugins: { legend: { position: "right" } },
-        }}
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { position: "right", labels: { boxWidth: 20, padding: 15 } },
+    tooltip: { enabled: true }
+  }
+}}
         cx="30%"  // di chuyển tâm Pie chart sang trái
         cy="50%"
         outerRadius={120} // tuỳ chỉnh kích thước
