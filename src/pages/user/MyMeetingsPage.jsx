@@ -20,11 +20,35 @@ dayjs.extend(utc);
 const { TextArea } = Input;
 const { Option } = Select;
 
+// Tooltip hiển thị thông tin ngắn (tối đa 3 dòng)
+function getEventTooltipContent(event) {
+  // Lưu ý: extendedProps chứa thông tin thêm
+  // event.extendedProps.organizerName, roomName...
+  // Phải lấy những trường cơ bản đã đẩy xuống từ mappedEvents
+  // Nếu thiếu thông tin, bổ sung ở fetchMeetings bên dưới
+  const { title, start, end, extendedProps } = event;
+  const time = `${dayjs(start).format("HH:mm")} - ${dayjs(end).format(
+    "HH:mm, DD/MM/YYYY"
+  )}`;
+  const room = extendedProps?.roomName || "Chưa xác định";
+  const organizer = extendedProps?.organizerName || "Không rõ";
+  let status = extendedProps?.status === "CONFIRMED" ? "Đã xác nhận" : "Chờ xác nhận";
+  return `
+    <div>
+      <div><b>${title}</b></div>
+      <div>Thời gian: ${time}</div>
+      <div>Phòng: ${room}</div>
+      <div>Người tổ chức: ${organizer}</div>
+      <div>Trạng thái: ${status}</div>
+    </div>
+  `;
+}
+
 const MyMeetingPage = () => {
   // State quản lý lịch họp
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
   // State modal chi tiết
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [meetingDetail, setMeetingDetail] = useState(null);
@@ -47,7 +71,7 @@ const MyMeetingPage = () => {
   // Tải danh sách phòng và thiết bị khi mở form đặt lịch
   useEffect(() => {
     if (!quickBooking.open) return;
-    
+
     const fetchData = async () => {
       try {
         const [roomRes, deviceRes] = await Promise.all([getRooms(), getDevices()]);
@@ -66,6 +90,8 @@ const MyMeetingPage = () => {
     try {
       const res = await getMyMeetings();
       const data = res.data?.content || [];
+      // Thêm các thông tin phổ biến cần cho tooltip: room, organizer name
+      // Giả sử mỗi m có .room, .organizer
       const mappedEvents = data.map((m) => ({
         id: m.id,
         title: m.title || "Cuộc họp",
@@ -73,7 +99,11 @@ const MyMeetingPage = () => {
         end: m.endTime,
         backgroundColor: m.status === 'CONFIRMED' ? "#3b82f6" : "#f59e0b",
         borderColor: m.status === 'CONFIRMED' ? "#2563eb" : "#d97706",
-        extendedProps: { status: m.status }
+        extendedProps: {
+          status: m.status,
+          roomName: m.room?.name || "Chưa xác định",
+          organizerName: m.organizer?.fullName || "Không rõ",
+        }
       }));
       setEvents(mappedEvents);
     } catch (err) {
@@ -96,6 +126,64 @@ const MyMeetingPage = () => {
       console.error("❌ Lỗi khi lấy chi tiết:", err);
       toast.error("Không thể tải chi tiết cuộc họp!");
       setIsModalOpen(false);
+    }
+  };
+
+  // Xử lý hover cuộc họp để hiển thị tooltip
+  // fullcalendar eventMouseEnter/eventMouseLeave
+  const tooltipRef = useRef();
+  const handleEventMouseEnter = (info) => {
+    // Xóa tooltip cũ nếu có
+    handleEventMouseLeave();
+
+    // Lấy thông tin cuộc họp
+    const tooltipHtml = getEventTooltipContent(info.event);
+    let tooltip = document.createElement("div");
+    tooltip.innerHTML = tooltipHtml;
+    tooltip.style.position = "absolute";
+    tooltip.style.zIndex = 9999;
+    tooltip.style.background = "#222";
+    tooltip.style.color = "#fff";
+    tooltip.style.padding = "8px 14px";
+    tooltip.style.borderRadius = "8px";
+    tooltip.style.boxShadow = "0 2px 12px rgba(0,0,0,0.3)";
+    tooltip.style.fontSize = "13px";
+    tooltip.style.pointerEvents = "none";
+    tooltip.style.transition = "opacity 0.15s";
+    tooltip.style.opacity = "0.93";
+    // Tương thích dark-ui: tăng trắng, giảm tối nếu dark
+    if (document.documentElement.classList.contains("dark")) {
+      tooltip.style.background = "#334155";
+      tooltip.style.color = "#e0eafb";
+    }
+    document.body.appendChild(tooltip);
+    tooltipRef.current = tooltip;
+
+    // Đặt tooltip gần con trỏ
+    const mouse = info.jsEvent;
+    function positionTooltip(e) {
+      tooltip.style.left = e.pageX + 16 + "px";
+      tooltip.style.top = e.pageY + 9 + "px";
+    }
+    positionTooltip(mouse);
+
+    // Lắng nghe move để update vị trí tooltip
+    function onMove(ev) {
+      positionTooltip(ev);
+    }
+    document.addEventListener('mousemove', onMove);
+
+    // Lưu event để khi mouseleave sẽ xóa listener và tooltip
+    tooltip._removeMousemove = () => {
+      document.removeEventListener('mousemove', onMove);
+    };
+  };
+
+  const handleEventMouseLeave = () => {
+    if (tooltipRef.current) {
+      if (tooltipRef.current._removeMousemove) tooltipRef.current._removeMousemove();
+      if (tooltipRef.current.parentNode) tooltipRef.current.parentNode.removeChild(tooltipRef.current);
+      tooltipRef.current = null;
     }
   };
 
@@ -138,7 +226,7 @@ const MyMeetingPage = () => {
   // Tìm kiếm người dùng với debounce
   const handleSearchUsers = (query) => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    
+
     if (query && query.trim().length > 0) {
       setIsSearching(true);
       setSearchResults([]);
@@ -186,7 +274,7 @@ const MyMeetingPage = () => {
 
       // Đảm bảo người tạo luôn trong danh sách tham gia
       const participantIds = Array.from(new Set([user.id, ...(values.participantIds || [])]));
-      
+
       const payload = {
         title: values.title,
         description: values.description || "",
@@ -289,6 +377,8 @@ const MyMeetingPage = () => {
             slotMaxTime="24:00:00"
             events={events}
             eventClick={handleEventClick}
+            eventMouseEnter={handleEventMouseEnter}
+            eventMouseLeave={handleEventMouseLeave}
             height="75vh"
             locale="vi"
             selectable={true}
