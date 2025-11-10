@@ -1,41 +1,38 @@
-// src/layouts/AdminLayout.jsx
+// src/layouts/UserLayout.jsx
 import { useState, useRef, useEffect } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom"; // <-- THÊM useNavigate
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-// --- 1. IMPORT SERVICE MỚI ---
-import * as notificationService from '../services/notificationService'; 
+// === 1. IMPORT SERVICE MỚI ===
+import * as notificationService from '../services/notificationService';
 import * as meetingService from '../services/meetingService'; // <-- THÊM MỚI
 
 import {
-  FiMenu, FiUsers, FiBarChart2, FiBriefcase, FiBell, FiSettings,
-  FiLock, FiLogOut,
-  // --- Icons mới ---
+  FiHome, FiCalendar, FiPlusCircle, FiBriefcase, FiClock, FiUser, FiMenu,
+  FiBell, FiSettings, FiLock, FiLogOut, FiLoader, FiInbox,
   FiCheck, // <-- Icon Chấp nhận
   FiX,     // <-- Icon Từ chối
-  FiLoader, 
-  FiInbox
 } from "react-icons/fi";
-import { BsCalendar4Week } from "react-icons/bs";
-import { HiOutlineDeviceMobile } from "react-icons/hi";
 import ThemeToggle from "../components/ThemeToggle";
-// (Bỏ import Navbar cũ nếu còn)
 
-const adminMenu = [
-  { to: "/admin", label: "Dashboard", icon: <BsCalendar4Week size={18} /> },
-  { to: "/admin/users", label: "Quản lý người dùng", icon: <FiUsers size={18} /> },
-  { to: "/admin/rooms", label: "Quản lý phòng họp", icon: <FiBriefcase size={18} /> },
-  { to: "/admin/devices", label: "Quản lý thiết bị", icon: <HiOutlineDeviceMobile size={18} /> },
-  { to: "/admin/reports", label: "Thống kê & báo cáo", icon: <FiBarChart2 size={18} /> },
+const userMenu = [
+  { to: "/user", label: "Dashboard", icon: <FiHome size={18} /> },
+  { to: "/user/my-meetings", label: "Lịch họp của tôi", icon: <FiCalendar size={18} /> },
+  { to: "/user/create-meeting", label: "Tạo cuộc họp", icon: <FiPlusCircle size={18} /> },
+  { to: "/user/rooms", label: "Phòng họp trống", icon: <FiBriefcase size={18} /> },
+  { to: "/user/history", label: "Lịch sử họp", icon: <FiClock size={18} /> },
+  { to: "/user/profile", label: "Thông tin cá nhân", icon: <FiUser size={18} /> },
 ];
 
 
 // === 2. COMPONENT CON ĐÃ ĐƯỢC NÂNG CẤP ===
 const NotificationItem = ({ notification, onMarkRead }) => {
   const navigate = useNavigate();
+  // State nội bộ để quản lý trạng thái đang xử lý (khi nhấn nút)
   const [isResponding, setIsResponding] = useState(false);
 
   // Kiểm tra xem đây có phải là lời mời họp hay không
+  // Giả định: có meetingId VÀ chưa đọc (read: false)
   const isInvitation = notification.meetingId && !notification.read;
 
   // Xử lý khi nhấn nút Chấp nhận / Từ chối
@@ -48,20 +45,30 @@ const NotificationItem = ({ notification, onMarkRead }) => {
       await meetingService.respondToMeeting(notification.meetingId, status);
       
       // 2. (Thành công) Đánh dấu thông báo là đã đọc
+      // onMarkRead sẽ kích hoạt parent tải lại list & số lượng
       onMarkRead(notification.id); 
 
     } catch (error) {
       console.error(`Lỗi khi ${status} cuộc họp:`, error);
+      // (Có thể thêm thông báo toast/alert lỗi ở đây)
+    } finally {
+      // (Không cần setIsResponding(false) vì component sẽ re-render
+      // và isInvitation sẽ là false, làm ẩn các nút đi)
     }
   };
 
   // Xử lý khi nhấn vào nội dung thông báo (để xem chi tiết)
   const handleNavigate = () => {
     if (notification.meetingId) {
-      // (Khác biệt so với UserLayout)
-      // Điều hướng Admin về trang Dashboard
-      navigate('/admin'); 
+      // Nếu là lời mời, đưa đến trang chi tiết
+      // (Bạn cần tạo route /user/meetings/:id sau này)
+      // navigate(`/user/meetings/${notification.meetingId}`);
       
+      // Tạm thời, đưa đến trang "Lịch họp của tôi"
+      navigate('/user/my-meetings');
+      
+      // Nếu đây không phải là lời mời (đã đọc),
+      // thì chỉ cần đánh dấu là đã đọc (nếu chưa)
       if (!notification.read) {
          onMarkRead(notification.id);
       }
@@ -74,8 +81,8 @@ const NotificationItem = ({ notification, onMarkRead }) => {
     >
       {/* Phần nội dung thông báo */}
       <div 
-        onClick={handleNavigate} 
-        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700 -m-3 p-3 rounded-lg"
+        onClick={handleNavigate} // Nhấn vào text để điều hướng
+        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700 -m-3 p-3 rounded-lg" // Trick để click-area to hơn
       >
         <p className={`text-sm text-gray-800 dark:text-gray-100 ${!notification.read ? 'font-semibold' : ''}`}>
           {notification.message}
@@ -86,7 +93,7 @@ const NotificationItem = ({ notification, onMarkRead }) => {
       </div>
 
       {/* === 3. CÁC NÚT HÀNH ĐỘNG MỚI === */}
-      {isInvitation && ( 
+      {isInvitation && ( // Chỉ hiển thị nếu là lời mời (có meetingId và chưa đọc)
         <div className="flex items-center space-x-2 mt-3">
           <button
             onClick={() => handleResponse('ACCEPTED')}
@@ -107,7 +114,7 @@ const NotificationItem = ({ notification, onMarkRead }) => {
         </div>
       )}
 
-      {/* Hiển thị trạng thái "Đã phản hồi" */}
+      {/* Hiển thị trạng thái "Đã phản hồi" nếu nó đã được đọc và có meetingId */}
       {notification.read && notification.meetingId && (
          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 font-medium">
            Đã phản hồi.
@@ -118,8 +125,8 @@ const NotificationItem = ({ notification, onMarkRead }) => {
 }
 
 
-// === COMPONENT LAYOUT CHÍNH ===
-export default function AdminLayout() {
+// === COMPONENT LAYOUT CHÍNH (Giữ nguyên logic tải thông báo) ===
+export default function UserLayout() {
   const { logout, user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   
@@ -128,14 +135,13 @@ export default function AdminLayout() {
   const notificationRef = useRef(null);
   const settingsRef = useRef(null);
 
-  // === 4. THÊM STATE VÀ LOGIC TỪ USERLAYOUT ===
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [notificationLoading, setNotificationLoading] = useState(false);
   const [notificationPage, setNotificationPage] = useState(0);
   const [hasMoreNotifications, setHasMoreNotifications] = useState(true);
 
-  // --- HÀM TẢI (Copy từ UserLayout) ---
+  // --- HÀM TẢI (Không thay đổi) ---
   const fetchUnreadCount = async () => {
     try {
       const res = await notificationService.getUnreadCount();
@@ -162,13 +168,17 @@ export default function AdminLayout() {
     }
   };
 
-  // --- HÀM ĐÁNH DẤU ĐÃ ĐỌC (Copy từ UserLayout) ---
+  // --- HÀM ĐÁNH DẤU ĐÃ ĐỌC (SỬA ĐỔI NHẸ) ---
+  // (Hàm này giờ được gọi bởi NotificationItem SAU KHI phản hồi thành công)
+  // (Nó cũng được gọi khi nhấn "Đánh dấu tất cả")
   const handleMarkAsRead = async (id) => {
     try {
       await notificationService.markAsRead(id);
+      // Cập nhật UI ngay lập tức
       setNotifications(prev => 
         prev.map(n => n.id === id ? { ...n, read: true } : n)
       );
+      // Tải lại số lượng
       fetchUnreadCount();
     } catch (error) {
       console.error("Lỗi đánh dấu đã đọc:", error);
@@ -185,7 +195,8 @@ export default function AdminLayout() {
     }
   };
 
-  // --- Xử lý click-outside (Copy từ UserLayout) ---
+
+  // --- Xử lý click-outside (Không thay đổi) ---
   useEffect(() => {
     function handleClickOutside(event) {
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
@@ -201,14 +212,14 @@ export default function AdminLayout() {
     };
   }, []);
 
-  // --- Tải số lượng (Copy từ UserLayout) ---
+  // --- Tải số lượng (Không thay đổi) ---
   useEffect(() => {
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // --- Xử lý click Dropdown (Copy từ UserLayout) ---
+  // --- Xử lý click Dropdown (Không thay đổi) ---
   const handleNotificationClick = () => {
     const opening = !isNotificationOpen;
     setIsNotificationOpen(opening);
@@ -226,9 +237,8 @@ export default function AdminLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
-      {/* Header */}
+      {/* Header (Không thay đổi) */}
       <header className="h-14 bg-[#0b132b] text-white dark:bg-slate-900 flex items-center justify-between px-5 shadow-md transition-colors z-30 relative">
-        {/* (Phần trái header giữ nguyên) */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsSidebarOpen((prev) => !prev)}
@@ -243,14 +253,12 @@ export default function AdminLayout() {
             <span className="font-semibold text-lg">MeetFlow</span>
           </div>
         </div>
-
-        {/* === 5. THAY THẾ TOÀN BỘ JSX HEADER BÊN PHẢI === */}
         <div className="flex items-center gap-3">
           <span className="text-sm bg-blue-500 px-3 py-1 rounded-full shadow-md hidden sm:block">
-            {user?.username || "Admin"}
+            {user?.username || "User"}
           </span>
 
-          {/* NÚT CHUÔNG (Đã cập nhật) */}
+          {/* NÚT CHUÔNG (Không thay đổi) */}
           <div className="relative" ref={notificationRef}>
             <button
               onClick={handleNotificationClick}
@@ -264,7 +272,7 @@ export default function AdminLayout() {
               )}
             </button>
 
-            {/* DROPDOWN THÔNG BÁO (Đã cập nhật) */}
+            {/* DROPDOWN THÔNG BÁO (Phần .map() đã được cập nhật) */}
             {isNotificationOpen && (
               <div className="absolute top-12 right-0 w-80 max-h-[70vh] flex flex-col bg-white dark:bg-slate-800 rounded-lg shadow-xl border dark:border-slate-700">
                 
@@ -315,7 +323,7 @@ export default function AdminLayout() {
             )}
           </div>
 
-          {/* NÚT CÀI ĐẶT (QUAN TRỌNG: Giữ nguyên link của Admin) */}
+          {/* NÚT CÀI ĐẶT (Đã trỏ đúng link /user/change-password) */}
           <div className="relative" ref={settingsRef}>
             <button
               onClick={handleSettingsClick}
@@ -326,7 +334,7 @@ export default function AdminLayout() {
             {isSettingsOpen && (
               <div className="absolute top-12 right-0 w-52 bg-white dark:bg-slate-800 rounded-lg shadow-xl border dark:border-slate-700 py-2">
                 <NavLink
-                  to="/admin/change-password" // <-- Giữ nguyên link của Admin
+                  to="/user/change-password" // <-- Đã sửa ở lần trước
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
                   onClick={() => setIsSettingsOpen(false)} 
                 >
@@ -358,19 +366,18 @@ export default function AdminLayout() {
                      transform ${isSidebarOpen ? "translate-x-0" : "-translate-x-64"} 
                      transition-transform duration-300 ease-in-out z-20`}
         >
-          {/* (Nội dung Sidebar giữ nguyên... ) */}
           <div className="flex flex-col items-center py-5 border-b border-gray-100 dark:border-slate-800">
             <div className="text-center">
               <p className="font-semibold text-gray-700 dark:text-gray-100 text-base">
-                MeetFlow Admin
+                MeetFlow User
               </p>
               <p className="text-xs text-gray-400 dark:text-gray-500">
-                Quản lý cuộc họp
+                Quản lý lịch họp cá nhân
               </p>
             </div>
           </div>
           <nav className="mt-3 px-2">
-            {adminMenu.map((m) => (
+            {userMenu.map((m) => (
               <NavLink
                 key={m.to}
                 to={m.to}

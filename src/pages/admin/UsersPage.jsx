@@ -6,16 +6,16 @@ import {
   deleteUser,
 } from "../../services/userService";
 import { toast } from "react-toastify";
-import { FiUsers, FiPlus, FiTrash2 } from "react-icons/fi";
+import { FiUsers, FiPlus, FiTrash2, FiEdit2, FiSearch } from "react-icons/fi";
 import { motion } from "framer-motion";
 import "react-toastify/dist/ReactToastify.css";
 
 /* Tuỳ chỉnh màu cho Toast theo theme */
 const toastColors = {
-  success: "#10b981", // xanh ngọc dịu
-  error: "#ef4444",   // đỏ ấm
+  success: "#079830ff", // xanh ngọc dịu
+  error: "#ef4444", // đỏ ấm
   warning: "#e4650aff", // vàng dịu
-  info: "#3b82f6",    // xanh dương nhạt
+  info: "#3b82f6", // xanh dương nhạt
 };
 
 /* ⚙️ Áp dụng màu Toastify */
@@ -32,11 +32,23 @@ export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+
+  // tìm kiếm / lọc
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all"); // all | active | inactive
+
+  // modal thêm
+  const [showAddModal, setShowAddModal] = useState(false);
   const [newUser, setNewUser] = useState({
     fullName: "",
     username: "",
     password: "",
+    role: "ROLE_USER",
   });
+
+  // modal sửa
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   /* Lấy danh sách người dùng */
   const fetchUsers = async () => {
@@ -83,7 +95,7 @@ export default function UsersPage() {
   };
 
   /* Tạo người dùng mới */
-    const handleCreateUser = async () => {
+  const handleCreateUser = async () => {
     if (!validateUserInput()) return;
 
     try {
@@ -92,13 +104,20 @@ export default function UsersPage() {
         username: newUser.username,
         password: newUser.password,
         fullName: newUser.fullName,
+        roles: [newUser.role], // nếu backend ignore cũng không sao
       };
 
       const res = await createUser(payload);
       console.log("Đã tạo user:", res.data);
 
       toast.success("Tạo người dùng thành công!");
-      setNewUser({ fullName: "", username: "", password: "" });
+      setNewUser({
+        fullName: "",
+        username: "",
+        password: "",
+        role: "ROLE_USER",
+      });
+      setShowAddModal(false);
       fetchUsers();
     } catch (err) {
       console.error("Lỗi tạo người dùng:", err);
@@ -109,8 +128,10 @@ export default function UsersPage() {
         err.response?.data?.fullName ||
         "Không thể tạo người dùng!";
 
-      // Thay đổi nội dung cảnh báo trùng dữ liệu
-      if (msg.toLowerCase().includes("exists") || msg.toLowerCase().includes("duplicate")) {
+      if (
+        msg.toLowerCase().includes("exists") ||
+        msg.toLowerCase().includes("duplicate")
+      ) {
         toast.warning("Không thể thêm — dữ liệu này đã tồn tại!");
       } else if (msg.toLowerCase().includes("size")) {
         toast.warning("Mật khẩu phải có ít nhất 6 ký tự!");
@@ -122,19 +143,35 @@ export default function UsersPage() {
     }
   };
 
-  /* Cập nhật vai trò */
-  const handleUpdateRole = async (id, newRole) => {
+  /* Mở modal cập nhật quyền/trạng thái */
+  const openEditModal = (user) => {
+    setSelectedUser({
+      ...user,
+      role: user.roles?.[0] || "ROLE_USER",
+      active: user.active,
+    });
+    setShowEditModal(true);
+  };
+
+  /* Cập nhật quyền + trạng thái */
+  const handleUpdateUser = async () => {
+    if (!selectedUser) return;
     try {
-      await updateUser(id, { roles: [newRole], isActive: true });
-      toast.success("Cập nhật quyền thành công!");
+      await updateUser(selectedUser.id, {
+        roles: [selectedUser.role],
+        isActive: selectedUser.active,
+      });
+      toast.success("Cập nhật quyền/trạng thái thành công!");
+      setShowEditModal(false);
+      setSelectedUser(null);
       fetchUsers();
     } catch (err) {
-      console.error("Lỗi cập nhật vai trò:", err);
-      toast.error("Không thể cập nhật quyền!");
+      console.error("Lỗi cập nhật người dùng:", err);
+      toast.error("Không thể cập nhật quyền/trạng thái!");
     }
   };
 
-  /* Xoá người dùng */
+  /* Xoá người dùng – giữ nguyên logic toast confirm của bạn */
   const handleDeleteUser = async (id) => {
     if (!id) {
       toast.error("Không xác định được ID người dùng!");
@@ -172,7 +209,7 @@ export default function UsersPage() {
               try {
                 await deleteUser(id);
                 toast.dismiss();
-                toast.success("🗑️ Đã xoá người dùng!");
+                toast.success("Đã xoá người dùng!");
                 setUsers((prev) => prev.filter((u) => u.id !== id));
               } catch (err) {
                 console.error("Lỗi khi xoá:", err.response?.data || err);
@@ -206,8 +243,8 @@ export default function UsersPage() {
         draggable: false,
         position: "top-center",
         style: {
-          background: isDark ? "#1e293b" : "#ffffff", // dark: slate-800
-          color: isDark ? "#e2e8f0" : "#1f2937", // dark: gray-200, light: gray-800
+          background: isDark ? "#1e293b" : "#ffffff",
+          color: isDark ? "#e2e8f0" : "#1f2937",
           borderRadius: "14px",
           boxShadow: isDark
             ? "0 6px 25px rgba(0,0,0,0.45)"
@@ -218,6 +255,24 @@ export default function UsersPage() {
       }
     );
   };
+
+  /* Lọc người dùng theo search & trạng thái */
+  const filteredUsers = users.filter((user) => {
+    const term = searchTerm.toLowerCase();
+    const matchSearch =
+      !term ||
+      user.fullName?.toLowerCase().includes(term) ||
+      user.username?.toLowerCase().includes(term);
+
+    const matchStatus =
+      statusFilter === "all"
+        ? true
+        : statusFilter === "active"
+        ? user.active
+        : !user.active;
+
+    return matchSearch && matchStatus;
+  });
 
   return (
     <div className="p-8 min-h-screen transition-colors bg-gray-50 dark:bg-gray-900">
@@ -235,84 +290,68 @@ export default function UsersPage() {
         </div>
       </motion.div>
 
-      {/* Form thêm người dùng */}
+      {/* Thanh tìm kiếm + lọc + nút thêm (giống trang thiết bị) */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md mb-8 border border-gray-100 dark:border-gray-700 transition"
+        className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-md mb-6 border border-gray-100 dark:border-gray-700 flex flex-col gap-3 md:flex-row md:items-center"
       >
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800 dark:text-gray-100">
-          <FiPlus /> Thêm người dùng mới
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        {/* Ô tìm kiếm */}
+        <div className="relative flex-1">
+          <FiSearch className="absolute left-3 top-3 text-gray-400" />
           <input
             type="text"
-            placeholder="Họ và tên"
-            value={newUser.fullName}
-            onChange={(e) =>
-              setNewUser({ ...newUser, fullName: e.target.value })
-            }
-            className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none transition"
+            placeholder="Tìm kiếm người dùng..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-400 outline-none"
           />
-          <input
-            type="text"
-            placeholder="Tên người dùng"
-            value={newUser.username}
-            onChange={(e) =>
-              setNewUser({ ...newUser, username: e.target.value })
-            }
-            className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none transition"
-          />
-          <input
-            type="password"
-            placeholder="Mật khẩu (≥ 6 ký tự)"
-            value={newUser.password}
-            onChange={(e) =>
-              setNewUser({ ...newUser, password: e.target.value })
-            }
-            className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none transition"
-          />
-          <button
-          onClick={handleCreateUser}
-          disabled={creating}
-          className={`relative overflow-hidden font-semibold rounded-lg px-5 py-2.5 transition-all duration-300
-            ${
-              creating
-              ? "bg-gray-400 text-white cursor-not-allowed"
-              : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg dark:from-blue-400 dark:to-blue-500 dark:hover:from-blue-500 dark:hover:to-blue-600"
-            }
-            active:scale-95`}
-            >{creating ? (
-            <span className="flex items-center gap-2">
-              <svg
-              className="w-5 h-5 animate-spin text-white"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              >
-                <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-                ></circle>
-                <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                ></path>
-                </svg>
-                Đang thêm...
-                </span>
-                ) : (
-                  "Thêm"
-                  )}
-                  </button>
-
         </div>
+
+        {/* Lọc trạng thái */}
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100"
+        >
+          <option value="all">Tất cả trạng thái</option>
+          <option value="active">Đang hoạt động</option>
+          <option value="inactive">Vô hiệu hoá</option>
+        </select>
+
+        {/* Nút thêm người dùng */}
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg font-semibold shadow-md hover:shadow-lg transition active:scale-95"
+        >
+          <FiPlus />
+          Thêm người dùng
+        </button>
       </motion.div>
+
+{/* Thống kê người dùng */}
+<div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  <div className="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+    <p className="text-gray-500 dark:text-gray-400">Tổng số người dùng</p>
+    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+      {users.length}
+    </p>
+  </div>
+
+  <div className="p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-2xl shadow-sm">
+    <p className="text-green-700 dark:text-green-300">Đang hoạt động</p>
+    <p className="text-2xl font-bold text-green-700 dark:text-green-300">
+      {users.filter((u) => u.active).length}
+    </p>
+  </div>
+
+  <div className="p-4 bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-700 rounded-2xl shadow-sm">
+    <p className="text-orange-700 dark:text-orange-300">Vô hiệu hoá</p>
+    <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+      {users.filter((u) => !u.active).length}
+    </p>
+  </div>
+</div>
 
       {/* Bảng danh sách */}
       <motion.div
@@ -351,55 +390,273 @@ export default function UsersPage() {
                   Không có người dùng nào
                 </td>
               </tr>
-            ) : (
-              users.map((user, idx) => (
-                <motion.tr
-                  key={user.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: idx * 0.03 }}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+            ) : filteredUsers.length === 0 ? (
+              <tr>
+                <td
+                  colSpan="6"
+                  className="text-center py-6 text-gray-500 dark:text-gray-400"
                 >
-                  <td className="p-4">{idx + 1}</td>
-                  <td className="p-4">{user.fullName}</td>
-                  <td className="p-4">{user.username}</td>
-                  <td className="p-4">
-                    <select
-                      value={user.roles?.[0] || "ROLE_USER"}
-                      onChange={(e) =>
-                        handleUpdateRole(user.id, e.target.value)
-                      }
-                      className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md p-1"
-                    >
-                      <option value="ROLE_USER">User</option>
-                      <option value="ROLE_ADMIN">Admin</option>
-                    </select>
-                  </td>
-                  <td className="p-4 text-center">
-                    <span
+                  Không tìm thấy người dùng phù hợp
+                </td>
+              </tr>
+            ) : (
+              filteredUsers.map((user, idx) => {
+                const roleCode = user.roles?.[0] || "ROLE_USER";
+                const roleLabel =
+                  roleCode === "ROLE_ADMIN" ? "Admin" : "User";
+
+                return (
+                  <motion.tr
+                    key={user.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: idx * 0.03 }}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                  >
+                    <td className="p-4">{idx + 1}</td>
+                    <td className="p-4">{user.fullName}</td>
+                    <td className="p-4">{user.username}</td>
+                    <td className="p-4 text-center">
+                      <span
                       className={`px-3 py-1 text-sm font-medium rounded-full ${
-                        user.active
-                          ? "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100"
-                          : "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100"
+                        roleCode === "ROLE_ADMIN"
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-700 dark:text-blue-100"
+                        : "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100"
                       }`}
-                    >
-                      {user.active ? "Đang hoạt động" : "Vô hiệu"}
-                    </span>
-                  </td>
-                  <td className="p-4 text-center">
-                    <button
-                      onClick={() => handleDeleteUser(user.id)}
-                      className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition"
-                    >
-                      <FiTrash2 size={18} />
-                    </button>
-                  </td>
-                </motion.tr>
-              ))
+                      >
+                        {roleLabel}
+                        </span>
+                        </td>
+
+                    <td className="p-4 text-center">
+                      <span
+                        className={`px-3 py-1 text-sm font-medium rounded-full ${
+                          user.active
+                            ? "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100"
+                            : "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100"
+                        }`}
+                      >
+                        {user.active ? "Đang hoạt động" : "Vô hiệu"}
+                      </span>
+                    </td>
+                    <td className="p-4 text-center">
+                      <div className="flex items-center justify-center gap-3">
+                        <button
+                          onClick={() => openEditModal(user)}
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition"
+                          title="Cập nhật quyền / trạng thái"
+                        >
+                          <FiEdit2 size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition"
+                          title="Xoá người dùng"
+                        >
+                          <FiTrash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </motion.div>
+
+      {/* Modal thêm người dùng */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-xl p-6"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+                Thêm người dùng mới
+              </h2>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                  Họ và tên *
+                </label>
+                <input
+                  type="text"
+                  placeholder="VD: Nguyễn Văn A"
+                  value={newUser.fullName}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, fullName: e.target.value })
+                  }
+                  className="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                  Tên người dùng *
+                </label>
+                <input
+                  type="text"
+                  placeholder="VD: admin@gmail.com"
+                  value={newUser.username}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, username: e.target.value })
+                  }
+                  className="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                  Mật khẩu *
+                </label>
+                <input
+                  type="password"
+                  placeholder="Mật khẩu ≥ 6 ký tự"
+                  value={newUser.password}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, password: e.target.value })
+                  }
+                  className="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                  Vai trò *
+                </label>
+                <select
+                  value={newUser.role}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, role: e.target.value })
+                  }
+                  className="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  <option value="ROLE_USER">User</option>
+                  <option value="ROLE_ADMIN">Admin</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+              >
+                Huỷ
+              </button>
+              <button
+                onClick={handleCreateUser}
+                disabled={creating}
+                className={`px-4 py-2 rounded-lg font-semibold text-white shadow-md active:scale-95 transition ${
+                  creating
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                {creating ? "Đang thêm..." : "Thêm"}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Modal cập nhật quyền / trạng thái */}
+      {showEditModal && selectedUser && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-xl p-6"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+                Cập nhật quyền / trạng thái
+              </h2>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <p className="font-medium text-gray-800 dark:text-gray-100">
+                {selectedUser.fullName}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {selectedUser.username}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                  Vai trò
+                </label>
+                <select
+                  value={selectedUser.role}
+                  onChange={(e) =>
+                    setSelectedUser({
+                      ...selectedUser,
+                      role: e.target.value,
+                    })
+                  }
+                  className="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  <option value="ROLE_USER">User</option>
+                  <option value="ROLE_ADMIN">Admin</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                  Trạng thái
+                </label>
+                <select
+                  value={selectedUser.active ? "active" : "inactive"}
+                  onChange={(e) =>
+                    setSelectedUser({
+                      ...selectedUser,
+                      active: e.target.value === "active",
+                    })
+                  }
+                  className="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  <option value="active">Đang hoạt động</option>
+                  <option value="inactive">Vô hiệu</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+              >
+                Huỷ
+              </button>
+              <button
+                onClick={handleUpdateUser}
+                className="px-4 py-2 rounded-lg font-semibold text-white shadow-md active:scale-95 transition bg-blue-600 hover:bg-blue-700"
+              >
+                Lưu
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

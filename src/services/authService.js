@@ -10,3 +10,9 @@ export const login = (username, password) => {
 export const register = (data) => api.post("/auth/register", data);
 export const forgotPassword = (data) => api.post("/auth/forgot-password", data);
 export const resetPassword = (data) => api.post("/auth/reset-password", data);
+export const changePassword = (oldPassword, newPassword) => {
+  return api.post('/auth/change-password', { // <-- Đã BỎ /api/v1
+    oldPassword,
+    newPassword
+  });
+};

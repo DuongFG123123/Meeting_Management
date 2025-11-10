@@ -1,5 +1,6 @@
+// src/pages/admin/ReportPage.jsx
 import React, { useEffect, useState } from "react";
-import { Button, Tabs, DatePicker, Space, Spin } from "antd";
+import { DatePicker, Tabs, Spin } from "antd";
 import { Bar, Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -9,20 +10,17 @@ import {
   Title,
   Tooltip,
   Legend,
-  ArcElement
+  ArcElement,
 } from "chart.js";
 import dayjs from "dayjs";
-import {
-  getRoomUsageReport,
-  getCancelStats
-} from "../../services/reportService";
-import * as XLSX from "xlsx";
+import { getRoomUsageReport, getCancelStats } from "../../services/reportService";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { toast, ToastContainer } from "react-toastify";
+import { FiBarChart2, FiDownload } from "react-icons/fi";
+import "react-toastify/dist/ReactToastify.css";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
-
-const { TabPane } = Tabs;
 const { RangePicker } = DatePicker;
 
 const ReportPage = () => {
@@ -31,7 +29,23 @@ const ReportPage = () => {
   const [dateRange, setDateRange] = useState([]);
   const [activeTab, setActiveTab] = useState("1");
   const [isLoading, setIsLoading] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(
+    document.documentElement.classList.contains("dark")
+  );
 
+  // 🔄 Theo dõi thay đổi theme (dark / light)
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDarkMode(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  // 📅 Lấy dữ liệu mặc định
   useEffect(() => {
     const today = new Date();
     const start = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -47,33 +61,44 @@ const ReportPage = () => {
     try {
       const [rooms, cancelStats] = await Promise.all([
         getRoomUsageReport(from, to),
-        getCancelStats(from, to)
+        getCancelStats(from, to),
       ]);
       setRoomUsageData(rooms.data || []);
       setCancelStatsData(cancelStats.data || []);
     } catch (error) {
-      console.error("Lỗi tải báo cáo:", error);
+      toast.error("Không thể tải dữ liệu báo cáo!");
+      console.error(error);
+    } finally {
+      setIsLoading(false);
     }
-    setTimeout(() => setIsLoading(false), 350);
   };
 
-  const exportToExcel = (data, filename) => {
-    if (!data.length) return alert("Không có dữ liệu để xuất");
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
-    XLSX.writeFile(workbook, `${filename}.xlsx`);
+  // 📊 Xuất Excel
+  const exportToCSV = (data, filename) => {
+    if (!data.length) return toast.info("Không có dữ liệu để xuất!");
+    const headers = Object.keys(data[0]);
+    const rows = data.map((i) => Object.values(i));
+    const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${filename}.csv`;
+    a.click();
+    toast.success("📊 Đã xuất Excel!");
   };
 
+  // 🧾 Xuất PDF
   const exportToPDF = (data, filename) => {
-    if (!data.length) return alert("Không có dữ liệu để xuất");
+    if (!data.length) return toast.info("Không có dữ liệu để xuất!");
     const doc = new jsPDF();
     doc.text(filename, 14, 10);
     doc.autoTable({
-      head: [Object.keys(data[0] || {})],
-      body: data.map((row) => Object.values(row)),
+      head: [Object.keys(data[0])],
+      body: data.map((r) => Object.values(r)),
     });
     doc.save(`${filename}.pdf`);
+    toast.success("🧾 Đã xuất PDF!");
   };
 
   const renderActions = (data, filename) => (
@@ -88,7 +113,7 @@ const ReportPage = () => {
   );
 
   const roomChartData = {
-    labels: roomUsageData.map((item) => item.roomName),
+    labels: roomUsageData.map((r) => r.roomName),
     datasets: [
   {
     label: "Số giờ sử dụng",
@@ -104,14 +129,36 @@ const ReportPage = () => {
   };
 
   const cancelChartData = {
-    labels: cancelStatsData.map((item) => item.reason),
+    labels: cancelStatsData.map((r) => r.reason),
     datasets: [
       {
         label: "Số lần hủy",
-        data: cancelStatsData.map((item) => item.count),
-        backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0"],
+        data: cancelStatsData.map((r) => r.count),
+        backgroundColor: [
+          "#ef4444",
+          "#f97316",
+          "#facc15",
+          "#22c55e",
+          "#3b82f6",
+          "#8b5cf6",
+        ],
       },
     ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "bottom",
+        labels: { color: textColor },
+      },
+    },
+    scales: {
+      x: { ticks: { color: textColor }, grid: { color: gridColor } },
+      y: { ticks: { color: textColor }, grid: { color: gridColor } },
+    },
   };
 
   return (
@@ -131,6 +178,33 @@ const ReportPage = () => {
     />
   </Space>
 
+        <div className="flex gap-3 md:ml-auto">
+          <button
+            onClick={() =>
+              exportToCSV(
+                activeTab === "1" ? roomUsageData : cancelStatsData,
+                activeTab === "1" ? "bao_cao_su_dung" : "bao_cao_huy_hop"
+              )
+            }
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold shadow active:scale-95 transition"
+          >
+            <FiDownload /> Xuất Excel
+          </button>
+          <button
+            onClick={() =>
+              exportToPDF(
+                activeTab === "1" ? roomUsageData : cancelStatsData,
+                activeTab === "1" ? "bao_cao_su_dung" : "bao_cao_huy_hop"
+              )
+            }
+            className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold shadow active:scale-95 transition"
+          >
+            🧾 Xuất PDF
+          </button>
+        </div>
+      </div>
+
+      {/* NỘI DUNG CHÍNH */}
       <Spin spinning={isLoading}>
         <Tabs activeKey={activeTab} onChange={(key) => setActiveTab(key)}>
           <TabPane tab="Phòng họp" key="1">
