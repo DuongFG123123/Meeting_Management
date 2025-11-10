@@ -127,14 +127,9 @@ const ReportPage = () => {
       {
         label: "Số lần hủy",
         data: cancelStatsData.map((r) => r.count),
-        backgroundColor: [
-          "#ef4444",
-          "#f97316",
-          "#facc15",
-          "#22c55e",
-          "#3b82f6",
-          "#8b5cf6",
-        ],
+        backgroundColor: isDarkMode 
+  ? ["#f87171", "#fbbf24", "#34d399", "#60a5fa", "#a78bfa"]
+  : ["#ef4444", "#f97316", "#22c55e", "#3b82f6", "#8b5cf6"]
       },
     ],
   };
