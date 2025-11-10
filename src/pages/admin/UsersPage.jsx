@@ -8,6 +8,7 @@ import {
 import { toast } from "react-toastify";
 import { FiUsers, FiPlus, FiTrash2, FiEdit2, FiSearch } from "react-icons/fi";
 import { motion } from "framer-motion";
+import { Pagination } from "antd";
 import "react-toastify/dist/ReactToastify.css";
 
 /* Tuỳ chỉnh màu cho Toast theo theme */
@@ -32,6 +33,8 @@ export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5;
 
   // tìm kiếm / lọc
   const [searchTerm, setSearchTerm] = useState("");
@@ -295,6 +298,10 @@ export default function UsersPage() {
     return matchSearch && matchStatus;
   });
 
+  /* ✨ Cắt danh sách theo trang (sau khi lọc) */
+const startIndex = (currentPage - 1) * pageSize;
+const paginatedUsers = filteredUsers.slice(startIndex, startIndex + pageSize);
+
   return (
     <div className="p-8 min-h-screen transition-colors bg-gray-50 dark:bg-gray-900">
       {/* Header */}
@@ -421,7 +428,7 @@ export default function UsersPage() {
                 </td>
               </tr>
             ) : (
-              filteredUsers.map((user, idx) => {
+              paginatedUsers.map((user, idx) => {
                 const roleCode = user.roles?.[0] || "ROLE_USER";
                 const roleLabel =
                   roleCode === "ROLE_ADMIN" ? "Admin" : "User";
@@ -434,7 +441,7 @@ export default function UsersPage() {
                     transition={{ delay: idx * 0.03 }}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                   >
-                    <td className="p-4">{idx + 1}</td>
+                    <td className="p-4">{startIndex + idx + 1}</td>
                     <td className="p-4">{user.fullName}</td>
                     <td className="p-4">{user.username}</td>
                     <td className="p-4 text-center">
@@ -485,6 +492,39 @@ export default function UsersPage() {
           </tbody>
         </table>
       </motion.div>
+
+{/* 📄 Phân trang */}
+{filteredUsers.length > pageSize && (
+  <div className="flex items-center justify-between mt-6 border-t border-gray-100 dark:border-gray-700 pt-4">
+    {/* Thông tin tổng số */}
+    <span className="text-base text-gray-600 dark:text-gray-400">
+      Đang hiển thị {paginatedUsers.length} trên tổng số {filteredUsers.length} người dùng
+    </span>
+
+    {/* Điều hướng trang */}
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => setCurrentPage(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50 transition-colors"
+      >
+        Trang trước
+      </button>
+
+      <span className="px-3 py-1 text-base text-gray-700 dark:text-gray-300">
+        Trang {currentPage} / {Math.ceil(filteredUsers.length / pageSize)}
+      </span>
+
+      <button
+        onClick={() => setCurrentPage(currentPage + 1)}
+        disabled={currentPage === Math.ceil(filteredUsers.length / pageSize)}
+        className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50 transition-colors"
+      >
+        Trang sau
+      </button>
+    </div>
+  </div>
+)}
 
       {/* Modal thêm người dùng */}
       {showAddModal && (
