@@ -88,17 +88,17 @@ const ReportPage = () => {
   const roomChartData = {
     labels: roomUsageData.map((item) => item.roomName),
     datasets: [
-      {
-        label: "Số giờ sử dụng",
-        data: roomUsageData.map((item) => item.totalHoursBooked),
-        backgroundColor: "rgba(75,192,192,0.6)",
-      },
-      {
-        label: "Số lần đặt",
-        data: roomUsageData.map((item) => item.bookingCount),
-        backgroundColor: "rgba(153,102,255,0.6)",
-      }
-    ],
+  {
+    label: "Số giờ sử dụng",
+    data: roomUsageData.map((item) => item.totalHoursBooked),
+    backgroundColor: "#4caf50",
+  },
+  {
+    label: "Số lần đặt",
+    data: roomUsageData.map((item) => item.bookingCount),
+    backgroundColor: "#2196f3",
+  }
+],
   };
 
   const cancelChartData = {
