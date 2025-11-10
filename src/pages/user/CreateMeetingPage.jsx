@@ -273,7 +273,12 @@ const CreateMeetingPage = () => {
                   }),
                 ]}
               >
-                <TimePicker format="HH:mm" className="w-full" />
+                <TimePicker
+                  className="w-full"
+                  use12Hours
+                  format="hh:mm A"
+                  minuteStep={5}
+                />
               </Form.Item>
               {/* === KẾT THÚC SỬA LỖI === */}
 
