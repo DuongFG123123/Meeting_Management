@@ -116,6 +116,7 @@ export default function DevicesPage() {
     setFormData({ name: "", description: "", status: "AVAILABLE" });
   };
 
+  // Khi tạo mới thiết bị, show thiết bị lên đầu 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -139,15 +140,22 @@ export default function DevicesPage() {
         // Cập nhật thiết bị
         await updateDevice(editingDevice.id, submitData);
         toast.success("Cập nhật thiết bị thành công!");
+        // Refresh danh sách và đóng modal như cũ
+        await fetchDevices();
+        handleCloseModal();
       } else {
         // Thêm mới thiết bị
-        await createDevice(submitData);
+        const res = await createDevice(submitData);
         toast.success("Thêm thiết bị mới thành công!");
+        // Set thiết bị mới nhất lên đầu danh sách không cần reload toàn bộ danh sách từ API
+        if (res?.data) {
+          setDevices(prev => [res.data, ...prev]);
+        } else {
+          // Nếu không có res.data, fallback fetch lại toàn bộ
+          await fetchDevices();
+        }
+        handleCloseModal();
       }
-
-      // Refresh danh sách và đóng modal
-      await fetchDevices();
-      handleCloseModal();
     } catch (error) {
       const errorMsg = error.response?.data?.message || error.message || "Có lỗi xảy ra";
       toast.error(`${editingDevice ? "Cập nhật" : "Thêm"} thiết bị thất bại: ${errorMsg}`);
