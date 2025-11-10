@@ -20,26 +20,16 @@ dayjs.extend(utc);
 const { TextArea } = Input;
 const { Option } = Select;
 
-// Tooltip hiển thị thông tin ngắn (tối đa 3 dòng)
+// Tooltip tối giản: chỉ Tên cuộc họp, Thời gian, Địa điểm
 function getEventTooltipContent(event) {
-  // Lưu ý: extendedProps chứa thông tin thêm
-  // event.extendedProps.organizerName, roomName...
-  // Phải lấy những trường cơ bản đã đẩy xuống từ mappedEvents
-  // Nếu thiếu thông tin, bổ sung ở fetchMeetings bên dưới
   const { title, start, end, extendedProps } = event;
-  const time = `${dayjs(start).format("HH:mm")} - ${dayjs(end).format(
-    "HH:mm, DD/MM/YYYY"
-  )}`;
+  const time = `${dayjs(start).format("HH:mm")} - ${dayjs(end).format("HH:mm, DD/MM/YYYY")}`;
   const room = extendedProps?.roomName || "Chưa xác định";
-  const organizer = extendedProps?.organizerName || "Không rõ";
-  let status = extendedProps?.status === "CONFIRMED" ? "Đã xác nhận" : "Chờ xác nhận";
   return `
     <div>
       <div><b>${title}</b></div>
       <div>Thời gian: ${time}</div>
       <div>Phòng: ${room}</div>
-      <div>Người tổ chức: ${organizer}</div>
-      <div>Trạng thái: ${status}</div>
     </div>
   `;
 }
@@ -90,8 +80,7 @@ const MyMeetingPage = () => {
     try {
       const res = await getMyMeetings();
       const data = res.data?.content || [];
-      // Thêm các thông tin phổ biến cần cho tooltip: room, organizer name
-      // Giả sử mỗi m có .room, .organizer
+      // Giữ thông tin cơ bản cần cho tooltip: title, start, end, roomName
       const mappedEvents = data.map((m) => ({
         id: m.id,
         title: m.title || "Cuộc họp",
@@ -100,9 +89,7 @@ const MyMeetingPage = () => {
         backgroundColor: m.status === 'CONFIRMED' ? "#3b82f6" : "#f59e0b",
         borderColor: m.status === 'CONFIRMED' ? "#2563eb" : "#d97706",
         extendedProps: {
-          status: m.status,
           roomName: m.room?.name || "Chưa xác định",
-          organizerName: m.organizer?.fullName || "Không rõ",
         }
       }));
       setEvents(mappedEvents);
@@ -129,14 +116,11 @@ const MyMeetingPage = () => {
     }
   };
 
-  // Xử lý hover cuộc họp để hiển thị tooltip
-  // fullcalendar eventMouseEnter/eventMouseLeave
+  // Xử lý hover cuộc họp để hiển thị tooltip tối giản
   const tooltipRef = useRef();
   const handleEventMouseEnter = (info) => {
-    // Xóa tooltip cũ nếu có
     handleEventMouseLeave();
 
-    // Lấy thông tin cuộc họp
     const tooltipHtml = getEventTooltipContent(info.event);
     let tooltip = document.createElement("div");
     tooltip.innerHTML = tooltipHtml;
@@ -151,7 +135,6 @@ const MyMeetingPage = () => {
     tooltip.style.pointerEvents = "none";
     tooltip.style.transition = "opacity 0.15s";
     tooltip.style.opacity = "0.93";
-    // Tương thích dark-ui: tăng trắng, giảm tối nếu dark
     if (document.documentElement.classList.contains("dark")) {
       tooltip.style.background = "#334155";
       tooltip.style.color = "#e0eafb";
@@ -159,7 +142,6 @@ const MyMeetingPage = () => {
     document.body.appendChild(tooltip);
     tooltipRef.current = tooltip;
 
-    // Đặt tooltip gần con trỏ
     const mouse = info.jsEvent;
     function positionTooltip(e) {
       tooltip.style.left = e.pageX + 16 + "px";
@@ -167,13 +149,10 @@ const MyMeetingPage = () => {
     }
     positionTooltip(mouse);
 
-    // Lắng nghe move để update vị trí tooltip
     function onMove(ev) {
       positionTooltip(ev);
     }
     document.addEventListener('mousemove', onMove);
-
-    // Lưu event để khi mouseleave sẽ xóa listener và tooltip
     tooltip._removeMousemove = () => {
       document.removeEventListener('mousemove', onMove);
     };
