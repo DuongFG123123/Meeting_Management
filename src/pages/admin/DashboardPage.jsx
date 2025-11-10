@@ -18,7 +18,7 @@ import { FiUsers, FiClock, FiCalendar, FiTrendingUp } from "react-icons/fi";
 export default function DashboardPage() {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // 🌓 Theo dõi dark mode khi người dùng bật/tắt
+  // Theo dõi dark mode khi người dùng bật/tắt
   useEffect(() => {
     const observer = new MutationObserver(() => {
       setIsDarkMode(document.documentElement.classList.contains("dark"));
@@ -27,7 +27,7 @@ export default function DashboardPage() {
     return () => observer.disconnect();
   }, []);
 
-  // 🎨 Giữ phần header timeline luôn đen, nền sáng
+  // Giữ phần header timeline luôn đen, nền sáng
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
@@ -51,7 +51,7 @@ export default function DashboardPage() {
   }, []);
 
   /* -------------------------------------------------------------------------- */
-  /* 📅 Mock dữ liệu lịch & thống kê (tạm thời, có thể thay bằng API sau)      */
+  /* Mock dữ liệu lịch & thống kê (tạm thời, có thể thay bằng API sau)      */
   /* -------------------------------------------------------------------------- */
   const mockRooms = [
     { id: "A", title: "Auditorium A" },
@@ -90,7 +90,7 @@ export default function DashboardPage() {
   const COLORS = ["#60A5FA", "#A78BFA", "#F472B6", "#34D399"];
 
   /* -------------------------------------------------------------------------- */
-  /* 🖼️ Giao diện Dashboard tổng hợp                                           */
+  /* Giao diện Dashboard tổng hợp                                           */
   /* -------------------------------------------------------------------------- */
   return (
     <div className="p-6 space-y-6 transition-all duration-500">
@@ -104,7 +104,7 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* 🧮 Cards tổng quan */}
+      {/* Cards tổng quan */}
       <div className="grid grid-cols-4 gap-4">
         {[
           { label: "Cuộc họp hôm nay", value: "5", icon: <FiCalendar /> },
@@ -129,7 +129,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* 📈 Biểu đồ nhỏ */}
+      {/* Biểu đồ nhỏ */}
       <div className="grid grid-cols-2 gap-6">
         {/* Biểu đồ số lượng họp theo ngày */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow border border-gray-100 dark:border-slate-700">
@@ -175,7 +175,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 📆 Lịch timeline */}
+      {/* Lịch timeline */}
       <div className="bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-2xl shadow-lg p-4">
         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">
           🗓️ Lịch họp tổng hợp trong ngày
