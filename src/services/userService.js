@@ -29,6 +29,6 @@ export const deleteUser = (id) => api.delete(`/admin/users/${id}`);
  * 🔍 Tìm kiếm người dùng theo tên hoặc email
  * @param {string} keyword - từ khóa tìm kiếm (ví dụ: "anh", "khoa", "nguyen@...")
  */
-export const searchUsers = (keyword) => {
-  return api.get(`/users/search`, { params: { keyword } });
+export const searchUsers = (query) => {
+  return api.get(`/users/search`, { params: { query } });
 };
