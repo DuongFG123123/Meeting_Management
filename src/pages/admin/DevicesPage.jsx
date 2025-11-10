@@ -46,6 +46,18 @@ export default function DevicesPage() {
   
   // Trạng thái loading
   const [loading, setLoading] = useState(false);
+  // ==================== PHÂN TRANG ==================== //
+const ITEMS_PER_PAGE = 5; // số thiết bị mỗi trang
+const [currentPage, setCurrentPage] = useState(1);
+
+// Tính tổng số trang
+const totalPages = Math.ceil(filteredDevices.length / ITEMS_PER_PAGE);
+
+// Cắt dữ liệu thiết bị theo trang hiện tại
+const paginatedDevices = filteredDevices.slice(
+  (currentPage - 1) * ITEMS_PER_PAGE,
+  currentPage * ITEMS_PER_PAGE
+);
 
   // Fetch danh sách thiết bị khi component mount
   useEffect(() => {
@@ -376,7 +388,7 @@ export default function DevicesPage() {
                 </tr>
               ) : (
                 // Danh sách thiết bị
-                filteredDevices.map((device) => (
+                paginatedDevices.map((device) => (
                   <tr key={device.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                     <td className="p-4 font-medium text-gray-900 dark:text-white">{device.name}</td>
                     <td className="p-4 text-gray-600 dark:text-gray-400">
@@ -419,6 +431,39 @@ export default function DevicesPage() {
           </table>
         </div>
       </div>
+
+{/* 📄 Phân trang */}
+{filteredDevices.length > 5 && (
+  <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-gray-700 mt-4">
+    {/* Thông tin tổng */}
+    <span className="text-base text-gray-600 dark:text-gray-400">
+      Đang hiển thị {paginatedDevices.length} trên tổng số {filteredDevices.length} thiết bị
+    </span>
+
+    {/* Điều hướng trang */}
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+        disabled={currentPage === 1}
+        className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50 transition-colors"
+      >
+        Trang trước
+      </button>
+
+      <span className="px-3 py-1 text-base text-gray-700 dark:text-gray-300">
+        Trang {currentPage} / {Math.ceil(filteredDevices.length / 5)}
+      </span>
+
+      <button
+        onClick={() => setCurrentPage((p) => Math.min(p + 1, Math.ceil(filteredDevices.length / 5)))}
+        disabled={currentPage === Math.ceil(filteredDevices.length / 5)}
+        className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50 transition-colors"
+      >
+        Trang sau
+      </button>
+    </div>
+  </div>
+)}
 
       {/* ==================== MODAL THÊM/SỬA THIẾT BỊ ==================== */}
       {isModalOpen && (
