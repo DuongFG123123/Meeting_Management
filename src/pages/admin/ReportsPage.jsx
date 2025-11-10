@@ -33,7 +33,7 @@ const ReportPage = () => {
     document.documentElement.classList.contains("dark")
   );
 
-  // Theo dõi thay đổi theme (dark / light)
+  // 🔄 Theo dõi thay đổi theme (dark / light)
   useEffect(() => {
     const observer = new MutationObserver(() => {
       setIsDarkMode(document.documentElement.classList.contains("dark"));
@@ -45,7 +45,7 @@ const ReportPage = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Lấy dữ liệu mặc định
+  // 📅 Lấy dữ liệu mặc định
   useEffect(() => {
     const today = new Date();
     const start = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -73,7 +73,7 @@ const ReportPage = () => {
     }
   };
 
-  // Xuất CSV/Excel
+  // 📊 Xuất Excel
   const exportToCSV = (data, filename) => {
     if (!data.length) return toast.info("Không có dữ liệu để xuất!");
     const headers = Object.keys(data[0]);
@@ -88,7 +88,7 @@ const ReportPage = () => {
     toast.success("📊 Đã xuất Excel!");
   };
 
-  // Xuất PDF
+  // 🧾 Xuất PDF
   const exportToPDF = (data, filename) => {
     if (!data.length) return toast.info("Không có dữ liệu để xuất!");
     const doc = new jsPDF();
@@ -101,7 +101,7 @@ const ReportPage = () => {
     toast.success("🧾 Đã xuất PDF!");
   };
 
-  // Chart data
+  // ⚙️ Chart data
   const textColor = isDarkMode ? "#e2e8f0" : "#1f2937";
   const gridColor = isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
 
@@ -111,12 +111,12 @@ const ReportPage = () => {
       {
         label: "Số giờ sử dụng",
         data: roomUsageData.map((r) => r.totalHoursBooked),
-        backgroundColor: isDarkMode ? "#3c76d3ff" : "#2563eb",
+        backgroundColor: isDarkMode ? "#3b82f6" : "#2563eb",
       },
       {
         label: "Số lần đặt",
         data: roomUsageData.map((r) => r.bookingCount),
-        backgroundColor: isDarkMode ? "#60a5fa" : "#428fbcff",
+        backgroundColor: isDarkMode ? "#60a5fa" : "#93c5fd",
       },
     ],
   };
@@ -127,9 +127,14 @@ const ReportPage = () => {
       {
         label: "Số lần hủy",
         data: cancelStatsData.map((r) => r.count),
-        backgroundColor: isDarkMode 
-  ? ["#f87171", "#fbbf24", "#34d399", "#60a5fa", "#a78bfa"]
-  : ["#ef4444", "#f97316", "#22c55e", "#3b82f6", "#8b5cf6"]
+        backgroundColor: [
+          "#ef4444",
+          "#f97316",
+          "#facc15",
+          "#22c55e",
+          "#3b82f6",
+          "#8b5cf6",
+        ],
       },
     ],
   };
@@ -160,8 +165,16 @@ const ReportPage = () => {
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <FiBarChart2 className={`text-3xl ${isDarkMode ? "text-blue-400" : "text-blue-600"}`} />
-          <h1 className={`text-3xl font-bold ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
+          <FiBarChart2
+            className={`text-3xl ${
+              isDarkMode ? "text-blue-400" : "text-blue-600"
+            }`}
+          />
+          <h1
+            className={`text-3xl font-bold ${
+              isDarkMode ? "text-gray-100" : "text-gray-900"
+            }`}
+          >
             Báo cáo & Thống kê sử dụng phòng họp
           </h1>
         </div>
@@ -170,7 +183,9 @@ const ReportPage = () => {
       {/* THANH CHỌN NGÀY + NÚT XUẤT */}
       <div
         className={`p-4 rounded-2xl shadow-md border mb-6 flex flex-col md:flex-row md:items-center gap-3 ${
-          isDarkMode ? "bg-[#161b22] border-gray-700" : "bg-white border-gray-200"
+          isDarkMode
+            ? "bg-[#161b22] border-gray-700"
+            : "bg-white border-gray-200"
         }`}
       >
         <RangePicker
@@ -185,7 +200,9 @@ const ReportPage = () => {
           value={dateRange.map((d) => dayjs(d))}
           format="YYYY-MM-DD"
           className={`rounded-lg ${
-            isDarkMode ? "bg-[#0d1117] text-gray-200 border-gray-600" : "border-gray-300"
+            isDarkMode
+              ? "bg-[#0d1117] text-gray-200 border-gray-600"
+              : "border-gray-300"
           }`}
         />
 
@@ -232,7 +249,9 @@ const ReportPage = () => {
               children: (
                 <div
                   className={`rounded-2xl shadow-sm p-6 min-h-[450px] flex justify-center items-center ${
-                    isDarkMode ? "bg-[#161b22] border border-gray-700" : "bg-white border border-gray-200"
+                    isDarkMode
+                      ? "bg-[#161b22] border border-gray-700"
+                      : "bg-white border border-gray-200"
                   }`}
                 >
                   {roomUsageData.length ? (
@@ -253,7 +272,9 @@ const ReportPage = () => {
               children: (
                 <div
                   className={`rounded-2xl shadow-sm p-6 min-h-[450px] flex justify-center items-center ${
-                    isDarkMode ? "bg-[#161b22] border border-gray-700" : "bg-white border border-gray-200"
+                    isDarkMode
+                      ? "bg-[#161b22] border border-gray-700"
+                      : "bg-white border border-gray-200"
                   }`}
                 >
                   {cancelStatsData.length ? (
