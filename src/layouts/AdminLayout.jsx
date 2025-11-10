@@ -247,7 +247,7 @@ export default function AdminLayout() {
         {/* === 5. THAY THẾ TOÀN BỘ JSX HEADER BÊN PHẢI === */}
         <div className="flex items-center gap-3">
           <span className="text-sm bg-blue-500 px-3 py-1 rounded-full shadow-md hidden sm:block">
-            {user?.username || "Admin"}
+            {"Admin"}
           </span>
 
           {/* NÚT CHUÔNG (Đã cập nhật) */}
