@@ -230,7 +230,9 @@ const CreateMeetingPage = () => {
             {/* Thời gian */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Form.Item label="Ngày họp" name="date" rules={[{ required: true, message: "Vui lòng chọn ngày họp" }]}>
-                <DatePicker className="w-full" format="DD/MM/YYYY" />
+                <DatePicker className="w-full" format="DD/MM/YYYY" 
+                disabledDate={(current) => current && current < dayjs().startOf("day")}
+                />
               </Form.Item>
               
               {/* === VALIDATOR ĐÃ SỬA (FIX LỖI MÚI GIỜ) === */}
