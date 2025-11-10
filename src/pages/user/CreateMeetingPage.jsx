@@ -16,7 +16,7 @@ import {
 import { FiPlusCircle, FiUsers } from "react-icons/fi";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
-import utc from "dayjs/plugin/utc";
+import utc from "dayjs/plugin/utc"; // <-- Đã import plugin
 import { useAuth } from "../../context/AuthContext";
 
 // Import các service cần thiết
@@ -25,10 +25,10 @@ import {
   getRooms,
   getDevices,
 } from "../../services/meetingService";
-import { searchUsers } from "../../services/userService"; // <-- API TÌM KIẾM MỚI
+import { searchUsers } from "../../services/userService";
 
 dayjs.locale("vi");
-dayjs.extend(utc);
+dayjs.extend(utc); // <-- Kích hoạt plugin
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -37,12 +37,12 @@ const CreateMeetingPage = () => {
   const [loading, setLoading] = useState(false); // Loading khi submit form
   const [rooms, setRooms] = useState([]);
   const [devices, setDevices] = useState([]);
-  
+
   // State cho việc tìm kiếm người dùng
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false); // Loading khi gõ tìm
   const debounceTimer = useRef(null); // Bộ đếm thời gian (debounce)
-  
+
   const [form] = Form.useForm();
   const { user } = useAuth(); // Lấy user hiện tại
 
@@ -78,7 +78,7 @@ const CreateMeetingPage = () => {
         message.error("Không thể tải danh sách thiết bị!");
       }
     };
-    
+
     fetchDropdownData();
   }, []); // Chạy 1 lần khi trang mở
 
@@ -100,7 +100,7 @@ const CreateMeetingPage = () => {
     return () => document.head.removeChild(style);
   }, []);
 
-  // Hàm Tìm kiếm Người dùng (mới)
+  // Hàm Tìm kiếm Người dùng (giữ nguyên)
   const handleSearchUsers = (query) => {
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
@@ -109,11 +109,10 @@ const CreateMeetingPage = () => {
     if (query && query.trim().length > 0) {
       setIsSearching(true);
       setSearchResults([]);
-      
+
       debounceTimer.current = setTimeout(async () => {
         try {
           const res = await searchUsers(query);
-          // Lọc chính user hiện tại ra khỏi kết quả
           const filteredResults = (res.data || []).filter(u => u.id !== user?.id);
           setSearchResults(filteredResults);
         } catch (err) {
@@ -123,48 +122,49 @@ const CreateMeetingPage = () => {
         } finally {
           setIsSearching(false);
         }
-      }, 500); // Trễ 500ms
+      }, 500);
     } else {
       setSearchResults([]);
       setIsSearching(false);
     }
   };
 
-  // Hàm Gửi Form (đã cập nhật)
+  // Hàm Gửi Form (Đã fix logic UTC)
   const handleCreateMeeting = async (values) => {
     try {
       setLoading(true);
-
-      if (!user?.id) {
+      if (!user?.id) { 
         message.error("Không lấy được thông tin người dùng hiện tại!");
         setLoading(false);
         return;
       }
 
-      // Tính toán thời gian
-      const startTime = dayjs(values.date)
-        .hour(values.time.hour())
-        .minute(values.time.minute())
+      const datePart = values.date;
+      const timePart = values.time;
+
+      // Xây dựng thời gian UTC TỪ CÁC CON SỐ
+      const startTimeUTC = dayjs.utc() // Bắt đầu ở UTC
+        .year(datePart.year())
+        .month(datePart.month())
+        .date(datePart.date())
+        .hour(timePart.hour())
+        .minute(timePart.minute())
         .second(0)
-        .utcOffset(7, true)
-        .toISOString();
-
-      const duration = values.duration || 60; // Mặc định 60 phút
-      const endTime = dayjs(startTime).add(duration, 'minute').toISOString();
+        .millisecond(0);
       
-      // Gộp người tạo và người được mời
-      const participantIds = Array.from(
-        new Set([user.id, ...(values.participantIds || [])])
-      );
+      const startTime = startTimeUTC.toISOString();
+      const duration = values.duration || 60;
+      const endTime = startTimeUTC.add(duration, 'minute').toISOString();
 
-      // Tạo payload
+      // (Logic payload giữ nguyên)
+      const participantIds = Array.from(new Set([user.id, ...(values.participantIds || [])]));
       const payload = {
         title: values.title,
         description: values.description || "",
         startTime,
         endTime,
         roomId: values.roomId,
-        participantIds: participantIds,
+        participantIds,
         deviceIds: values.deviceIds || [],
         recurrenceRule: values.isRecurring ? {
           frequency: values.frequency || "DAILY",
@@ -177,7 +177,6 @@ const CreateMeetingPage = () => {
 
       console.log("📦 Payload gửi đi:", payload);
       await createMeeting(payload);
-
       message.success("✅ Tạo cuộc họp thành công!");
       form.resetFields();
     } catch (err) {
@@ -188,12 +187,11 @@ const CreateMeetingPage = () => {
     }
   };
   
-  // State cho logic lặp lại
   const [isRecurring, setIsRecurring] = useState(false);
 
   return (
     <div className="p-6 min-h-screen bg-gray-100 dark:bg-[#0f172a] transition-all duration-500">
-      {/* Header */}
+      {/* Header (giữ nguyên) */}
       <div className="flex items-center gap-3 mb-6 border-b border-gray-200 dark:border-gray-700 pb-3">
         <div className="p-3 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 shadow-md">
           <FiPlusCircle className="text-white text-2xl" />
@@ -234,9 +232,49 @@ const CreateMeetingPage = () => {
               <Form.Item label="Ngày họp" name="date" rules={[{ required: true, message: "Vui lòng chọn ngày họp" }]}>
                 <DatePicker className="w-full" format="DD/MM/YYYY" />
               </Form.Item>
-              <Form.Item label="Giờ bắt đầu" name="time" rules={[{ required: true, message: "Vui lòng chọn giờ họp" }]}>
+              
+              {/* === VALIDATOR ĐÃ SỬA (FIX LỖI MÚI GIỜ) === */}
+              <Form.Item 
+                label="Giờ bắt đầu" 
+                name="time" 
+                dependencies={['date']} // Chạy lại khi 'date' thay đổi
+                rules={[
+                  { required: true, message: "Vui lòng chọn giờ họp" },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      const date = getFieldValue("date");
+                      if (!date || !value) {
+                        return Promise.resolve(); // Bỏ qua nếu chưa chọn
+                      }
+                      
+                      // 1. Xây dựng thời gian UTC mà người dùng đã chọn
+                      // (Giống hệt logic trong handleCreateMeeting)
+                      const selectedUTC = dayjs.utc() // Bắt đầu ở UTC
+                        .year(date.year())         // Lấy NĂM từ DatePicker
+                        .month(date.month())       // Lấy THÁNG từ DatePicker
+                        .date(date.date())         // Lấy NGÀY từ DatePicker
+                        .hour(value.hour())        // Lấy GIỜ từ TimePicker
+                        .minute(value.minute())    // Lấy PHÚT từ TimePicker
+                        .second(0)
+                        .millisecond(0);
+
+                      // 2. Lấy thời gian UTC hiện tại
+                      const nowUTC = dayjs.utc();
+
+                      // 3. So sánh (Thêm 1 phút đệm)
+                      if (selectedUTC.isBefore(nowUTC.add(1, 'minute'))) {
+                        return Promise.reject("⏰ Thời gian họp phải ở tương lai!");
+                      }
+                      
+                      return Promise.resolve();
+                    },
+                  }),
+                ]}
+              >
                 <TimePicker format="HH:mm" className="w-full" />
               </Form.Item>
+              {/* === KẾT THÚC SỬA LỖI === */}
+
               <Form.Item label="Thời lượng" name="duration" initialValue={60}>
                  <Select styles={getDropdownStyle()}>
                     <Option value={15}>15 phút</Option>
@@ -276,7 +314,7 @@ const CreateMeetingPage = () => {
             
             <Divider />
 
-            {/* Người tham gia (Nội bộ) - Đã nâng cấp */}
+            {/* Người tham gia (Nội bộ) */}
             <Form.Item 
               label={<span><FiUsers className="inline mr-2" />Người tham gia (Nội bộ)</span>}
               name="participantIds"
@@ -285,18 +323,13 @@ const CreateMeetingPage = () => {
               <Select
                 mode="multiple"
                 placeholder="-- Gõ tên hoặc email để tìm người tham gia --"
-                // Hiển thị kết quả tìm kiếm
                 options={searchResults.map((u) => ({
-                  label: `${u.fullName} (${u.username})`, // API mới trả về fullName, username
+                  label: `${u.fullName} (${u.username})`,
                   value: u.id,
                 }))}
-                // Kích hoạt tìm kiếm
                 onSearch={handleSearchUsers}
-                // Hiển thị spinner khi đang tìm
                 loading={isSearching}
-                // (Rất quan trọng) Tắt bộ lọc mặc định của AntD
                 filterOption={false} 
-                // Tùy chỉnh thông báo
                 notFoundContent={
                   isSearching ? <Spin size="small" /> : "Không tìm thấy người dùng"
                 }
@@ -304,7 +337,7 @@ const CreateMeetingPage = () => {
               />
             </Form.Item>
 
-            {/* Email khách mời (Bên ngoài) - Đã nâng cấp */}
+            {/* Email khách mời (Bên ngoài) */}
             <Form.Item 
               label="Email khách mời (Bên ngoài)" 
               name="guestEmails"
@@ -322,8 +355,8 @@ const CreateMeetingPage = () => {
               }]}
             >
               <Select
-                mode="tags" // <-- Chế độ 'tags'
-                tokenSeparators={[',', ';', ' ']} // Tự động tách email
+                mode="tags" 
+                tokenSeparators={[',', ';', ' ']} 
                 placeholder="Ví dụ: guest1@email.com, guest2@email.com, ..."
                 styles={getDropdownStyle()}
               />
