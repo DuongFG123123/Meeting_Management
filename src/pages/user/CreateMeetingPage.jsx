@@ -277,6 +277,7 @@ const CreateMeetingPage = () => {
                   className="w-full"
                   use12Hours
                   format="hh:mm A"
+                  inputReadOnly
                   minuteStep={5}
                 />
               </Form.Item>
