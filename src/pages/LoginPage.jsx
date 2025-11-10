@@ -1,96 +1,115 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { FiEye, FiEyeOff } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiLogIn } from "react-icons/fi";
+import { motion } from "framer-motion";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function LoginPage() {
   const { login, loading } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // 👁️ Trạng thái hiển thị mật khẩu
+  const [showPassword, setShowPassword] = useState(false);
 
+  // 🎯 Xử lý đăng nhập
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     try {
       await login(username, password);
+      toast.success("Đăng nhập thành công 🎉", { autoClose: 1500 });
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
         "Sai tài khoản hoặc mật khẩu. Vui lòng thử lại!";
-      setError(msg);
+      toast.error(msg, { autoClose: 2000 });
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-blue-50 to-blue-100">
+    <div className="min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-blue-100 via-blue-50 to-indigo-100">
       {/* Hình minh họa bên trái */}
       <div className="hidden md:flex w-1/2 items-center justify-center p-10">
-        <img
+        <motion.img
           src="https://cdn.dribbble.com/users/1162077/screenshots/3848914/programmer.gif"
           alt="Meeting illustration"
-          className="w-3/4 rounded-xl shadow-lg"
+          className="w-3/4 rounded-2xl shadow-xl"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1 }}
         />
       </div>
 
       {/* Form đăng nhập */}
       <div className="flex w-full md:w-1/2 items-center justify-center p-6">
-        <form
+        <motion.form
           onSubmit={handleSubmit}
-          className="bg-white shadow-2xl p-10 rounded-2xl w-full max-w-md"
+          className="bg-white shadow-2xl p-10 rounded-3xl w-full max-w-md border border-blue-100"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
         >
           <h2 className="text-3xl font-bold text-center mb-8 text-blue-700">
             🗓️ Meeting Management
           </h2>
 
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4 text-sm">
-              {error}
-            </div>
-          )}
-
           <div className="space-y-4">
             {/* Ô nhập username */}
-            <input
-              type="text"
-              placeholder="Tên đăng nhập (email)"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-
-            {/* Ô nhập mật khẩu có icon 👁️ */}
-            <div className="relative">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tên đăng nhập (Email)
+              </label>
               <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Mật khẩu"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full border p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                type="text"
+                placeholder="Nhập email của bạn..."
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
+                className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
-                tabIndex={-1}
-              >
-                {showPassword ? <FiEye size={20} /> : <FiEyeOff size={20} />}
-              </button>
+            </div>
+
+            {/* Ô nhập mật khẩu có icon 👁️ */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Mật khẩu
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Nhập mật khẩu..."
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-gray-500 hover:text-blue-600 transition"
+                  tabIndex={-1}
+                  aria-label="Hiển thị mật khẩu"
+                >
+                  {showPassword ? <FiEye size={20} /> : <FiEyeOff size={20} />}
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Nút đăng nhập */}
-          <button
+          <motion.button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white font-semibold py-3 mt-6 rounded-lg hover:bg-blue-700 transition duration-300 disabled:opacity-50"
+            whileTap={{ scale: 0.97 }}
+            className="w-full bg-blue-600 text-white font-semibold py-3 mt-6 rounded-lg hover:bg-blue-700 transition duration-300 disabled:opacity-60 flex items-center justify-center gap-2"
           >
+            <FiLogIn />
             {loading ? "Đang đăng nhập..." : "Đăng nhập"}
-          </button>
+          </motion.button>
 
+          {/* Link phụ */}
           <div className="text-right mt-3">
             <Link
               to="/forgot-password"
@@ -100,10 +119,11 @@ export default function LoginPage() {
             </Link>
           </div>
 
+          {/* Footer */}
           <p className="text-sm text-gray-500 text-center mt-4">
             © 2025 CMC Global - Meeting Management
           </p>
-        </form>
+        </motion.form>
       </div>
     </div>
   );
