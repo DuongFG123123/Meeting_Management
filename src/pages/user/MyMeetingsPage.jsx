@@ -1,42 +1,79 @@
 // src/pages/user/MyMeetingsPage.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { getMyMeetings, getMeetingById } from "../../services/meetingService";
-import { Modal, Spin, Descriptions, Tag } from "antd"; // <-- Thêm Tag
-import { FiCalendar } from "react-icons/fi";
+import { getMyMeetings, getMeetingById, createMeeting, getRooms, getDevices } from "../../services/meetingService";
+import { searchUsers } from "../../services/userService";
+import { Modal, Spin, Descriptions, Tag, DatePicker, TimePicker, Select, Input, Button, Form, message, Card, Divider, Checkbox } from "antd";
+import { FiCalendar, FiPlusCircle, FiUsers } from "react-icons/fi";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
+import utc from "dayjs/plugin/utc";
+import { useAuth } from "../../context/AuthContext";
+
 dayjs.locale("vi");
+dayjs.extend(utc);
+
+const { TextArea } = Input;
+const { Option } = Select;
 
 const MyMeetingPage = () => {
+  // State quản lý lịch họp
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
+  
+  // State modal chi tiết
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [meetingDetail, setMeetingDetail] = useState(null);
 
-  // 🟢 Lấy danh sách lịch họp (ĐÃ SỬA)
+  // State modal đặt lịch nhanh
+  const [quickBooking, setQuickBooking] = useState({ open: false, start: null, end: null });
+  const [creating, setCreating] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
+
+  // State form data
+  const [rooms, setRooms] = useState([]);
+  const [devices, setDevices] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const debounceTimer = useRef(null);
+  const [form] = Form.useForm();
+  const { user } = useAuth();
+
+  // Tải danh sách phòng và thiết bị khi mở form đặt lịch
+  useEffect(() => {
+    if (!quickBooking.open) return;
+    
+    const fetchData = async () => {
+      try {
+        const [roomRes, deviceRes] = await Promise.all([getRooms(), getDevices()]);
+        setRooms(roomRes.data || []);
+        setDevices(deviceRes.data || []);
+      } catch (e) {
+        message.error("Không thể tải phòng họp/thiết bị");
+      }
+    };
+    fetchData();
+  }, [quickBooking.open]);
+
+  // Tải danh sách lịch họp
   const fetchMeetings = async () => {
     setLoading(true);
     try {
-      // API của bạn trả về { content: [...] }
       const res = await getMyMeetings();
       const data = res.data?.content || [];
-      
-      // === SỬA LỖI 1: SỬA LOGIC MAP ===
       const mappedEvents = data.map((m) => ({
         id: m.id,
         title: m.title || "Cuộc họp",
-        start: m.startTime, // <-- SỬA: Dùng startTime
-        end: m.endTime,     // <-- SỬA: Thêm endTime
-        backgroundColor: m.status === 'CONFIRMED' ? "#3b82f6" : "#f59e0b", // Xanh cho Confirmed, Vàng cho PENDING
+        start: m.startTime,
+        end: m.endTime,
+        backgroundColor: m.status === 'CONFIRMED' ? "#3b82f6" : "#f59e0b",
         borderColor: m.status === 'CONFIRMED' ? "#2563eb" : "#d97706",
-        extendedProps: {
-          status: m.status // Thêm các thuộc tính khác nếu cần
-        }
+        extendedProps: { status: m.status }
       }));
       setEvents(mappedEvents);
     } catch (err) {
@@ -47,38 +84,177 @@ const MyMeetingPage = () => {
     }
   };
 
-  // 🟠 Khi click vào 1 cuộc họp -> hiển thị chi tiết (ĐÃ SỬA)
+  // Xử lý click vào cuộc họp để xem chi tiết
   const handleEventClick = async (info) => {
     try {
       const id = info.event.id;
-      setMeetingDetail(null); // Xóa chi tiết cũ
+      setMeetingDetail(null);
       setIsModalOpen(true);
-      
       const res = await getMeetingById(id);
       setMeetingDetail(res.data);
     } catch (err) {
       console.error("❌ Lỗi khi lấy chi tiết:", err);
       toast.error("Không thể tải chi tiết cuộc họp!");
-      setIsModalOpen(false); // Đóng modal nếu lỗi
+      setIsModalOpen(false);
     }
   };
 
+  // Xử lý click vào khoảng trống trên calendar để đặt lịch nhanh
+  const handleDateSelect = (selection) => {
+    let start = selection?.startStr ? dayjs(selection.startStr) : null;
+    let end = selection?.endStr ? dayjs(selection.endStr) : null;
+    if (!start || !end) return;
+
+    let duration = end.diff(start, "minute");
+    if (duration <= 0) duration = 60;
+
+    setQuickBooking({
+      open: true,
+      start: start,
+      end: start.add(duration, "minute"),
+    });
+
+    // Reset form
+    setIsRecurring(false);
+    setTimeout(() => {
+      form.setFieldsValue({
+        title: "",
+        date: start,
+        time: start,
+        duration: duration <= 0 ? 60 : duration,
+        roomId: undefined,
+        deviceIds: [],
+        participantIds: [],
+        guestEmails: [],
+        isRecurring: false,
+        frequency: "DAILY",
+        repeatUntil: undefined,
+        description: "",
+      });
+    }, 100);
+    setSearchResults([]);
+  };
+
+  // Tìm kiếm người dùng với debounce
+  const handleSearchUsers = (query) => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    
+    if (query && query.trim().length > 0) {
+      setIsSearching(true);
+      setSearchResults([]);
+      debounceTimer.current = setTimeout(async () => {
+        try {
+          const res = await searchUsers(query);
+          const filteredResults = (res.data || []).filter(u => u.id !== user?.id);
+          setSearchResults(filteredResults);
+        } catch (err) {
+          message.error("Không thể tìm kiếm người dùng.");
+          setSearchResults([]);
+        } finally {
+          setIsSearching(false);
+        }
+      }, 500);
+    } else {
+      setSearchResults([]);
+      setIsSearching(false);
+    }
+  };
+
+  // Tạo cuộc họp mới
+  const handleCreateMeeting = async (values) => {
+    try {
+      setCreating(true);
+      if (!user?.id) {
+        message.error("Không lấy được thông tin người dùng hiện tại!");
+        return;
+      }
+
+      // Xử lý thời gian
+      const datePart = values.date;
+      const timePart = values.time;
+      const startTimeUTC = dayjs.utc()
+        .year(datePart.year())
+        .month(datePart.month())
+        .date(datePart.date())
+        .hour(timePart.hour())
+        .minute(timePart.minute())
+        .second(0)
+        .millisecond(0);
+      const startTime = startTimeUTC.toISOString();
+      const duration = values.duration || 60;
+      const endTime = startTimeUTC.add(duration, 'minute').toISOString();
+
+      // Đảm bảo người tạo luôn trong danh sách tham gia
+      const participantIds = Array.from(new Set([user.id, ...(values.participantIds || [])]));
+      
+      const payload = {
+        title: values.title,
+        description: values.description || "",
+        startTime,
+        endTime,
+        roomId: values.roomId,
+        participantIds,
+        deviceIds: values.deviceIds || [],
+        recurrenceRule: values.isRecurring ? {
+          frequency: values.frequency || "DAILY",
+          interval: 1,
+          repeatUntil: dayjs(values.repeatUntil || values.date).format("YYYY-MM-DD"),
+        } : null,
+        onBehalfOfUserId: null,
+        guestEmails: values.guestEmails || [],
+      };
+
+      await createMeeting(payload);
+      message.success("✅ Đặt lịch họp thành công!");
+      setQuickBooking({ open: false, start: null, end: null });
+      fetchMeetings();
+    } catch (err) {
+      console.error("❌ Lỗi tạo cuộc họp:", err);
+      message.error(err.response?.data?.message || "Không thể tạo cuộc họp!");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  // Render danh sách người tham gia
+  const renderParticipants = (participants) => {
+    if (!participants || participants.length === 0) return "Không có người tham gia.";
+    return participants.map(p => p.fullName).join(", ");
+  };
+
+  // Load lịch họp khi component mount
   useEffect(() => {
     fetchMeetings();
   }, []);
 
-  // Hàm render chi tiết người tham gia
-  const renderParticipants = (participants) => {
-    if (!participants || participants.length === 0) {
-      return "Không có người tham gia.";
-    }
-    // API trả về mảng object, cần map qua
-    return participants.map(p => p.fullName).join(", ");
-  };
+  // Thêm CSS cho dark mode
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.innerHTML = `
+      html.dark .ant-form-item-label > label { color: #f1f5f9 !important; }
+      html.dark .ant-input, html.dark .ant-picker, html.dark .ant-select-selector {
+        background-color: #1e293b !important;
+        color: #f8fafc !important;
+        border-color: #334155 !important;
+      }
+      html.dark .ant-input::placeholder, html.dark textarea.ant-input::placeholder {
+        color: #94a3b8 !important;
+      }
+      .dark ::placeholder,
+      .dark .ant-select-selection-placeholder,
+      .dark .ant-input::placeholder,
+      .dark textarea::placeholder {
+        color: #b5b5b5 !important;
+        opacity: 1 !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
 
   return (
     <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-500">
-      {/* (Header giữ nguyên) */}
+      {/* Header */}
       <div className="flex items-center gap-4 mb-6 border-b pb-3 border-gray-200 dark:border-gray-700">
         <div className="p-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-blue-500 shadow-md">
           <FiCalendar className="text-white text-2xl" />
@@ -93,7 +269,7 @@ const MyMeetingPage = () => {
         </div>
       </div>
 
-      {/* 📅 Lịch họp (Giữ nguyên) */}
+      {/* Calendar */}
       {loading ? (
         <div className="flex justify-center items-center h-96">
           <Spin size="large" />
@@ -109,17 +285,20 @@ const MyMeetingPage = () => {
               right: "dayGridMonth,timeGridWeek,timeGridDay",
             }}
             allDaySlot={false}
-            slotMinTime="00:00:00" // <-- SỬA: Bắt đầu từ 0 giờ
-            slotMaxTime="24:00:00" // <-- SỬA: Kết thúc lúc 24 giờ
+            slotMinTime="00:00:00"
+            slotMaxTime="24:00:00"
             events={events}
             eventClick={handleEventClick}
             height="75vh"
             locale="vi"
+            selectable={true}
+            selectMirror={true}
+            select={handleDateSelect}
           />
         </div>
       )}
 
-      {/* 🧾 Modal chi tiết cuộc họp (ĐÃ SỬA HOÀN TOÀN) */}
+      {/* Modal chi tiết cuộc họp */}
       <Modal
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
@@ -134,7 +313,6 @@ const MyMeetingPage = () => {
             column={1}
             className="dark:[&_.ant-descriptions-item-label]:text-gray-300 dark:[&_.ant-descriptions-item-content]:text-gray-100"
           >
-            {/* === SỬA LỖI 2: ĐỌC ĐÚNG TRƯỜNG DỮ LIỆU === */}
             <Descriptions.Item label="Tên cuộc họp">
               {meetingDetail.title}
             </Descriptions.Item>
@@ -164,6 +342,253 @@ const MyMeetingPage = () => {
             <Spin size="large" />
           </div>
         )}
+      </Modal>
+
+      {/* Modal đặt lịch nhanh */}
+      <Modal
+        open={quickBooking.open}
+        onCancel={() => setQuickBooking({ open: false, start: null, end: null })}
+        footer={null}
+        width={650}
+        closable={!creating}
+        maskClosable={!creating}
+        title={
+          <span className="flex items-center gap-2 dark:text-white text-lg font-semibold">
+            <FiPlusCircle /> Đặt lịch phòng họp nhanh
+          </span>
+        }
+        className="dark:[&_.ant-modal-content]:bg-gray-800 dark:[&_.ant-modal-content]:text-gray-100 
+                   dark:[&_.ant-modal-header]:bg-gray-800 dark:[&_.ant-modal-header]:border-b-gray-700"
+        bodyStyle={{ paddingTop: 18, paddingBottom: 10 }}
+      >
+        <Card
+          className="shadow-none bg-white dark:bg-[#1e293b] border-none dark:text-gray-100"
+          bodyStyle={{ padding: 0 }}
+        >
+          <Form
+            layout="vertical"
+            form={form}
+            disabled={creating}
+            onFinish={handleCreateMeeting}
+            onValuesChange={(vals) => {
+              if (vals.isRecurring !== undefined) setIsRecurring(vals.isRecurring);
+            }}
+          >
+            {/* Ngày, giờ và thời lượng */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
+              <Form.Item
+                label="Ngày họp"
+                name="date"
+                rules={[{ required: true, message: "Chọn ngày họp" }]}
+              >
+                <DatePicker
+                  className="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  format="DD/MM/YYYY"
+                  disabledDate={(current) => current && current < dayjs().startOf("day")}
+                />
+              </Form.Item>
+
+              <Form.Item
+                label="Giờ bắt đầu"
+                name="time"
+                dependencies={["date"]}
+                rules={[
+                  { required: true, message: "Chọn giờ họp" },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      const date = getFieldValue("date");
+                      if (!date || !value) return Promise.resolve();
+                      const selectedUTC = dayjs.utc()
+                        .year(date.year())
+                        .month(date.month())
+                        .date(date.date())
+                        .hour(value.hour())
+                        .minute(value.minute())
+                        .second(0);
+                      if (selectedUTC.isBefore(dayjs.utc().add(1, "minute"))) {
+                        return Promise.reject("⏰ Thời gian họp phải ở tương lai!");
+                      }
+                      return Promise.resolve();
+                    },
+                  }),
+                ]}
+              >
+                <TimePicker
+                  className="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  use12Hours
+                  format="hh:mm A"
+                  minuteStep={5}
+                />
+              </Form.Item>
+
+              <Form.Item
+                label="Thời lượng"
+                name="duration"
+                rules={[{ required: true, message: "Chọn thời lượng" }]}
+              >
+                <Select
+                  className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  popupClassName="dark:bg-gray-700 dark:text-gray-100"
+                >
+                  <Option value={15}>15 phút</Option>
+                  <Option value={30}>30 phút</Option>
+                  <Option value={45}>45 phút</Option>
+                  <Option value={60}>1 giờ</Option>
+                  <Option value={90}>1 giờ 30 phút</Option>
+                  <Option value={120}>2 giờ</Option>
+                </Select>
+              </Form.Item>
+            </div>
+
+            {/* Tên cuộc họp */}
+            <Form.Item
+              label="Tên cuộc họp"
+              name="title"
+              rules={[{ required: true, message: "Nhập tên cuộc họp" }]}
+            >
+              <Input
+                placeholder="Nhập tên cuộc họp..."
+                className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+              />
+            </Form.Item>
+
+            {/* Phòng họp */}
+            <Form.Item
+              label="Phòng họp"
+              name="roomId"
+              rules={[{ required: true, message: "Chọn phòng họp" }]}
+            >
+              <Select
+                placeholder="-- Chọn phòng họp --"
+                className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                popupClassName="dark:bg-gray-700 dark:text-gray-100"
+                options={rooms.map((r) => ({
+                  label: `${r.name} (${r.location || "Không rõ"})`,
+                  value: r.id,
+                }))}
+              />
+            </Form.Item>
+
+            {/* Thiết bị */}
+            <Form.Item label="Thiết bị sử dụng" name="deviceIds">
+              <Select
+                mode="multiple"
+                placeholder="-- Chọn thiết bị --"
+                className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                popupClassName="dark:bg-gray-700 dark:text-gray-100"
+                options={devices.map((d) => ({
+                  label: d.name,
+                  value: d.id,
+                }))}
+              />
+            </Form.Item>
+
+            <Divider className="dark:border-gray-700" />
+
+            {/* Người tham gia nội bộ */}
+            <Form.Item
+              label={<span><FiUsers className="inline mr-2" />Người tham gia (nội bộ)</span>}
+              name="participantIds"
+              tooltip="Gõ tên hoặc email để tìm đồng nghiệp. Bạn (người tạo) sẽ tự động được thêm."
+            >
+              <Select
+                mode="multiple"
+                placeholder="-- Gõ tên hoặc email để tìm người tham gia --"
+                className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                popupClassName="dark:bg-gray-700 dark:text-gray-100"
+                options={searchResults.map((u) => ({
+                  label: `${u.fullName} (${u.username})`,
+                  value: u.id,
+                }))}
+                onSearch={handleSearchUsers}
+                loading={isSearching}
+                filterOption={false}
+                notFoundContent={isSearching ? <Spin size="small" /> : "Không tìm thấy người dùng"}
+              />
+            </Form.Item>
+
+            {/* Email khách mời */}
+            <Form.Item
+              label="Email khách mời (bên ngoài)"
+              name="guestEmails"
+              tooltip="Nhập email, nhấn Enter hoặc dấu phẩy để thêm."
+              rules={[
+                {
+                  type: "array",
+                  validator: (_, value) => {
+                    if (!value || value.length === 0) return Promise.resolve();
+                    const invalidEmails = value.filter(
+                      (email) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+                    );
+                    if (invalidEmails.length > 0)
+                      return Promise.reject(`Email không hợp lệ: ${invalidEmails.join(", ")}`);
+                    return Promise.resolve();
+                  },
+                },
+              ]}
+            >
+              <Select
+                mode="tags"
+                tokenSeparators={[",", ";", " "]}
+                placeholder="Ví dụ: guest@email.com"
+                className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                popupClassName="dark:bg-gray-700 dark:text-gray-100"
+              />
+            </Form.Item>
+
+            <Divider className="dark:border-gray-700" />
+
+            {/* Lặp lại cuộc họp */}
+            <Form.Item name="isRecurring" valuePropName="checked" className="mb-1">
+              <Checkbox className="dark:text-gray-200">Lặp lại cuộc họp</Checkbox>
+            </Form.Item>
+
+            {isRecurring && (
+              <div className="grid grid-cols-2 gap-4">
+                <Form.Item name="frequency" label="Tần suất lặp">
+                  <Select
+                    className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                    popupClassName="dark:bg-gray-700 dark:text-gray-100"
+                  >
+                    <Option value="DAILY">Hằng ngày</Option>
+                    <Option value="WEEKLY">Hằng tuần</Option>
+                    <Option value="MONTHLY">Hằng tháng</Option>
+                  </Select>
+                </Form.Item>
+
+                <Form.Item name="repeatUntil" label="Lặp đến ngày">
+                  <DatePicker
+                    className="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                    format="DD/MM/YYYY"
+                    disabledDate={(current) => current && current < dayjs().startOf("day")}
+                  />
+                </Form.Item>
+              </div>
+            )}
+
+            {/* Ghi chú */}
+            <Form.Item label="Ghi chú" name="description">
+              <TextArea
+                rows={3}
+                placeholder="Ghi chú thêm cho cuộc họp..."
+                className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+              />
+            </Form.Item>
+
+            {/* Nút hành động */}
+            <div className="flex justify-end gap-3 mt-6">
+              <Button onClick={() => setQuickBooking({ open: false })}>Hủy</Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={creating}
+                className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-500 dark:hover:bg-blue-600"
+              >
+                Tạo cuộc họp
+              </Button>
+            </div>
+          </Form>
+        </Card>
       </Modal>
     </div>
   );
