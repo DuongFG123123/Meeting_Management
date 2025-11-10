@@ -55,8 +55,10 @@ export default function UsersPage() {
     try {
       setLoading(true);
       const res = await getAllUsers();
-      console.log("Dữ liệu người dùng:", res.data);
-      setUsers(Array.isArray(res.data) ? res.data : res.data.data || []);
+      let data = Array.isArray(res.data) ? res.data : res.data.data || [];
+      // Sắp xếp giảm dần theo id (user mới nhất lên đầu)
+      data = [...data].sort((a, b) => (b.id || 0) - (a.id || 0));
+      setUsers(data);
     } catch (err) {
       console.error("Lỗi khi tải danh sách:", err);
       toast.error("Không thể tải danh sách người dùng!");
@@ -119,6 +121,25 @@ export default function UsersPage() {
       });
       setShowAddModal(false);
       fetchUsers();
+      // Chèn user mới lên đầu danh sách (không cần reload backend toàn bộ)
+      let createdUser = res.data;
+      // Nếu backend trả về dạng { data: {...} }
+      if (createdUser && createdUser.data) createdUser = createdUser.data;
+
+      // Đảm bảo field roles, active có định dạng chuẩn
+      createdUser = {
+        ...createdUser,
+        roles: createdUser.roles || [payload.roles[0]],
+        active:
+          typeof createdUser.active === "boolean"
+            ? createdUser.active
+            : true, // fallback: true nếu backend không trả về (mặc định mới là active)
+      };
+
+      setUsers((prev) => [
+        { ...createdUser },
+        ...prev,
+      ]);
     } catch (err) {
       console.error("Lỗi tạo người dùng:", err);
       const msg =
