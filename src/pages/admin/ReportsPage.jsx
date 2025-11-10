@@ -138,11 +138,18 @@ const ReportPage = () => {
       <Bar
         data={roomChartData}
         options={{
-          responsive: true,
-          maintainAspectRatio: false, // quan trọng để height có hiệu lực
-          animation: { duration: 1000, easing: "easeOutQuad" },
-          plugins: { legend: { position: "top" } },
-        }}
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: { duration: 1000, easing: "easeOutQuad" },
+  plugins: { legend: { position: "top" } },
+  scales: {
+    y: { beginAtZero: true },
+    x: { ticks: { autoSkip: false } }
+  },
+  elements: {
+    bar: { borderRadius: 4 } // thanh tròn góc
+  }
+}}
       />
     </div>
   ) : (
