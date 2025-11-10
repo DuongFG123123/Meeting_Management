@@ -113,21 +113,21 @@ const ReportPage = () => {
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Thống kê & Báo cáo</h2>
-      <Space style={{ marginBottom: 20 }}>
-        <RangePicker
-          onChange={(dates) => {
-            if (dates) {
-              const start = dates[0].toDate();
-              const end = dates[1].toDate();
-              setDateRange([start, end]);
-              fetchReports(start, end);
-            }
-          }}
-          value={dateRange.map((d) => dayjs(d))}
-        />
-      </Space>
+    <div style={{ padding: 20, background: "#f9f9f9", borderRadius: 8 }}>
+  <h2 style={{ marginBottom: 20 }}>Thống kê & Báo cáo</h2>
+  <Space style={{ marginBottom: 20 }}>
+    <RangePicker
+      onChange={(dates) => {
+        if (dates) {
+          const start = dates[0].toDate();
+          const end = dates[1].toDate();
+          setDateRange([start, end]);
+          fetchReports(start, end);
+        }
+      }}
+      value={dateRange.map((d) => dayjs(d))}
+    />
+  </Space>
 
       <Spin spinning={isLoading}>
         <Tabs activeKey={activeTab} onChange={(key) => setActiveTab(key)}>
