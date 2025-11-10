@@ -1,9 +1,11 @@
 // src/pages/user/UserDashboard.jsx
 import { useAuth } from "../../context/AuthContext";
 import { FiCalendar, FiClock, FiUsers, FiTrendingUp } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 
 export default function UserDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Mock data - Sau này sẽ fetch từ API
   const stats = [
@@ -64,6 +66,15 @@ export default function UserDashboard() {
       attendees: 15,
     },
   ];
+
+  // Handler functions for navigation
+  const handleCreateMeeting = () => {
+    navigate("/user/create-meeting");
+  };
+
+  const handleViewRooms = () => {
+    navigate("/user/rooms");
+  };
 
   return (
     <div className="space-y-6">
@@ -140,14 +151,20 @@ export default function UserDashboard() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <button className="bg-blue-600 text-white rounded-xl p-6 text-left hover:bg-blue-700 transition shadow-md">
+        <button
+          className="bg-blue-600 text-white rounded-xl p-6 text-left hover:bg-blue-700 transition shadow-md"
+          onClick={handleCreateMeeting}
+        >
           <h3 className="font-semibold text-lg mb-2">➕ Tạo lịch họp mới</h3>
           <p className="text-sm text-blue-100">
             Đặt phòng và thiết bị cho cuộc họp
           </p>
         </button>
 
-        <button className="bg-green-600 text-white rounded-xl p-6 text-left hover:bg-green-700 transition shadow-md">
+        <button
+          className="bg-green-600 text-white rounded-xl p-6 text-left hover:bg-green-700 transition shadow-md"
+          onClick={handleViewRooms}
+        >
           <h3 className="font-semibold text-lg mb-2">🏢 Xem phòng trống</h3>
           <p className="text-sm text-green-100">
             Tìm phòng họp phù hợp với nhu cầu
