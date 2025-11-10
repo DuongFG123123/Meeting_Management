@@ -90,7 +90,7 @@ export default function DashboardPage() {
   const COLORS = ["#60A5FA", "#A78BFA", "#F472B6", "#34D399"];
 
   /* -------------------------------------------------------------------------- */
-  /* Giao diện Dashboard tổng hợp                                           */
+  /* Giao diện Dashboard tổng hợp                                               */
   /* -------------------------------------------------------------------------- */
   return (
     <div className="p-6 space-y-6 transition-all duration-500">
