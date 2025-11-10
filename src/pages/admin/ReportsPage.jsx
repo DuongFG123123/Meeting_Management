@@ -160,7 +160,12 @@ const ReportPage = () => {
           <TabPane tab="Lý do hủy họp" key="2">
   {renderActions(cancelStatsData, "bao_cao_huy_hop")}
   {cancelStatsData.length ? (
-    <div style={{ width: 700, height: 500, margin: "0", display: "flex", justifyContent: "flex-start" }}>
+    <div style={{
+  width: "100%",
+  maxWidth: 700,
+  height: 400,
+  margin: "0 auto",
+}}>
       <Pie
         data={cancelChartData}
         options={{
