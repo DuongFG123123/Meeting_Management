@@ -6,3 +6,6 @@ export const updateRoom = (id, data) => api.put(`/rooms/${id}`, data);
 export const deleteRoom = (id) => api.delete(`/rooms/${id}`);
 export const getAvailableRooms = (params) =>
   api.get("/rooms/available", { params });
+export const getAllRooms = () => {
+  return api.get('/rooms');
+};

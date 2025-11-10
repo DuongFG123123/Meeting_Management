@@ -15,8 +15,19 @@ import {
 } from "recharts";
 import { FiUsers, FiClock, FiCalendar, FiTrendingUp } from "react-icons/fi";
 
+// === 🎯 SỬA LỖI: THÊM CÁC IMPORT CÒN THIẾU ===
+import { Spin, message } from "antd"; 
+import { getAllRooms } from "../../services/roomService";
+import { getAllMeetings } from "../../services/reportService";
+// === KẾT THÚC SỬA LỖI ===
+
 export default function DashboardPage() {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  
+  // State cho dữ liệu API
+  const [calendarResources, setCalendarResources] = useState([]);
+  const [calendarEvents, setCalendarEvents] = useState([]);
+  const [calendarLoading, setCalendarLoading] = useState(true);
 
   // Theo dõi dark mode khi người dùng bật/tắt
   useEffect(() => {
@@ -27,7 +38,7 @@ export default function DashboardPage() {
     return () => observer.disconnect();
   }, []);
 
-  // Giữ phần header timeline luôn đen, nền sáng
+  // CSS cho FullCalendar (giữ nguyên)
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
@@ -49,29 +60,52 @@ export default function DashboardPage() {
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
+  
+  // useEffect để tải dữ liệu Lịch (đã có)
+  useEffect(() => {
+    const fetchCalendarData = async () => {
+      setCalendarLoading(true);
+      try {
+        // Gọi đồng thời cả hai API
+        const [roomsRes, meetingsRes] = await Promise.all([
+          getAllRooms(),
+          getAllMeetings() // Lấy trang đầu tiên (1000 cuộc họp)
+        ]);
+
+        // A. Xử lý Phòng (Resources)
+        const resources = (roomsRes.data || []).map(room => ({
+          id: room.id.toString(), // ID phải là chuỗi
+          title: room.name
+        }));
+        setCalendarResources(resources);
+
+        // B. Xử lý Lịch họp (Events)
+        const meetings = meetingsRes.data?.content || [];
+        const events = meetings.map(meeting => ({
+          id: meeting.id.toString(),
+          title: meeting.title,
+          start: meeting.startTime, // API đã cung cấp định dạng ISO
+          end: meeting.endTime,
+          resourceId: meeting.room?.id?.toString(), // <-- Quan trọng: Kết nối với Phòng
+          backgroundColor: meeting.status === 'CONFIRMED' ? "#3B82F6" : "#F59E0B",
+          borderColor: meeting.status === 'CONFIRMED' ? "#2563EB" : "#D97706",
+        }));
+        setCalendarEvents(events);
+
+      } catch (err) {
+        console.error("❌ Lỗi tải dữ liệu Dashboard:", err);
+        message.error("Không thể tải dữ liệu lịch họp."); // <-- 'message' đã được import
+      } finally {
+        setCalendarLoading(false);
+      }
+    };
+
+    fetchCalendarData();
+  }, []); // Chạy 1 lần khi trang mở
 
   /* -------------------------------------------------------------------------- */
-  /* Mock dữ liệu lịch & thống kê (tạm thời, có thể thay bằng API sau)      */
+  /* Mock dữ liệu thống kê (Giữ nguyên)                                         */
   /* -------------------------------------------------------------------------- */
-  const mockRooms = [
-    { id: "A", title: "Auditorium A" },
-    { id: "B", title: "Auditorium B" },
-    { id: "C", title: "Auditorium C" },
-    { id: "D", title: "Auditorium D" },
-    { id: "D1", title: "Room D1", parentId: "D" },
-    { id: "D2", title: "Room D2", parentId: "D" },
-    { id: "E", title: "Auditorium E" },
-    { id: "F", title: "Auditorium F" },
-  ];
-
-  const mockEvents = [
-    { id: "1", resourceId: "D", title: "Event 1", start: "2025-11-10T06:00:00", end: "2025-11-10T15:00:00", backgroundColor: "#3B82F6" },
-    { id: "2", resourceId: "D2", title: "Event 2", start: "2025-11-10T08:00:00", end: "2025-11-10T12:00:00", backgroundColor: "#22C55E" },
-    { id: "3", resourceId: "C", title: "Event 3", start: "2025-11-10T10:00:00", end: "2025-11-10T16:00:00", backgroundColor: "#F59E0B" },
-    { id: "4", resourceId: "F", title: "Event 4", start: "2025-11-10T07:00:00", end: "2025-11-10T08:00:00", backgroundColor: "#EF4444" },
-    { id: "5", resourceId: "B", title: "Event 5", start: "2025-11-10T09:00:00", end: "2025-11-10T14:00:00", backgroundColor: "#10B981" },
-  ];
-
   const meetingsPerDay = [
     { name: "T2", count: 4 },
     { name: "T3", count: 6 },
@@ -180,46 +214,56 @@ export default function DashboardPage() {
         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">
           🗓️ Lịch họp tổng hợp trong ngày
         </h3>
-        <FullCalendar
-          plugins={[resourceTimelinePlugin]}
-          schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
-          initialView="resourceTimelineDay"
-          headerToolbar={{
-            left: "prev,next today",
-            center: "title",
-            right: "resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth",
-          }}
-          titleFormat={{ month: "long", year: "numeric", day: "numeric" }}
-          resourceAreaHeaderContent="Phòng họp"
-          resources={mockRooms}
-          events={mockEvents}
-          height="auto"
-          slotMinTime="06:00:00"
-          slotMaxTime="20:00:00"
-          nowIndicator={true}
-          eventMinWidth={80}
-          locale="vi"
-          slotLabelFormat={{ hour: "numeric", minute: "2-digit", hour12: false }}
-          resourceLabelContent={(arg) => ({
-            html: `<span class='text-sm font-medium ${isDarkMode ? "text-gray-200" : "text-gray-800"}'>${arg.resource.title}</span>`,
-          })}
-          eventContent={(arg) => ({
-            html: `
-              <div style="
-                background:${arg.event.backgroundColor};
-                color:white;
-                border-radius:6px;
-                padding:2px 6px;
-                font-size:12px;
-                font-weight:500;
-                overflow:hidden;
-                white-space:nowrap;
-                text-overflow:ellipsis;">
-                ${arg.event.title}
-              </div>
-            `,
-          })}
-        />
+        
+        {/* Thêm Spinner khi đang tải */}
+        {calendarLoading ? (
+          <div className="flex justify-center items-center h-[50vh]">
+            <Spin size="large" /> {/* <-- 'Spin' đã được import */}
+          </div>
+        ) : (
+          <FullCalendar
+            plugins={[resourceTimelinePlugin]}
+            schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
+            initialView="resourceTimelineDay"
+            headerToolbar={{
+              left: "prev,next today",
+              center: "title",
+              right: "resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth",
+            }}
+            titleFormat={{ month: "long", year: "numeric", day: "numeric" }}
+            resourceAreaHeaderContent="Phòng họp"
+            
+            resources={calendarResources} // <-- ĐÃ SỬA
+            events={calendarEvents}       // <-- ĐÃ SỬA
+            
+            height="auto"
+            slotMinTime="06:00:00"
+            slotMaxTime="20:00:00"
+            nowIndicator={true}
+            eventMinWidth={80}
+            locale="vi"
+            slotLabelFormat={{ hour: "numeric", minute: "2-digit", hour12: false }}
+            resourceLabelContent={(arg) => ({
+              html: `<span class='text-sm font-medium ${isDarkMode ? "text-gray-200" : "text-gray-800"}'>${arg.resource.title}</span>`,
+            })}
+            eventContent={(arg) => ({
+              html: `
+                <div style="
+                  background:${arg.event.backgroundColor};
+                  color:white;
+                  border-radius:6px;
+                  padding:2px 6px;
+                  font-size:12px;
+                  font-weight:500;
+                  overflow:hidden;
+                  white-space:nowrap;
+                  text-overflow:ellipsis;">
+                  ${arg.event.title}
+                </div>
+              `,
+            })}
+          />
+        )}
       </div>
     </div>
   );
