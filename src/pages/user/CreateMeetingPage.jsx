@@ -236,51 +236,50 @@ const CreateMeetingPage = () => {
               </Form.Item>
               
               {/* === VALIDATOR ĐÃ SỬA (FIX LỖI MÚI GIỜ) === */}
-              <Form.Item 
-                label="Giờ bắt đầu" 
-                name="time" 
-                dependencies={['date']} // Chạy lại khi 'date' thay đổi
-                rules={[
-                  { required: true, message: "Vui lòng chọn giờ họp" },
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      const date = getFieldValue("date");
-                      if (!date || !value) {
-                        return Promise.resolve(); // Bỏ qua nếu chưa chọn
-                      }
-                      
-                      // 1. Xây dựng thời gian UTC mà người dùng đã chọn
-                      // (Giống hệt logic trong handleCreateMeeting)
-                      const selectedUTC = dayjs.utc() // Bắt đầu ở UTC
-                        .year(date.year())         // Lấy NĂM từ DatePicker
-                        .month(date.month())       // Lấy THÁNG từ DatePicker
-                        .date(date.date())         // Lấy NGÀY từ DatePicker
-                        .hour(value.hour())        // Lấy GIỜ từ TimePicker
-                        .minute(value.minute())    // Lấy PHÚT từ TimePicker
-                        .second(0)
-                        .millisecond(0);
+              <Form.Item
+  label="Giờ bắt đầu"
+  name="time"
+  dependencies={['date']}
+  rules={[
+    { required: true, message: "Vui lòng chọn giờ họp" },
+    ({ getFieldValue }) => ({
+      validator(_, value) {
+        const date = getFieldValue("date");
+        if (!date || !value) return Promise.resolve();
 
-                      // 2. Lấy thời gian UTC hiện tại
-                      const nowUTC = dayjs.utc();
+        const selectedUTC = dayjs.utc()
+          .year(date.year())
+          .month(date.month())
+          .date(date.date())
+          .hour(value.hour())
+          .minute(value.minute())
+          .second(0)
+          .millisecond(0);
 
-                      // 3. So sánh (Thêm 1 phút đệm)
-                      if (selectedUTC.isBefore(nowUTC.add(1, 'minute'))) {
-                        return Promise.reject("⏰ Thời gian họp phải ở tương lai!");
-                      }
-                      
-                      return Promise.resolve();
-                    },
-                  }),
-                ]}
-              >
-                <TimePicker
-                  className="w-full"
-                  use12Hours
-                  format="hh:mm A"
-                  inputReadOnly
-                  minuteStep={5}
-                />
-              </Form.Item>
+        if (selectedUTC.isBefore(dayjs.utc().add(1, 'minute'))) {
+          return Promise.reject("⏰ Thời gian họp phải ở tương lai!");
+        }
+        return Promise.resolve();
+      },
+    }),
+  ]}
+>
+  <TimePicker
+    className="w-full"
+    use12Hours
+    format="hh:mm A"
+    minuteStep={5}
+    onSelect={(value) => {
+      // Khi chọn giờ trực tiếp trong popup -> cập nhật ngay vào form
+      if (value) form.setFieldValue('time', value);
+    }}
+    onOpenChange={(openStatus) => {
+      // Khi popup đóng (click ra ngoài)
+      const value = form.getFieldValue('time');
+      if (value) form.setFieldValue('time', value);
+    }}
+  />
+</Form.Item>
               {/* === KẾT THÚC SỬA LỖI === */}
 
               <Form.Item label="Thời lượng" name="duration" initialValue={60}>
