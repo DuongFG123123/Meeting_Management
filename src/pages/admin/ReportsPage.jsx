@@ -101,24 +101,31 @@ const ReportPage = () => {
     toast.success("🧾 Đã xuất PDF!");
   };
 
-  // ⚙️ Chart data
-  const textColor = isDarkMode ? "#e2e8f0" : "#1f2937";
-  const gridColor = isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
+  const renderActions = (data, filename) => (
+    <div style={{ marginBottom: 16 }}>
+      <Button type="primary" onClick={() => exportToExcel(data, filename)} style={{ marginRight: 8 }}>
+  Xuất Excel
+</Button>
+<Button type="default" onClick={() => exportToPDF(data, filename)}>
+  Xuất PDF
+</Button>
+    </div>
+  );
 
   const roomChartData = {
     labels: roomUsageData.map((r) => r.roomName),
     datasets: [
-      {
-        label: "Số giờ sử dụng",
-        data: roomUsageData.map((r) => r.totalHoursBooked),
-        backgroundColor: isDarkMode ? "#3b82f6" : "#2563eb",
-      },
-      {
-        label: "Số lần đặt",
-        data: roomUsageData.map((r) => r.bookingCount),
-        backgroundColor: isDarkMode ? "#60a5fa" : "#93c5fd",
-      },
-    ],
+  {
+    label: "Số giờ sử dụng",
+    data: roomUsageData.map((item) => item.totalHoursBooked),
+    backgroundColor: "#4caf50",
+  },
+  {
+    label: "Số lần đặt",
+    data: roomUsageData.map((item) => item.bookingCount),
+    backgroundColor: "#2196f3",
+  }
+],
   };
 
   const cancelChartData = {
@@ -155,56 +162,21 @@ const ReportPage = () => {
   };
 
   return (
-    <div
-      className={`p-6 min-h-screen transition-colors duration-300 ${
-        isDarkMode ? "bg-[#0d1117] text-gray-100" : "bg-gray-50 text-gray-800"
-      }`}
-    >
-      <ToastContainer autoClose={2000} theme={isDarkMode ? "dark" : "light"} />
-
-      {/* HEADER */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <FiBarChart2
-            className={`text-3xl ${
-              isDarkMode ? "text-blue-400" : "text-blue-600"
-            }`}
-          />
-          <h1
-            className={`text-3xl font-bold ${
-              isDarkMode ? "text-gray-100" : "text-gray-900"
-            }`}
-          >
-            Báo cáo & Thống kê sử dụng phòng họp
-          </h1>
-        </div>
-      </div>
-
-      {/* THANH CHỌN NGÀY + NÚT XUẤT */}
-      <div
-        className={`p-4 rounded-2xl shadow-md border mb-6 flex flex-col md:flex-row md:items-center gap-3 ${
-          isDarkMode
-            ? "bg-[#161b22] border-gray-700"
-            : "bg-white border-gray-200"
-        }`}
-      >
-        <RangePicker
-          onChange={(dates) => {
-            if (dates) {
-              const start = dates[0].toDate();
-              const end = dates[1].toDate();
-              setDateRange([start, end]);
-              fetchReports(start, end);
-            }
-          }}
-          value={dateRange.map((d) => dayjs(d))}
-          format="YYYY-MM-DD"
-          className={`rounded-lg ${
-            isDarkMode
-              ? "bg-[#0d1117] text-gray-200 border-gray-600"
-              : "border-gray-300"
-          }`}
-        />
+    <div style={{ padding: 20, background: "#f9f9f9", borderRadius: 8 }}>
+  <h2 style={{ marginBottom: 20 }}>Thống kê & Báo cáo</h2>
+  <Space style={{ marginBottom: 20 }}>
+    <RangePicker
+      onChange={(dates) => {
+        if (dates) {
+          const start = dates[0].toDate();
+          const end = dates[1].toDate();
+          setDateRange([start, end]);
+          fetchReports(start, end);
+        }
+      }}
+      value={dateRange.map((d) => dayjs(d))}
+    />
+  </Space>
 
         <div className="flex gap-3 md:ml-auto">
           <button
@@ -234,63 +206,61 @@ const ReportPage = () => {
 
       {/* NỘI DUNG CHÍNH */}
       <Spin spinning={isLoading}>
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          className={`${
-            isDarkMode
-              ? "dark:[&_.ant-tabs-tab-btn]:text-gray-300 dark:[&_.ant-tabs-tab-btn:hover]:text-blue-400"
-              : ""
-          }`}
-          items={[
-            {
-              key: "1",
-              label: "📊 Tần suất sử dụng phòng",
-              children: (
-                <div
-                  className={`rounded-2xl shadow-sm p-6 min-h-[450px] flex justify-center items-center ${
-                    isDarkMode
-                      ? "bg-[#161b22] border border-gray-700"
-                      : "bg-white border border-gray-200"
-                  }`}
-                >
-                  {roomUsageData.length ? (
-                    <div className="w-full h-[420px]">
-                      <Bar data={roomChartData} options={chartOptions} />
-                    </div>
-                  ) : (
-                    <p className="text-gray-500">
-                      Không có dữ liệu phòng họp trong thời gian đã chọn.
-                    </p>
-                  )}
-                </div>
-              ),
-            },
-            {
-              key: "2",
-              label: "❌ Lý do hủy họp",
-              children: (
-                <div
-                  className={`rounded-2xl shadow-sm p-6 min-h-[450px] flex justify-center items-center ${
-                    isDarkMode
-                      ? "bg-[#161b22] border border-gray-700"
-                      : "bg-white border border-gray-200"
-                  }`}
-                >
-                  {cancelStatsData.length ? (
-                    <div className="w-[400px] h-[400px]">
-                      <Pie data={cancelChartData} options={chartOptions} />
-                    </div>
-                  ) : (
-                    <p className="text-gray-500">
-                      Không có dữ liệu hủy họp trong thời gian đã chọn.
-                    </p>
-                  )}
-                </div>
-              ),
-            },
-          ]}
-        />
+        <Tabs activeKey={activeTab} onChange={(key) => setActiveTab(key)}>
+          <TabPane tab="Phòng họp" key="1">
+  {renderActions(roomUsageData, "bao_cao_phong_hop")}
+  {roomUsageData.length ? (
+    <div style={{ width: "100%", height: 500 }}> {/* ↓ thêm div này để thu nhỏ */}
+      <Bar
+        data={roomChartData}
+        options={{
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: { duration: 1000, easing: "easeOutQuad" },
+  plugins: { legend: { position: "top" } },
+  scales: {
+    y: { beginAtZero: true },
+    x: { ticks: { autoSkip: false } }
+  },
+  elements: {
+    bar: { borderRadius: 4 } // thanh tròn góc
+  }
+}}
+      />
+    </div>
+  ) : (
+    <p>Không có dữ liệu phòng họp</p>
+  )}
+</TabPane>
+
+          <TabPane tab="Lý do hủy họp" key="2">
+  {renderActions(cancelStatsData, "bao_cao_huy_hop")}
+  {cancelStatsData.length ? (
+    <div style={{
+  width: "100%",
+  maxWidth: 700,
+  height: 400,
+  margin: "0 auto",
+}}>
+      <Pie
+        data={cancelChartData}
+        options={{
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { position: "right", labels: { boxWidth: 20, padding: 15 } },
+    tooltip: { enabled: true }
+  }
+}}
+        cx="30%"  // di chuyển tâm Pie chart sang trái
+        cy="50%"
+        outerRadius={120} // tuỳ chỉnh kích thước
+      />
+    </div>
+  ) : (
+    <p>Không có dữ liệu hủy họp</p>
+  )}
+</TabPane>
+        </Tabs>
       </Spin>
     </div>
   );
