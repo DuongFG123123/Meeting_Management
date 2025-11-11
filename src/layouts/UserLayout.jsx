@@ -21,7 +21,7 @@ const userMenu = [
   { to: "/user/create-meeting", label: "Tạo cuộc họp", icon: <FiPlusCircle size={18} /> },
   { to: "/user/rooms", label: "Phòng họp", icon: <FiBriefcase size={18} /> },
   { to: "/user/history", label: "Lịch sử họp", icon: <FiClock size={18} /> },
-  { to: "/user/profile", label: "Thông tin cá nhân", icon: <FiUser size={18} /> },
+  // { to: "/user/profile", label: "Thông tin cá nhân", icon: <FiUser size={18} /> },
 ];
 
 
