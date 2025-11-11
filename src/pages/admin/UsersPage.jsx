@@ -36,7 +36,7 @@ export default function UsersPage() {
 
   // Tìm kiếm / lọc
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all"); // all | active | inactive
+  const [statusFilter, setStatusFilter] = useState("all");
 
   // Modal thêm
   const [showAddModal, setShowAddModal] = useState(false);
@@ -57,7 +57,7 @@ export default function UsersPage() {
       setLoading(true);
       const res = await getAllUsers();
       let data = Array.isArray(res.data) ? res.data : res.data.data || [];
-      // Sắp xếp giảm dần theo id (user mới nhất lên đầu)
+      // Sắp xếp giảm dần theo id
       data = [...data].sort((a, b) => (b.id || 0) - (a.id || 0));
       setUsers(data);
     } catch (err) {
@@ -503,7 +503,7 @@ export default function UsersPage() {
         </div>
       </motion.div>
 
-      {/* 📄 Phân trang */}
+      {/* Phân trang */}
       {filteredUsers.length > pageSize && (
         <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-gray-700 mt-4">
           {/* Thông tin tổng */}
