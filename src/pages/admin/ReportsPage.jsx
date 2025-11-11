@@ -13,7 +13,12 @@ import {
   ArcElement,
 } from "chart.js";
 import dayjs from "dayjs";
-import { getRoomUsageReport, getCancelStats } from "../../services/reportService";
+import {
+  getRoomUsageReport,
+  getCancelStats,
+  downloadRoomUsageExcel,
+  downloadCancelStatsExcel,
+} from "../../services/reportService";
 //import jsPDF from "jspdf";
 //import autoTable from "jspdf-autotable"; // ở đầu file
 import { toast, ToastContainer } from "react-toastify";
@@ -55,55 +60,54 @@ const ReportPage = () => {
   }, []);
 
   const fetchReports = async (fromDate, toDate) => {
-  setIsLoading(true);
-  const from = fromDate.toISOString().split("T")[0];
-  const to = toDate.toISOString().split("T")[0];
+    setIsLoading(true);
+    const from = fromDate.toISOString().split("T")[0];
+    const to = toDate.toISOString().split("T")[0];
 
-  try {
-    const [rooms, cancelStats] = await Promise.all([
-      getRoomUsageReport(from, to, null),
-      getCancelStats(from, to, null),
-    ]);
+    try {
+      const [rooms, cancelStats] = await Promise.all([
+        getRoomUsageReport(from, to, null),
+        getCancelStats(from, to, null),
+      ]);
 
-    setRoomUsageData(rooms.data || []);
-    setCancelStatsData(cancelStats.data || []);
-  } catch (error) {
-    toast.error("Không thể tải dữ liệu báo cáo!");
-    console.error(error);
-  } finally {
-    setIsLoading(false);
-  }
-};
+      setRoomUsageData(rooms.data || []);
+      setCancelStatsData(cancelStats.data || []);
+    } catch (error) {
+      toast.error("Không thể tải dữ liệu báo cáo!");
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // 📊 Xuất Excel
-  const exportToCSV = (data, filename) => {
-  if (!data.length) return toast.info("Không có dữ liệu để xuất!");
-  const headers = Object.keys(data[0]);
-  const rows = data.map((i) => Object.values(i));
-  const csvContent = [headers, ...rows].map(r => r.join(",")).join("\n");
+  // 📊 Tải Excel từ backend
+  const handleDownloadExcel = async () => {
+    if (!dateRange.length) return toast.info("Vui lòng chọn ngày!");
+    const from = dateRange[0].toISOString().split("T")[0];
+    const to = dateRange[1].toISOString().split("T")[0];
 
-  // Thêm BOM UTF-8 để Excel nhận đúng tiếng Việt
-  const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${filename}.csv`;
-  a.click();
-  toast.success("📊 Đã xuất Excel!");
-};
+    try {
+      const response =
+        activeTab === "1"
+          ? await downloadRoomUsageExcel(from, to)
+          : await downloadCancelStatsExcel(from, to);
 
-  // 🧾 Xuất PDF
-  //const exportToPDF = (data, filename) => {
-  //if (!data.length) return toast.info("Không có dữ liệu để xuất!");
-  //const doc = new jsPDF();
-  //doc.text(filename, 14, 10);
-  //autoTable(doc, {
-  //head: [Object.keys(data[0])],
-  //body: data.map((r) => Object.values(r)),
-  //});
-  //doc.save(`${filename}.pdf`);
-  //toast.success("🧾 Đã xuất PDF!");
-  //};
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        activeTab === "1" ? "BaoCaoSuDungPhong.xlsx" : "BaoCaoHuyHop.xlsx"
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success("📊 Đã tải file Excel từ backend!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Không thể tải file Excel!");
+    }
+  };
 
   // ⚙️ Chart data
   const textColor = isDarkMode ? "#e2e8f0" : "#1f2937";
@@ -212,12 +216,7 @@ const ReportPage = () => {
 
         <div className="flex gap-3 md:ml-auto">
           <button
-            onClick={() =>
-              exportToCSV(
-                activeTab === "1" ? roomUsageData : cancelStatsData,
-                activeTab === "1" ? "bao_cao_su_dung" : "bao_cao_huy_hop"
-              )
-            }
+            onClick={handleDownloadExcel}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold shadow active:scale-95 transition"
           >
             <FiDownload /> Xuất Excel
