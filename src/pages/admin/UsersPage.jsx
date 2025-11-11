@@ -6,21 +6,16 @@ import {
   deleteUser,
 } from "../../services/userService";
 import { toast } from "react-toastify";
-import {
-  Search as LucideSearch, // renamed for DevicesPage style
-  Plus as LucidePlus,
-  Edit2,
-  Trash2,
-  X,
-} from "lucide-react";
+import { FiUsers, FiPlus, FiTrash2, FiEdit2, FiSearch } from "react-icons/fi";
+import { motion } from "framer-motion";
 import "react-toastify/dist/ReactToastify.css";
 
-/* Đồng bộ màu Toastify */
+/* Tuỳ chỉnh màu cho Toast theo theme */
 const toastColors = {
-  success: "#079830ff",
-  error: "#ef4444",
-  warning: "#e4650aff",
-  info: "#3b82f6",
+  success: "#079830ff", // xanh ngọc dịu
+  error: "#ef4444", // đỏ ấm
+  warning: "#e4650aff", // vàng dịu
+  info: "#3b82f6", // xanh dương nhạt
 };
 
 const setToastTheme = () => {
@@ -37,11 +32,11 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 5;
+  const pageSize = 5;
 
   // Tìm kiếm / lọc
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL"); // ALL | ACTIVE | INACTIVE
+  const [statusFilter, setStatusFilter] = useState("all"); // all | active | inactive
 
   // Modal thêm
   const [showAddModal, setShowAddModal] = useState(false);
@@ -125,7 +120,6 @@ export default function UsersPage() {
       });
       setShowAddModal(false);
       fetchUsers();
-      // Chèn user mới lên đầu danh sách (không cần reload backend toàn bộ)
       let createdUser = res.data;
       if (createdUser && createdUser.data) createdUser = createdUser.data;
       createdUser = {
@@ -206,7 +200,7 @@ export default function UsersPage() {
               isDark ? "bg-blue-900" : "bg-blue-100"
             }`}
           >
-            <Trash2
+            <FiTrash2
               className={`text-xl ${
                 isDark ? "text-blue-300" : "text-blue-600"
               }`}
@@ -281,9 +275,9 @@ export default function UsersPage() {
       user.username?.toLowerCase().includes(term);
 
     const matchStatus =
-      statusFilter === "ALL"
+      statusFilter === "all"
         ? true
-        : statusFilter === "ACTIVE"
+        : statusFilter === "active"
         ? user.active
         : !user.active;
 
@@ -291,117 +285,74 @@ export default function UsersPage() {
   });
 
   // Pagination logic
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const startIndex = (currentPage - 1) * pageSize;
   const paginatedUsers = filteredUsers.slice(
     startIndex,
-    startIndex + ITEMS_PER_PAGE
+    startIndex + pageSize
   );
-
-  // Badge helpers
-  const getRoleBadge = (role) => {
-    if (role === "ROLE_ADMIN") {
-      return (
-        <span className="px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-700 dark:bg-blue-700 dark:text-blue-100">
-          Admin
-        </span>
-      );
-    }
-    return (
-      <span className="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100">
-        User
-      </span>
-    );
-  };
-
-  const getStatusBadge = (active) => {
-    if (active) {
-      return (
-        <span className="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100">
-          Đang hoạt động
-        </span>
-      );
-    }
-    return (
-      <span className="px-3 py-1 text-sm font-medium rounded-full bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100">
-        Vô hiệu
-      </span>
-    );
-  };
 
   return (
     <div className="p-8 min-h-screen transition-colors bg-gray-50 dark:bg-gray-900">
-      {/* ==================== HEADER ==================== */}
-      <div className="flex items-center gap-2 mb-8">
-        <span>
-          <svg
-            width={32}
-            height={32}
-            viewBox="0 0 24 24"
-            className="text-blue-600 dark:text-blue-400"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M14.83 10a4 4 0 10-5.66 0M6 17.8A7 7 0 1112.002 20a6.99 6.99 0 01-6-2.2zm0 0V18a2 2 0 002 2h8a2 2 0 002-2v-.2"
-            />
-          </svg>
-        </span>
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
-          Quản lý người dùng
-        </h1>
-      </div>
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between mb-6"
+      >
+        <div className="flex items-center gap-2">
+          <FiUsers className="text-3xl text-blue-600 dark:text-blue-400" />
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
+            Quản lý người dùng
+          </h1>
+        </div>
+      </motion.div>
 
-      {/* ==================== FILTERS & ACTIONS ==================== */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 mb-7 border border-gray-100 dark:border-gray-700 transition">
-        <div className="flex flex-col md:flex-row gap-4">
-          {/* Ô tìm kiếm */}
-          <div className="flex-1 relative">
-            <LucideSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={20} />
-            <input
-              type="text"
-              placeholder="Tìm kiếm người dùng..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-900
+      {/* Thanh tìm kiếm + lọc + nút thêm */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 mb-7 border border-gray-100 dark:border-gray-700 transition flex flex-col md:flex-row gap-4 items-center"
+      >
+        {/* Ô tìm kiếm */}
+        <div className="flex-1 relative">
+          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={20} />
+          <input
+            type="text"
+            placeholder="Tìm kiếm người dùng..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-900
               placeholder-gray-400 dark:placeholder-gray-500
               focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-400 focus:border-transparent
               transition-all duration-200 text-base"
-            />
-          </div>
-
-          {/* Lọc theo trạng thái */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-base px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white
+          />
+        </div>
+        {/* Lọc theo trạng thái */}
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="text-base px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white
             text-gray-900 focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-400 focus:border-transparent
              transition-all duration-200 cursor-pointer"
-          >
-            <option value="ALL">Tất cả trạng thái</option>
-            <option value="ACTIVE">Đang hoạt động</option>
-            <option value="INACTIVE">Vô hiệu hoá</option>
-          </select>
-
-          {/* Nút thêm người dùng */}
-          <button
-            onClick={() => setShowAddModal(true)}
-            disabled={creating}
-            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-base
+        >
+          <option value="all">Tất cả trạng thái</option>
+          <option value="active">Đang hoạt động</option>
+          <option value="inactive">Vô hiệu hoá</option>
+        </select>
+        {/* Nút thêm người dùng */}
+        <button
+          onClick={() => setShowAddModal(true)}
+          disabled={creating}
+          className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-base
               disabled:bg-blue-400 disabled:cursor-not-allowed
               text-white rounded-lg font-semibold transition-all duration-200 shadow-md hover:shadow-lg"
-          >
-            <LucidePlus size={20} />
-            Thêm người dùng
-          </button>
-        </div>
-      </div>
+        >
+          <FiPlus size={20} />
+          Thêm người dùng
+        </button>
+      </motion.div>
 
-      {/* ==================== STATS CARDS ==================== */}
+      {/* Thống kê người dùng */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-7">
         {/* Tổng số người dùng */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow transition">
@@ -412,7 +363,6 @@ export default function UsersPage() {
             {users.length}
           </div>
         </div>
-
         {/* Số đang hoạt động */}
         <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl p-6 border border-green-200 dark:border-green-800 shadow transition">
           <div className="text-green-700 dark:text-green-400 text-base mb-0.5">Đang hoạt động</div>
@@ -420,7 +370,6 @@ export default function UsersPage() {
             {users.filter((u) => u.active).length}
           </div>
         </div>
-
         {/* Số vô hiệu hoá */}
         <div className="bg-orange-50 dark:bg-orange-900/20 rounded-2xl p-6 border border-orange-200 dark:border-orange-800 shadow transition">
           <div className="text-orange-700 dark:text-orange-400 text-base mb-0.5">Vô hiệu hoá</div>
@@ -430,8 +379,13 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* ==================== TABLE - DANH SÁCH NGƯỜI DÙNG ==================== */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-700 relative">
+      {/* TABLE - DANH SÁCH NGƯỜI DÙNG */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-700 relative"
+      >
         {/* Loading overlay */}
         {loading && (
           <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 flex items-center justify-center z-10">
@@ -452,41 +406,68 @@ export default function UsersPage() {
                 <th className="p-4 text-base font-semibold text-center">Hành động</th>
               </tr>
             </thead>
-
             {/* Table body */}
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-base">
-              {!loading && users.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan="6" className="p-10 text-center text-gray-500 dark:text-gray-400">
+                    Đang tải dữ liệu...
+                  </td>
+                </tr>
+              ) : users.length === 0 ? (
                 <tr>
                   <td colSpan="6" className="p-10 text-center text-gray-500 dark:text-gray-400">
                     <div className="flex flex-col items-center gap-2">
-                      <LucideSearch size={48} className="text-gray-300 dark:text-gray-600" />
+                      <FiSearch size={48} className="text-gray-300 dark:text-gray-600" />
                       <p className="text-lg font-semibold">Không có người dùng nào</p>
                       <p className="text-base">Hệ thống chưa có dữ liệu người dùng</p>
                     </div>
                   </td>
                 </tr>
-              ) : !loading && filteredUsers.length === 0 ? (
+              ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan="6" className="p-10 text-center text-gray-500 dark:text-gray-400">
                     <div className="flex flex-col items-center gap-2">
-                      <LucideSearch size={48} className="text-gray-300 dark:text-gray-600" />
+                      <FiSearch size={48} className="text-gray-300 dark:text-gray-600" />
                       <p className="text-lg font-semibold">Không tìm thấy người dùng nào</p>
                       <p className="text-base">Thử thay đổi bộ lọc hoặc tìm kiếm khác</p>
                     </div>
                   </td>
                 </tr>
-              ) : !loading ? (
+              ) : (
                 paginatedUsers.map((user, idx) => {
                   const roleCode = user.roles?.[0] || "ROLE_USER";
                   return (
-                    <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                    <motion.tr
+                      key={user.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: idx * 0.025 }}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                    >
                       <td className="p-4 font-semibold text-center">
                         {startIndex + idx + 1}
                       </td>
                       <td className="p-4 font-medium text-gray-900 dark:text-white">{user.fullName}</td>
                       <td className="p-4 text-gray-700 dark:text-gray-300">{user.username}</td>
-                      <td className="p-4">{getRoleBadge(roleCode)}</td>
-                      <td className="p-4 text-center">{getStatusBadge(user.active)}</td>
+                      <td className="p-4">
+                        <span className={`px-3 py-1 text-sm font-medium rounded-full ${
+                          roleCode === "ROLE_ADMIN"
+                            ? "bg-blue-100 text-blue-700 dark:bg-blue-700 dark:text-blue-100"
+                            : "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100"
+                        }`}>
+                          {roleCode === "ROLE_ADMIN" ? "Admin" : "User"}
+                        </span>
+                      </td>
+                      <td className="p-4 text-center">
+                        <span className={`px-3 py-1 text-sm font-medium rounded-full ${
+                          user.active
+                            ? "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100"
+                            : "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100"
+                        }`}>
+                          {user.active ? "Đang hoạt động" : "Vô hiệu"}
+                        </span>
+                      </td>
                       <td className="p-4 text-center">
                         <div className="flex items-center justify-center gap-2">
                           {/* Nút chỉnh sửa */}
@@ -498,7 +479,7 @@ export default function UsersPage() {
                               disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Cập nhật quyền / trạng thái"
                           >
-                            <Edit2 size={18} />
+                            <FiEdit2 size={18} />
                           </button>
                           {/* Nút xóa */}
                           <button
@@ -509,27 +490,21 @@ export default function UsersPage() {
                               disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Xóa người dùng"
                           >
-                            <Trash2 size={18} />
+                            <FiTrash2 size={18} />
                           </button>
                         </div>
                       </td>
-                    </tr>
+                    </motion.tr>
                   );
                 })
-              ) : (
-                <tr>
-                  <td colSpan="6" className="p-10 text-center text-gray-500 dark:text-gray-400">
-                    Đang tải dữ liệu...
-                  </td>
-                </tr>
               )}
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
 
       {/* 📄 Phân trang */}
-      {filteredUsers.length > ITEMS_PER_PAGE && (
+      {filteredUsers.length > pageSize && (
         <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-gray-700 mt-4">
           {/* Thông tin tổng */}
           <span className="text-base text-gray-600 dark:text-gray-400">
@@ -545,11 +520,11 @@ export default function UsersPage() {
               Trang trước
             </button>
             <span className="px-3 py-1 text-base text-gray-700 dark:text-gray-300">
-              Trang {currentPage} / {Math.ceil(filteredUsers.length / ITEMS_PER_PAGE)}
+              Trang {currentPage} / {Math.ceil(filteredUsers.length / pageSize)}
             </span>
             <button
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, Math.ceil(filteredUsers.length / ITEMS_PER_PAGE)))}
-              disabled={currentPage === Math.ceil(filteredUsers.length / ITEMS_PER_PAGE)}
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, Math.ceil(filteredUsers.length / pageSize)))}
+              disabled={currentPage === Math.ceil(filteredUsers.length / pageSize)}
               className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50 transition-colors"
             >
               Trang sau
@@ -558,10 +533,14 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* ==================== MODAL THÊM NGƯỜI DÙNG ==================== */}
+      {/* MODAL THÊM NGƯỜI DÙNG */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-700 animate-slide-up">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-700 animate-slide-up"
+          >
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -573,7 +552,7 @@ export default function UsersPage() {
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors
                   disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <X size={20} className="text-gray-500 dark:text-gray-400" />
+                ×
               </button>
             </div>
             {/* Modal Body - Form */}
@@ -677,14 +656,18 @@ export default function UsersPage() {
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
-      {/* ==================== MODAL SỬA NGƯỜI DÙNG ==================== */}
+      {/* MODAL SỬA NGƯỜI DÙNG */}
       {showEditModal && selectedUser && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-700 animate-slide-up">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-700 animate-slide-up"
+          >
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -694,7 +677,7 @@ export default function UsersPage() {
                 onClick={() => setShowEditModal(false)}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
               >
-                <X size={20} className="text-gray-500 dark:text-gray-400" />
+                ×
               </button>
             </div>
             {/* Modal Body */}
@@ -735,19 +718,19 @@ export default function UsersPage() {
                     Trạng thái
                   </label>
                   <select
-                    value={selectedUser.active ? "ACTIVE" : "INACTIVE"}
+                    value={selectedUser.active ? "active" : "inactive"}
                     onChange={(e) =>
                       setSelectedUser({
                         ...selectedUser,
-                        active: e.target.value === "ACTIVE",
+                        active: e.target.value === "active",
                       })
                     }
                     className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-900
                       focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-400 focus:border-transparent
                       transition-all duration-200 text-base"
                   >
-                    <option value="ACTIVE">Đang hoạt động</option>
-                    <option value="INACTIVE">Vô hiệu</option>
+                    <option value="active">Đang hoạt động</option>
+                    <option value="inactive">Vô hiệu</option>
                   </select>
                 </div>
               </div>
@@ -766,7 +749,7 @@ export default function UsersPage() {
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>
