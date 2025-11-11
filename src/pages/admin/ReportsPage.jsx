@@ -77,18 +77,20 @@ const ReportPage = () => {
 
   // 📊 Xuất Excel
   const exportToCSV = (data, filename) => {
-    if (!data.length) return toast.info("Không có dữ liệu để xuất!");
-    const headers = Object.keys(data[0]);
-    const rows = data.map((i) => Object.values(i));
-    const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${filename}.csv`;
-    a.click();
-    toast.success("📊 Đã xuất Excel!");
-  };
+  if (!data.length) return toast.info("Không có dữ liệu để xuất!");
+  const headers = Object.keys(data[0]);
+  const rows = data.map((i) => Object.values(i));
+  const csvContent = [headers, ...rows].map(r => r.join(",")).join("\n");
+
+  // Thêm BOM UTF-8 để Excel nhận đúng tiếng Việt
+  const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${filename}.csv`;
+  a.click();
+  toast.success("📊 Đã xuất Excel!");
+};
 
   // 🧾 Xuất PDF
   const exportToPDF = (data, filename) => {
