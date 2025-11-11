@@ -1,24 +1,25 @@
 // src/pages/user/UserDashboard.jsx
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { FiCalendar, FiClock, FiUsers, FiCheckSquare } from "react-icons/fi"; // <-- Đã đổi icon
+import { FiCalendar, FiClock, FiUsers, FiCheckSquare } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import { Spin, message } from "antd"; // <-- THÊM
-import { getMyMeetings } from "../../services/meetingService"; // <-- THÊM
-import dayjs from "dayjs"; // <-- THÊM
+import { Spin, message } from "antd";
+import { getMyMeetings } from "../../services/meetingService";
+import dayjs from "dayjs";
 import "dayjs/locale/vi";
-import isToday from 'dayjs/plugin/isToday'; // <-- THÊM plugin
-import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'; // <-- THÊM plugin
-import isoWeek from 'dayjs/plugin/isoWeek'; // <-- THÊM plugin
+import isToday from 'dayjs/plugin/isToday';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import isBetween from 'dayjs/plugin/isBetween'; // <-- THÊM PLUGIN
+import isoWeek from 'dayjs/plugin/isoWeek';
 
 // Cài đặt Day.js
 dayjs.locale("vi");
 dayjs.extend(isToday);
 dayjs.extend(isSameOrAfter);
+dayjs.extend(isBetween); // <-- KÍCH HOẠT
 dayjs.extend(isoWeek);
 
-// === 1. TẠO TEMPLATE CHO THẺ STATS (ĐÃ SỬA) ===
-// Chúng ta sẽ cập nhật 'value' sau khi gọi API
+// Template cho thẻ Stats (Giữ nguyên)
 const statTemplates = [
   {
     title: "Lịch họp hôm nay",
@@ -37,14 +38,14 @@ const statTemplates = [
   {
     title: "Cuộc họp sắp tới",
     value: "0",
-    icon: <FiUsers size={24} />, // (Giữ icon, đổi tiêu đề)
+    icon: <FiUsers size={24} />,
     textColor: "text-purple-600",
     bgLight: "bg-purple-50 dark:bg-purple-900/20",
   },
   {
-    title: "Tổng số cuộc họp", // (Đổi từ 'Tỷ lệ tham dự')
+    title: "Tổng số cuộc họp",
     value: "0",
-    icon: <FiCheckSquare size={24} />, // (Đổi icon)
+    icon: <FiCheckSquare size={24} />,
     textColor: "text-orange-600",
     bgLight: "bg-orange-50 dark:bg-orange-900/20",
   },
@@ -52,46 +53,75 @@ const statTemplates = [
 
 
 export default function UserDashboard() {
-  const { user } = useAuth();
+  const { user } = useAuth(); // <-- Cần user.id để lọc
   const navigate = useNavigate();
   
-  // === 2. THÊM STATE MỚI ===
   const [stats, setStats] = useState(statTemplates);
   const [upcomingMeetings, setUpcomingMeetings] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // === 3. GỌI API KHI MỞ TRANG ===
+  // === 3. GỌI API KHI MỞ TRANG (ĐÃ SỬA LOGIC LỌC) ===
   useEffect(() => {
+    // Cần có user.id để lọc chính xác
+    if (!user) {
+      setLoading(false);
+      return; 
+    }
+
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
-        // Gọi API lấy 100 cuộc họp gần nhất
         const res = await getMyMeetings(0, 100);
         const allMeetings = res.data?.content || [];
         const now = dayjs();
 
-        // Lọc các cuộc họp chưa bị hủy
-        const activeMeetings = allMeetings.filter(m => m.status !== 'CANCELLED');
+        // === 🎯 LOGIC SỬA LỖI QUAN TRỌNG ===
+        // Lọc các cuộc họp mà user này KHÔNG TỪ CHỐI
+        const activeMeetings = allMeetings.filter(m => {
+          // 1. Bỏ qua nếu cuộc họp bị HỦY
+          if (m.status === 'CANCELLED') {
+            return false;
+          }
+          
+          // 2. Tìm trạng thái của user hiện tại
+          // (API mới đã có m.participants là mảng object {id, fullName, status})
+          const userParticipant = m.participants?.find(p => p.id === user.id);
 
-        // --- A. Xử lý Lịch họp sắp tới ---
+          if (userParticipant) {
+            // 3. Chỉ tính nếu trạng thái KHÁC 'DECLINED'
+            return userParticipant.status !== 'DECLINED';
+          }
+          
+          // 4. Failsafe: Nếu user là người tổ chức (organizer) 
+          // (và có thể không có trong ds participants), vẫn tính
+          if (m.organizer?.id === user.id) {
+            return true;
+          }
+
+          // Nếu không_phải_người_tổ_chức VÀ không_có_trong_ds_tham_gia -> Bỏ qua
+          return false;
+        });
+        // === KẾT THÚC SỬA LỖI ===
+
+
+        // --- A. Xử lý Lịch họp sắp tới (Dùng activeMeetings đã lọc) ---
         const upcoming = activeMeetings
           .filter(m => dayjs(m.startTime).isSameOrAfter(now))
-          .sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf()); // Sắp xếp
+          .sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf());
         
-        // Chỉ lấy 3 cuộc họp sắp tới gần nhất
-        setUpcomingMeetings(upcoming.slice(0, 3)); 
+        setUpcomingMeetings(upcoming.slice(0, 3)); // Chỉ lấy 3 cuộc họp
 
-        // --- B. Xử lý Thống kê ---
+        // --- B. Xử lý Thống kê (Dùng activeMeetings đã lọc) ---
         const meetingsToday = activeMeetings.filter(m => 
           dayjs(m.startTime).isToday()
         ).length;
         
         const meetingsThisWeek = activeMeetings.filter(m => 
-          dayjs(m.startTime).isSame(now, 'week')
+           dayjs(m.startTime).isBetween(now.startOf('isoWeek'), now.endOf('isoWeek'))
         ).length;
 
         const totalUpcoming = upcoming.length;
-        const totalActive = activeMeetings.length;
+        const totalActive = activeMeetings.length; // Tổng số (không bị từ chối)
 
         // Cập nhật state của stats
         setStats([
@@ -110,7 +140,7 @@ export default function UserDashboard() {
     };
 
     fetchDashboardData();
-  }, []); // Chạy 1 lần
+  }, [user]); // <-- THÊM 'user' làm dependency
 
 
   // Handler functions for navigation (Giữ nguyên)
@@ -136,14 +166,14 @@ export default function UserDashboard() {
         </div>
       </div>
 
-      {/* === 4. WRAPPER CHO SPINNER === */}
+      {/* Wrapper cho Spinner */}
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <Spin size="large" />
         </div>
       ) : (
         <>
-          {/* Stats Cards (Dùng state) */}
+          {/* Stats Cards (Giữ nguyên) */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {stats.map((stat, index) => (
               <div
@@ -167,7 +197,7 @@ export default function UserDashboard() {
             ))}
           </div>
 
-          {/* === 5. UPCOMING MEETINGS (ĐÃ CẬP NHẬT) === */}
+          {/* UPCOMING MEETINGS (ĐÃ CẬP NHẬT) */}
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 p-6">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">
               📅 Lịch họp sắp tới
@@ -183,7 +213,6 @@ export default function UserDashboard() {
                     <h3 className="font-semibold text-gray-800 dark:text-gray-100">
                       {meeting.title}
                     </h3>
-                    {/* SỬA: Dùng dữ liệu API và dayjs */}
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                       {dayjs(meeting.startTime).format("HH:mm")} - {dayjs(meeting.endTime).format("HH:mm")}
                        · {meeting.room?.name || "N/A"}
@@ -191,14 +220,17 @@ export default function UserDashboard() {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                     <FiUsers size={16} />
-                    {/* SỬA: Dùng dữ liệu API */}
-                    <span>{meeting.participants?.length || 0} người</span>
+                    
+                    {/* === 🎯 SỬA LỖI ĐẾM SỐ NGƯỜI THAM GIA === */}
+                    <span>
+                      {/* Chỉ đếm những người 'ACCEPTED' */}
+                      {meeting.participants?.filter(p => p.status === 'ACCEPTED').length || 0} người
+                    </span>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* SỬA: Thêm điều kiện !loading */}
             {upcomingMeetings.length === 0 && !loading && (
               <p className="text-center text-gray-500 dark:text-gray-400 py-8">
                 Không có lịch họp nào sắp tới

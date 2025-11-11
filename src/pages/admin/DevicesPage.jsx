@@ -47,17 +47,17 @@ export default function DevicesPage() {
   // Trạng thái loading
   const [loading, setLoading] = useState(false);
   // ==================== PHÂN TRANG ==================== //
-const ITEMS_PER_PAGE = 5; // số thiết bị mỗi trang
-const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5; // số thiết bị mỗi trang
+  const [currentPage, setCurrentPage] = useState(1);
 
-// Tính tổng số trang
-const totalPages = Math.ceil(filteredDevices.length / ITEMS_PER_PAGE);
+  // Tính tổng số trang
+  const totalPages = Math.ceil(filteredDevices.length / ITEMS_PER_PAGE);
 
-// Cắt dữ liệu thiết bị theo trang hiện tại
-const paginatedDevices = filteredDevices.slice(
-  (currentPage - 1) * ITEMS_PER_PAGE,
-  currentPage * ITEMS_PER_PAGE
-);
+  // Cắt dữ liệu thiết bị theo trang hiện tại
+  const paginatedDevices = filteredDevices.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   // Fetch danh sách thiết bị khi component mount
   useEffect(() => {
@@ -71,8 +71,8 @@ const paginatedDevices = filteredDevices.slice(
     // Lọc theo từ khóa tìm kiếm
     if (searchTerm) {
       filtered = filtered.filter(d =>
-        d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        d.description.toLowerCase().includes(searchTerm.toLowerCase())
+        d.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        d.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -91,8 +91,11 @@ const paginatedDevices = filteredDevices.slice(
     try {
       setLoading(true);
       const response = await getDevices();
-      setDevices(response.data);
-      setFilteredDevices(response.data);
+      let data = Array.isArray(response.data) ? response.data : response.data?.data || [];
+      // Sort giảm dần theo id
+      data = [...data].sort((a, b) => (b.id || 0) - (a.id || 0));
+      setDevices(data);
+      setFilteredDevices(data);
     } catch (error) {
       toast.error("❌ Không thể tải danh sách thiết bị!");
       console.error("Fetch devices error:", error);
@@ -159,19 +162,32 @@ const paginatedDevices = filteredDevices.slice(
         // Thêm mới thiết bị
         const res = await createDevice(submitData);
         toast.success("Thêm thiết bị mới thành công!");
-        // Set thiết bị mới nhất lên đầu danh sách không cần reload toàn bộ danh sách từ API
-        if (res?.data) {
-          setDevices(prev => [res.data, ...prev]);
-        } else {
-          // Nếu không có res.data, fallback fetch lại toàn bộ
-          await fetchDevices();
-        }
+        // Đảm bảo phần chèn thiết bị mới hoạt động chuẩn giống UsersPage
+        let createdDevice = res?.data;
+        // Nếu backend trả về dưới dạng { data: {...} }
+        if (createdDevice && createdDevice.data) createdDevice = createdDevice.data;
+
+        // Đảm bảo các trường status hợp lệ (fallback: AVAILABLE nếu thiếu)
+        createdDevice = {
+          ...createdDevice,
+          status: createdDevice.status || submitData.status || "AVAILABLE"
+        };
+
+        // Sắp xếp như trang User: chèn lên đầu, đồng thời đảm bảo id mới nhất lên trên
+        setDevices(prev => {
+          const newDevices = [{ ...createdDevice }, ...prev];
+          return newDevices.sort((a, b) => (b.id || 0) - (a.id || 0));
+        });
+        setFilteredDevices(prev => {
+          const newDevices = [{ ...createdDevice }, ...prev];
+          return newDevices.sort((a, b) => (b.id || 0) - (a.id || 0));
+        });
         handleCloseModal();
       }
     } catch (error) {
-      const errorMsg = error.response?.data?.message || error.message || "Có lỗi xảy ra";
+      const errorMsg = error?.response?.data?.message || error?.message || "Có lỗi xảy ra";
       toast.error(`${editingDevice ? "Cập nhật" : "Thêm"} thiết bị thất bại: ${errorMsg}`);
-      console.error("Submit error:", error.response?.data || error);
+      console.error("Submit error:", error?.response?.data || error);
     } finally {
       setLoading(false);
     }
@@ -209,7 +225,7 @@ const paginatedDevices = filteredDevices.slice(
       await fetchDevices();
       handleCloseDeleteModal();
     } catch (error) {
-      const errorMsg = error.response?.data?.message || "Có lỗi xảy ra";
+      const errorMsg = error?.response?.data?.message || "Có lỗi xảy ra";
       toast.error(`Xóa thiết bị thất bại: ${errorMsg}`);
       console.error("Delete error:", error);
     } finally {
@@ -259,21 +275,21 @@ const paginatedDevices = filteredDevices.slice(
       {/* ==================== HEADER ==================== */}
       <div className="flex items-center gap-2 mb-8">
         <span>
-          <svg 
-            width={32} 
-            height={32} 
-            viewBox="0 0 24 24" 
-            className="text-blue-600 dark:text-blue-400" 
+          <svg
+            width={32}
+            height={32}
+            viewBox="0 0 24 24"
+            className="text-blue-600 dark:text-blue-400"
             xmlns="http://www.w3.org/2000/svg"
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2" 
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
             aria-hidden="true"
           >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" 
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
             />
           </svg>
         </span>
@@ -366,6 +382,7 @@ const paginatedDevices = filteredDevices.slice(
             {/* Table header */}
             <thead className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
               <tr>
+                <th className="p-4 text-base font-semibold w-16 text-center">STT</th>
                 <th className="p-4 text-base font-semibold">Tên thiết bị</th>
                 <th className="p-4 text-base font-semibold">Mô tả</th>
                 <th className="p-4 text-base font-semibold">Trạng thái</th>
@@ -378,7 +395,7 @@ const paginatedDevices = filteredDevices.slice(
               {filteredDevices.length === 0 ? (
                 // Empty state
                 <tr>
-                  <td colSpan="4" className="p-10 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan="5" className="p-10 text-center text-gray-500 dark:text-gray-400">
                     <div className="flex flex-col items-center gap-2">
                       <Search size={48} className="text-gray-300 dark:text-gray-600" />
                       <p className="text-lg font-semibold">Không tìm thấy thiết bị nào</p>
@@ -388,8 +405,9 @@ const paginatedDevices = filteredDevices.slice(
                 </tr>
               ) : (
                 // Danh sách thiết bị
-                paginatedDevices.map((device) => (
+                paginatedDevices.map((device, i) => (
                   <tr key={device.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                    <td className="p-4 font-semibold text-center">{(currentPage - 1) * ITEMS_PER_PAGE + i + 1}</td>
                     <td className="p-4 font-medium text-gray-900 dark:text-white">{device.name}</td>
                     <td className="p-4 text-gray-600 dark:text-gray-400">
                       {device.description || (
@@ -432,38 +450,38 @@ const paginatedDevices = filteredDevices.slice(
         </div>
       </div>
 
-{/* 📄 Phân trang */}
-{filteredDevices.length > 5 && (
-  <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-gray-700 mt-4">
-    {/* Thông tin tổng */}
-    <span className="text-base text-gray-600 dark:text-gray-400">
-      Đang hiển thị {paginatedDevices.length} trên tổng số {filteredDevices.length} thiết bị
-    </span>
+      {/* 📄 Phân trang */}
+      {filteredDevices.length > 5 && (
+        <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-gray-700 mt-4">
+          {/* Thông tin tổng */}
+          <span className="text-base text-gray-600 dark:text-gray-400">
+            Đang hiển thị {paginatedDevices.length} trên tổng số {filteredDevices.length} thiết bị
+          </span>
 
-    {/* Điều hướng trang */}
-    <div className="flex items-center gap-2">
-      <button
-        onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-        disabled={currentPage === 1}
-        className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50 transition-colors"
-      >
-        Trang trước
-      </button>
+          {/* Điều hướng trang */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50 transition-colors"
+            >
+              Trang trước
+            </button>
 
-      <span className="px-3 py-1 text-base text-gray-700 dark:text-gray-300">
-        Trang {currentPage} / {Math.ceil(filteredDevices.length / 5)}
-      </span>
+            <span className="px-3 py-1 text-base text-gray-700 dark:text-gray-300">
+              Trang {currentPage} / {Math.ceil(filteredDevices.length / 5)}
+            </span>
 
-      <button
-        onClick={() => setCurrentPage((p) => Math.min(p + 1, Math.ceil(filteredDevices.length / 5)))}
-        disabled={currentPage === Math.ceil(filteredDevices.length / 5)}
-        className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50 transition-colors"
-      >
-        Trang sau
-      </button>
-    </div>
-  </div>
-)}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, Math.ceil(filteredDevices.length / 5)))}
+              disabled={currentPage === Math.ceil(filteredDevices.length / 5)}
+              className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50 transition-colors"
+            >
+              Trang sau
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ==================== MODAL THÊM/SỬA THIẾT BỊ ==================== */}
       {isModalOpen && (
