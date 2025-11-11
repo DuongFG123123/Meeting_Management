@@ -415,7 +415,22 @@ const handleEventMouseLeave = () => {
                   </div>
                 `,
               })}
-            />
+            /* ✅ Bổ sung phần này để fix hiển thị 0:00 ở chế độ month */
+  views={{
+    resourceTimelineDay: {
+      slotDuration: { hours: 1 },
+      slotLabelFormat: [{ hour: "2-digit", minute: "2-digit", hour12: false }],
+    },
+    resourceTimelineWeek: {
+      slotDuration: { days: 1 },
+      slotLabelFormat: [{ weekday: "short", day: "numeric" }],
+    },
+    resourceTimelineMonth: {
+      slotDuration: { days: 1 },
+      slotLabelFormat: [{ day: "numeric" }], // ✅ Hiển thị ngày 1, 2, 3, ...
+    },
+  }}
+/>
           </div>
         </>
       )}
