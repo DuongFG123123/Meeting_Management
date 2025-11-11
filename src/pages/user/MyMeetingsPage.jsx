@@ -60,55 +60,55 @@ const getErrorToastConfig = (errorInfo) => {
   const errorHandlers = [
     {
       condition: () => lowerMsg.includes("phòng") && (lowerMsg.includes("bảo trì") || lowerMsg.includes("maintenance")),
-      toast: () => toast.error("🚫 Phòng họp đang bảo trì, vui lòng chọn phòng khác!", { autoClose: 4000 })
+      toast: () => toast.error("Phòng họp đang bảo trì, vui lòng chọn phòng khác!", { autoClose: 4000 })
     },
     {
       condition: () => lowerMsg.includes("phòng") && (lowerMsg.includes("bận") || lowerMsg.includes("không khả dụng") || lowerMsg.includes("đã được đặt")),
-      toast: () => toast.error("📅 Phòng họp đã có người đặt trong khung giờ này. Vui lòng chọn thời gian hoặc phòng khác!", { autoClose: 4000 })
+      toast: () => toast.error("Phòng họp đã có người đặt trong khung giờ này. Vui lòng chọn thời gian hoặc phòng khác!", { autoClose: 4000 })
     },
     {
       condition: () => lowerMsg.includes("thiết bị") && (lowerMsg.includes("bảo trì") || lowerMsg.includes("maintenance")),
-      toast: () => toast.error("⚙️ Thiết bị đang bảo trì, vui lòng bỏ chọn hoặc chọn thiết bị khác!", { autoClose: 4000 })
+      toast: () => toast.error("Thiết bị đang bảo trì, vui lòng bỏ chọn hoặc chọn thiết bị khác!", { autoClose: 4000 })
     },
     {
       condition: () => lowerMsg.includes("thiết bị") && (lowerMsg.includes("bận") || lowerMsg.includes("không khả dụng") || lowerMsg.includes("đang được sử dụng")),
-      toast: () => toast.error("⚙️ Thiết bị đang được sử dụng trong khung giờ này. Vui lòng chọn thiết bị khác!", { autoClose: 4000 })
+      toast: () => toast.error("Thiết bị đang được sử dụng trong khung giờ này. Vui lòng chọn thiết bị khác!", { autoClose: 4000 })
     },
     {
       condition: () => lowerMsg.includes("người dùng") && lowerMsg.includes("bận"),
-      toast: () => toast.warning("👥 Một hoặc nhiều người được mời đã có lịch họp trùng. Họ vẫn sẽ nhận được lời mời nhưng có thể từ chối.", { autoClose: 5000 })
+      toast: () => toast.warning("Một hoặc nhiều người được mời đã có lịch họp trùng. Họ vẫn sẽ nhận được lời mời nhưng có thể từ chối.", { autoClose: 5000 })
     },
     {
       condition: () => lowerMsg.includes("người dùng") && (lowerMsg.includes("vô hiệu") || lowerMsg.includes("inactive") || lowerMsg.includes("không hoạt động")),
-      toast: () => toast.warning("⚠️ Một hoặc nhiều người được mời có tài khoản đã bị vô hiệu hóa. Vui lòng kiểm tra lại danh sách!", { autoClose: 5000 })
+      toast: () => toast.warning("Một hoặc nhiều người được mời có tài khoản đã bị vô hiệu hóa. Vui lòng kiểm tra lại danh sách!", { autoClose: 5000 })
     },
     {
       condition: () => lowerMsg.includes("thời gian") && (lowerMsg.includes("quá khứ") || lowerMsg.includes("past") || lowerMsg.includes("phải ở tương lai")),
-      toast: () => toast.error("⏰ Thời gian họp phải là thời điểm trong tương lai!", { autoClose: 3500 })
+      toast: () => toast.error("Thời gian họp phải là thời điểm trong tương lai!", { autoClose: 3500 })
     },
     {
       condition: () => lowerMsg.includes("thời gian") && (lowerMsg.includes("trùng") || lowerMsg.includes("conflict")),
-      toast: () => toast.error("⏰ Khung giờ họp bị trùng với lịch khác. Vui lòng chọn thời gian khác!", { autoClose: 4000 })
+      toast: () => toast.error("Khung giờ họp bị trùng với lịch khác. Vui lòng chọn thời gian khác!", { autoClose: 4000 })
     },
     {
       condition: () => lowerMsg.includes("quyền") || lowerMsg.includes("permission") || status === 403,
-      toast: () => toast.error("🔒 Bạn không có quyền đặt phòng này hoặc tài nguyên không khả dụng!", { autoClose: 4000 })
+      toast: () => toast.error("Bạn không có quyền đặt phòng này hoặc tài nguyên không khả dụng!", { autoClose: 4000 })
     },
     {
       condition: () => lowerMsg.includes("email") && lowerMsg.includes("không hợp lệ"),
-      toast: () => toast.error("✉️ Email khách mời không hợp lệ. Vui lòng kiểm tra lại!", { autoClose: 3500 })
+      toast: () => toast.error("Email khách mời không hợp lệ. Vui lòng kiểm tra lại!", { autoClose: 3500 })
     },
     {
       condition: () => status === 400,
-      toast: () => toast.error(`❌ Dữ liệu không hợp lệ: ${msg}`, { autoClose: 4000 })
+      toast: () => toast.error(`Dữ liệu không hợp lệ: ${msg}`, { autoClose: 4000 })
     },
     {
       condition: () => status === 404,
-      toast: () => toast.error("❓ Không tìm thấy tài nguyên (phòng/thiết bị/người dùng)", { autoClose: 3500 })
+      toast: () => toast.error("Không tìm thấy tài nguyên (phòng/thiết bị/người dùng)", { autoClose: 3500 })
     },
     {
       condition: () => status === 409,
-      toast: () => toast.error("⚠️ Xung đột dữ liệu: " + msg, { autoClose: 4000 })
+      toast: () => toast.error("Xung đột dữ liệu: " + msg, { autoClose: 4000 })
     }
   ];
   
@@ -119,7 +119,7 @@ const getErrorToastConfig = (errorInfo) => {
     handler.toast();
   } else {
     // Fallback: hiển thị message gốc
-    toast.error(msg || "❌ Không thể tạo cuộc họp. Vui lòng thử lại!", { autoClose: 3500 });
+    toast.error(msg || "Không thể tạo cuộc họp. Vui lòng thử lại!", { autoClose: 3500 });
   }
 };
 
