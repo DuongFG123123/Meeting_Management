@@ -15,7 +15,7 @@ import {
 import dayjs from "dayjs";
 import { getRoomUsageReport, getCancelStats } from "../../services/reportService";
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable"; // ở đầu file
 import { toast, ToastContainer } from "react-toastify";
 import { FiBarChart2, FiDownload } from "react-icons/fi";
 import "react-toastify/dist/ReactToastify.css";
@@ -55,23 +55,25 @@ const ReportPage = () => {
   }, []);
 
   const fetchReports = async (fromDate, toDate) => {
-    setIsLoading(true);
-    const from = fromDate.toISOString().split("T")[0];
-    const to = toDate.toISOString().split("T")[0];
-    try {
-      const [rooms, cancelStats] = await Promise.all([
-        getRoomUsageReport(from, to),
-        getCancelStats(from, to),
-      ]);
-      setRoomUsageData(rooms.data || []);
-      setCancelStatsData(cancelStats.data || []);
-    } catch (error) {
-      toast.error("Không thể tải dữ liệu báo cáo!");
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  setIsLoading(true);
+  const from = fromDate.toISOString().split("T")[0];
+  const to = toDate.toISOString().split("T")[0];
+
+  try {
+    const [rooms, cancelStats] = await Promise.all([
+      getRoomUsageReport(from, to, null),
+      getCancelStats(from, to, null),
+    ]);
+
+    setRoomUsageData(rooms.data || []);
+    setCancelStatsData(cancelStats.data || []);
+  } catch (error) {
+    toast.error("Không thể tải dữ liệu báo cáo!");
+    console.error(error);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // 📊 Xuất Excel
   const exportToCSV = (data, filename) => {
@@ -93,7 +95,7 @@ const ReportPage = () => {
     if (!data.length) return toast.info("Không có dữ liệu để xuất!");
     const doc = new jsPDF();
     doc.text(filename, 14, 10);
-    doc.autoTable({
+        autoTable(doc, {
       head: [Object.keys(data[0])],
       body: data.map((r) => Object.values(r)),
     });
