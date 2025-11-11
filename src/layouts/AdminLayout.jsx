@@ -58,7 +58,6 @@ const NotificationItem = ({ notification, onMarkRead }) => {
   // Xử lý khi nhấn vào nội dung thông báo (để xem chi tiết)
   const handleNavigate = () => {
     if (notification.meetingId) {
-      // (Khác biệt so với UserLayout)
       // Điều hướng Admin về trang Dashboard
       navigate('/admin'); 
       
@@ -135,7 +134,7 @@ export default function AdminLayout() {
   const [notificationPage, setNotificationPage] = useState(0);
   const [hasMoreNotifications, setHasMoreNotifications] = useState(true);
 
-  // --- HÀM TẢI (Copy từ UserLayout) ---
+  // --- HÀM TẢI  ---
   const fetchUnreadCount = async () => {
     try {
       const res = await notificationService.getUnreadCount();
@@ -162,7 +161,7 @@ export default function AdminLayout() {
     }
   };
 
-  // --- HÀM ĐÁNH DẤU ĐÃ ĐỌC (Copy từ UserLayout) ---
+  // --- HÀM ĐÁNH DẤU ĐÃ ĐỌC ---
   const handleMarkAsRead = async (id) => {
     try {
       await notificationService.markAsRead(id);
@@ -185,7 +184,7 @@ export default function AdminLayout() {
     }
   };
 
-  // --- Xử lý click-outside (Copy từ UserLayout) ---
+  // --- Xử lý click-outside ---
   useEffect(() => {
     function handleClickOutside(event) {
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
@@ -201,14 +200,14 @@ export default function AdminLayout() {
     };
   }, []);
 
-  // --- Tải số lượng (Copy từ UserLayout) ---
+  // --- Tải số lượng ---
   useEffect(() => {
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // --- Xử lý click Dropdown (Copy từ UserLayout) ---
+  // --- Xử lý click Dropdown ---
   const handleNotificationClick = () => {
     const opening = !isNotificationOpen;
     setIsNotificationOpen(opening);
@@ -228,7 +227,6 @@ export default function AdminLayout() {
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
       {/* Header */}
       <header className="h-14 bg-[#0b132b] text-white dark:bg-slate-900 flex items-center justify-between px-5 shadow-md transition-colors z-30 relative">
-        {/* (Phần trái header giữ nguyên) */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsSidebarOpen((prev) => !prev)}
@@ -349,16 +347,15 @@ export default function AdminLayout() {
         </div>
       </header>
 
-      {/* Body (Không thay đổi) */}
+      {/* Body */}
       <div className="flex flex-1 relative">
-        {/* Sidebar (Không thay đổi) */}
+        {/* Sidebar */}
         <aside
           className={`fixed md:static top-14 md:top-0 left-0 bg-white dark:bg-slate-900 
                      border-r dark:border-slate-800 shadow-md w-64 h-[calc(100%-56px)] md:h-auto 
                      transform ${isSidebarOpen ? "translate-x-0" : "-translate-x-64"} 
                      transition-transform duration-300 ease-in-out z-20`}
         >
-          {/* (Nội dung Sidebar giữ nguyên... ) */}
           <div className="flex flex-col items-center py-5 border-b border-gray-100 dark:border-slate-800">
             <div className="text-center">
               <p className="font-semibold text-gray-700 dark:text-gray-100 text-base">
@@ -396,7 +393,7 @@ export default function AdminLayout() {
           </div>
         </aside>
         
-        {/* Overlay cho mobile (Không thay đổi) */}
+        {/* Overlay cho mobile */}
         {isSidebarOpen && (
           <div
             className="fixed inset-0 bg-black bg-opacity-30 md:hidden z-10"
@@ -404,7 +401,7 @@ export default function AdminLayout() {
           ></div>
         )}
 
-        {/* Main content (Không thay đổi) */}
+        {/* Main content */}
         <div className="flex-1">
           <main className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 transition-colors">
             <Outlet />
