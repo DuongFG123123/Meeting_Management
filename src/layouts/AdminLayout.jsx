@@ -1,11 +1,11 @@
 // src/layouts/AdminLayout.jsx
 import { useState, useRef, useEffect } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom"; // <-- THÊM useNavigate
+import { NavLink, Outlet, useNavigate } from "react-router-dom"; 
 import { useAuth } from "../context/AuthContext";
 
 // --- 1. IMPORT SERVICE MỚI ---
 import * as notificationService from '../services/notificationService'; 
-import * as meetingService from '../services/meetingService'; // <-- THÊM MỚI
+import * as meetingService from '../services/meetingService'; 
 
 import {
   FiMenu, FiUsers, FiBarChart2, FiBriefcase, FiBell, FiSettings,
@@ -19,7 +19,6 @@ import {
 import { BsCalendar4Week } from "react-icons/bs";
 import { HiOutlineDeviceMobile } from "react-icons/hi";
 import ThemeToggle from "../components/ThemeToggle";
-// (Bỏ import Navbar cũ nếu còn)
 
 const adminMenu = [
   { to: "/admin", label: "Dashboard", icon: <BsCalendar4Week size={18} /> },
@@ -71,7 +70,7 @@ const NotificationItem = ({ notification, onMarkRead }) => {
     <div 
       className={`p-3 border-b dark:border-slate-700 ${notification.read ? 'opacity-70' : ''}`}
     >
-      {/* Phần nội dung thông báo */}
+      {/* Nội dung thông báo */}
       <div 
         onClick={handleNavigate} 
         className="cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700 -m-3 p-3 rounded-lg"
@@ -115,7 +114,6 @@ const NotificationItem = ({ notification, onMarkRead }) => {
     </div>
   );
 }
-
 
 // === COMPONENT LAYOUT CHÍNH ===
 export default function AdminLayout() {
@@ -313,7 +311,7 @@ export default function AdminLayout() {
             )}
           </div>
 
-          {/* NÚT CÀI ĐẶT (QUAN TRỌNG: Giữ nguyên link của Admin) */}
+          {/* NÚT CÀI ĐẶT */}
           <div className="relative" ref={settingsRef}>
             <button
               onClick={handleSettingsClick}
