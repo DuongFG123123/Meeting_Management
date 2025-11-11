@@ -382,6 +382,7 @@ export default function DevicesPage() {
             {/* Table header */}
             <thead className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
               <tr>
+                <th className="p-4 text-base font-semibold w-16 text-center">STT</th>
                 <th className="p-4 text-base font-semibold">Tên thiết bị</th>
                 <th className="p-4 text-base font-semibold">Mô tả</th>
                 <th className="p-4 text-base font-semibold">Trạng thái</th>
@@ -394,7 +395,7 @@ export default function DevicesPage() {
               {filteredDevices.length === 0 ? (
                 // Empty state
                 <tr>
-                  <td colSpan="4" className="p-10 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan="5" className="p-10 text-center text-gray-500 dark:text-gray-400">
                     <div className="flex flex-col items-center gap-2">
                       <Search size={48} className="text-gray-300 dark:text-gray-600" />
                       <p className="text-lg font-semibold">Không tìm thấy thiết bị nào</p>
@@ -404,8 +405,9 @@ export default function DevicesPage() {
                 </tr>
               ) : (
                 // Danh sách thiết bị
-                paginatedDevices.map((device) => (
+                paginatedDevices.map((device, i) => (
                   <tr key={device.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                    <td className="p-4 font-semibold text-center">{(currentPage - 1) * ITEMS_PER_PAGE + i + 1}</td>
                     <td className="p-4 font-medium text-gray-900 dark:text-white">{device.name}</td>
                     <td className="p-4 text-gray-600 dark:text-gray-400">
                       {device.description || (
