@@ -32,3 +32,10 @@ export const deleteUser = (id) => api.delete(`/admin/users/${id}`);
 export const searchUsers = (query) => {
   return api.get(`/users/search`, { params: { query } });
 };
+export const getMyProfile = () => {
+  return api.get('/users/profile'); 
+};
+export const updateMyProfile = (profileData) => {
+  // profileData sẽ là { fullName: "Tên Mới" }
+  return api.put('/users/profile', profileData);
+};

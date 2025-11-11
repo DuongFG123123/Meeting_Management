@@ -323,7 +323,7 @@ export default function UserLayout() {
             )}
           </div>
 
-          {/* NÚT CÀI ĐẶT (Đã trỏ đúng link /user/change-password) */}
+          {/* NÚT CÀI ĐẶT (Đã cập nhật) */}
           <div className="relative" ref={settingsRef}>
             <button
               onClick={handleSettingsClick}
@@ -333,14 +333,28 @@ export default function UserLayout() {
             </button>
             {isSettingsOpen && (
               <div className="absolute top-12 right-0 w-52 bg-white dark:bg-slate-800 rounded-lg shadow-xl border dark:border-slate-700 py-2">
+                
+                {/* === MỤC MỚI ĐƯỢC THÊM === */}
                 <NavLink
-                  to="/user/change-password" // <-- Đã sửa ở lần trước
+                  to="/user/profile"
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+                  onClick={() => setIsSettingsOpen(false)} 
+                >
+                  <FiUser size={16} /> {/* <-- Icon mới */}
+                  <span>Thông tin cá nhân</span>
+                </NavLink>
+
+                {/* (Mục cũ - Đổi mật khẩu) */}
+                <NavLink
+                  to="/user/change-password"
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
                   onClick={() => setIsSettingsOpen(false)} 
                 >
                   <FiLock size={16} />
                   <span>Đổi mật khẩu</span>
                 </NavLink>
+                
+                {/* (Mục cũ - Đăng xuất) */}
                 <button
                   onClick={() => {
                     logout();
