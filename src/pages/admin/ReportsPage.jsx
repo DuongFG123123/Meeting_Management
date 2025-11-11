@@ -115,12 +115,12 @@ const ReportPage = () => {
       {
         label: "Số giờ sử dụng",
         data: roomUsageData.map((r) => r.totalHoursBooked),
-        backgroundColor: isDarkMode ? "#3b82f6" : "#2563eb",
+        backgroundColor: isDarkMode ? "#3369c0ff" : "#2357c8ff",
       },
       {
         label: "Số lần đặt",
         data: roomUsageData.map((r) => r.bookingCount),
-        backgroundColor: isDarkMode ? "#60a5fa" : "#93c5fd",
+        backgroundColor: isDarkMode ? "#254b79ff" : "#2e3640ff",
       },
     ],
   };
