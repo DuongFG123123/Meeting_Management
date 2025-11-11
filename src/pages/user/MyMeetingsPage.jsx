@@ -4,9 +4,30 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { getMyMeetings, getMeetingById, createMeeting, getRooms, getDevices } from "../../services/meetingService";
+import {
+  getMyMeetings,
+  getMeetingById,
+  createMeeting,
+  getRooms,
+  getDevices,
+} from "../../services/meetingService";
 import { searchUsers } from "../../services/userService";
-import { Modal, Spin, Descriptions, Tag, DatePicker, TimePicker, Select, Input, Button, Form, message, Card, Divider, Checkbox } from "antd";
+import {
+  Modal,
+  Spin,
+  Descriptions,
+  Tag,
+  DatePicker,
+  TimePicker,
+  Select,
+  Input,
+  Button,
+  Form,
+  message,
+  Card,
+  Divider,
+  Checkbox,
+} from "antd";
 import { FiCalendar, FiPlusCircle, FiUsers } from "react-icons/fi";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
@@ -60,6 +81,8 @@ const MyMeetingPage = () => {
   const [form] = Form.useForm();
   const { user } = useAuth();
 
+  const tooltipRef = useRef(); // (Cho tooltip)
+
   // Tải danh sách phòng và thiết bị khi mở form đặt lịch
   useEffect(() => {
     if (!quickBooking.open) return;
@@ -76,14 +99,41 @@ const MyMeetingPage = () => {
     fetchData();
   }, [quickBooking.open]);
 
-  // Tải danh sách lịch họp
+  // === TẢI LỊCH HỌP (ĐÃ SỬA LỖI LOGIC LỌC) ===
   const fetchMeetings = async () => {
+    if (!user) return; // Đảm bảo user đã tải xong
+
     setLoading(true);
     try {
       const res = await getMyMeetings();
       const data = res.data?.content || [];
-      // Giữ thông tin cơ bản cần cho tooltip: title, start, end, roomName
-      const mappedEvents = data.map((m) => ({
+
+      const filteredData = data.filter(m => {
+        // 1. Bỏ qua nếu cuộc họp bị HỦY (toàn bộ)
+        if (m.status === 'CANCELLED') {
+          return false;
+        }
+        // 2. Kiểm tra xem user có phải người tổ chức không
+        const isOrganizer = m.organizer?.id === user.id;
+        // 3. Tìm trạng thái của user (nếu là người tham gia)
+        const userParticipant = m.participants?.find(p => p.id === user.id);
+        // 4. LOGIC QUYẾT ĐỊNH:
+
+        // NẾU TÔI LÀ NGƯỜI TỔ CHỨC:
+        if (isOrganizer) {
+          return true; // Luôn hiển thị
+        }
+        // NẾU TÔI CHỈ LÀ NGƯỜI THAM GIA:
+        if (userParticipant) {
+          return userParticipant.status !== 'DECLINED';
+        }
+
+        // Nếu không phải organizer và không có trong participants → Ẩn
+        return false;
+      });
+
+      // Map từ dữ liệu ĐÃ LỌC
+      const mappedEvents = filteredData.map((m) => ({
         id: m.id,
         title: m.title || "Cuộc họp",
         start: m.startTime,
@@ -96,7 +146,7 @@ const MyMeetingPage = () => {
       }));
       setEvents(mappedEvents);
     } catch (err) {
-      console.error("❌ Lỗi tải lịch họp:", err);
+      console.error("Lỗi tải lịch họp:", err);
       toast.error("Không thể tải danh sách lịch họp!");
     } finally {
       setLoading(false);
@@ -112,14 +162,13 @@ const MyMeetingPage = () => {
       const res = await getMeetingById(id);
       setMeetingDetail(res.data);
     } catch (err) {
-      console.error("❌ Lỗi khi lấy chi tiết:", err);
+      console.error("Lỗi khi lấy chi tiết:", err);
       toast.error("Không thể tải chi tiết cuộc họp!");
       setIsModalOpen(false);
     }
   };
 
   // Xử lý hover cuộc họp để hiển thị tooltip tối giản
-  const tooltipRef = useRef();
   const handleEventMouseEnter = (info) => {
     handleEventMouseLeave();
 
@@ -183,7 +232,6 @@ const MyMeetingPage = () => {
       end: start.add(duration, "minute"),
     });
 
-    // Reset form
     setIsRecurring(false);
     setTimeout(() => {
       form.setFieldsValue({
@@ -238,7 +286,6 @@ const MyMeetingPage = () => {
         return;
       }
 
-      // Xử lý thời gian
       const datePart = values.date;
       const timePart = values.time;
       const startTimeUTC = dayjs.utc()
@@ -253,7 +300,6 @@ const MyMeetingPage = () => {
       const duration = values.duration || 60;
       const endTime = startTimeUTC.add(duration, 'minute').toISOString();
 
-      // Đảm bảo người tạo luôn trong danh sách tham gia
       const participantIds = Array.from(new Set([user.id, ...(values.participantIds || [])]));
 
       const payload = {
@@ -274,23 +320,22 @@ const MyMeetingPage = () => {
       };
 
       await createMeeting(payload);
-      toast.success("🎉 Tạo cuộc họp thành công!");
+      toast.success("Tạo cuộc họp thành công!");
       setQuickBooking({ open: false, start: null, end: null });
       fetchMeetings();
     } catch (err) {
-      console.error("❌ Lỗi tạo cuộc họp:", err);
+      console.error("Lỗi tạo cuộc họp:", err);
       const msg = err?.response?.data?.message || "Không thể tạo cuộc họp!";
 
-      // ⚠️ Hiển thị thông báo toast phù hợp
       if (msg.toLowerCase().includes("bảo trì") && msg.toLowerCase().includes("phòng")) {
-        toast.error("🚫 Phòng họp đang bảo trì, vui lòng chọn phòng khác!");
+        toast.error("Phòng họp đang bảo trì, vui lòng chọn phòng khác!");
       } else if (
         msg.toLowerCase().includes("bảo trì") &&
         msg.toLowerCase().includes("thiết bị")
       ) {
-        toast.error("⚙️ Thiết bị đang bảo trì, vui lòng bỏ chọn thiết bị này!");
+        toast.error("Thiết bị đang bảo trì, vui lòng bỏ chọn thiết bị này!");
       } else if (err.response?.status === 403) {
-        toast.error("❌ Không thể tạo cuộc họp: Phòng hoặc thiết bị không khả dụng!");
+        toast.error("Không thể tạo cuộc họp: Phòng hoặc thiết bị không khả dụng!");
       } else {
         toast.error(msg);
       }
@@ -299,16 +344,57 @@ const MyMeetingPage = () => {
     }
   };
 
-  // Render danh sách người tham gia
-  const renderParticipants = (participants) => {
-    if (!participants || participants.length === 0) return "Không có người tham gia.";
-    return participants.map(p => p.fullName).join(", ");
+  // === HÀM RENDER NGƯỜI THAM GIA (ĐÃ CẬP NHẬT) ===
+  const renderParticipants = (organizer, participants) => {
+    if (!participants && !organizer) {
+      return <span className="text-gray-500 dark:text-gray-400">Không có người tham gia.</span>;
+    }
+
+    const getTag = (status) => {
+      switch (status) {
+        case 'ACCEPTED':
+          return <Tag color="success" className="ml-2">Đã chấp nhận</Tag>;
+        case 'DECLINED':
+          return <Tag color="error" className="ml-2">Đã từ chối</Tag>;
+        case 'PENDING':
+          return <Tag color="warning" className="ml-2">Chờ phản hồi</Tag>;
+        default:
+          return null;
+      }
+    };
+
+    const allAttendees = [
+      organizer,
+      ...(participants || [])
+    ].filter(Boolean);
+
+    const uniqueAttendees = allAttendees.filter((p, index, self) =>
+      p.id && index === self.findIndex((t) => t.id === p.id)
+    );
+
+    return (
+      <ul className="list-none p-0 m-0">
+        {uniqueAttendees.map(p => (
+          <li key={p.id} className="flex justify-between items-center py-1">
+            <span className="text-gray-800 dark:text-gray-100">
+              {p.fullName}
+              {p.id === organizer?.id && (
+                <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">(Tổ chức)</span>
+              )}
+            </span>
+            {getTag(p.status)}
+          </li>
+        ))}
+      </ul>
+    );
   };
 
   // Load lịch họp khi component mount
   useEffect(() => {
-    fetchMeetings();
-  }, []);
+    if (user) {
+      fetchMeetings();
+    }
+  }, [user]);
 
   // Thêm CSS cho dark mode
   useEffect(() => {
@@ -338,6 +424,7 @@ const MyMeetingPage = () => {
   return (
     <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-500">
       <ToastContainer position="top-right" autoClose={2500} />
+
       {/* Header */}
       <div className="flex items-center gap-4 mb-6 border-b pb-3 border-gray-200 dark:border-gray-700">
         <div className="p-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-blue-500 shadow-md">
@@ -413,11 +500,8 @@ const MyMeetingPage = () => {
             <Descriptions.Item label="Phòng họp">
               {meetingDetail.room?.name || "Chưa xác định"}
             </Descriptions.Item>
-            <Descriptions.Item label="Người tổ chức">
-              {meetingDetail.organizer?.fullName || "Không rõ"}
-            </Descriptions.Item>
             <Descriptions.Item label="Người tham gia">
-              {renderParticipants(meetingDetail.participants)}
+              {renderParticipants(meetingDetail.organizer, meetingDetail.participants)}
             </Descriptions.Item>
             <Descriptions.Item label="Ghi chú">
               {meetingDetail.description || "Không có"}
@@ -492,7 +576,7 @@ const MyMeetingPage = () => {
                         .minute(value.minute())
                         .second(0);
                       if (selectedUTC.isBefore(dayjs.utc().add(1, "minute"))) {
-                        return Promise.reject("⏰ Thời gian họp phải ở tương lai!");
+                        return Promise.reject("Thời gian họp phải ở tương lai!");
                       }
                       return Promise.resolve();
                     },

@@ -1,9 +1,9 @@
 // src/pages/user/HistoryPage.jsx
 import React, { useEffect, useState } from "react";
 import { FiCalendar, FiMapPin, FiClock, FiUsers, FiX } from "react-icons/fi";
-import { Spin, message } from "antd"; // <-- THÊM
-import { getMyMeetings } from "../../services/meetingService"; // <-- THÊM
-import dayjs from "dayjs"; // <-- THÊM
+import { Spin, message, Tag } from "antd"; // <-- THÊM Tag
+import { getMyMeetings } from "../../services/meetingService";
+import dayjs from "dayjs";
 import "dayjs/locale/vi";
 dayjs.locale("vi");
 
@@ -12,19 +12,18 @@ const HistoryPage = () => {
   const [joinedMeetings, setJoinedMeetings] = useState([]);
   const [cancelledMeetings, setCancelledMeetings] = useState([]);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
-  const [loading, setLoading] = useState(true); // <-- THÊM STATE LOADING
+  const [loading, setLoading] = useState(true);
 
-  // === 1. TẢI DỮ LIỆU TỪ API ===
+  // === 1. TẢI DỮ LIỆU TỪ API (Logic này vẫn đúng) ===
   useEffect(() => {
     const fetchHistory = async () => {
       setLoading(true);
       try {
-        // Lấy 100 cuộc họp gần nhất
         const res = await getMyMeetings(0, 100); 
         const allMeetings = res.data?.content || [];
         const now = dayjs();
 
-        // 2. Lọc dữ liệu
+        // Lọc dữ liệu
         const pastMeetings = allMeetings.filter(m => 
           dayjs(m.endTime).isBefore(now)
         );
@@ -60,6 +59,20 @@ const HistoryPage = () => {
     setSelectedMeeting(null);
   };
 
+  // === 2. HÀM HELPER MỚI ĐỂ HIỂN THỊ TAG TRẠNG THÁI ===
+  const getTag = (status) => {
+    switch (status) {
+      case 'ACCEPTED':
+        return <Tag color="success" className="ml-2">Đã chấp nhận</Tag>;
+      case 'DECLINED':
+        return <Tag color="error" className="ml-2">Đã từ chối</Tag>;
+      case 'PENDING':
+        return <Tag color="warning" className="ml-2">Chờ phản hồi</Tag>;
+      default:
+        return null;
+    }
+  };
+
   const meetings = activeTab === "joined" ? joinedMeetings : cancelledMeetings;
 
   return (
@@ -92,9 +105,9 @@ const HistoryPage = () => {
         </button>
       </div>
 
-      {/* === 3. DANH SÁCH CUỘC HỌP (ĐÃ CẬP NHẬT) === */}
+      {/* Danh sách cuộc họp (Giữ nguyên) */}
       <div className="bg-white dark:bg-slate-800 shadow-md rounded-2xl p-5 transition-colors duration-300">
-        {loading ? ( // <-- THÊM SPINNER
+        {loading ? (
           <div className="flex justify-center items-center py-16">
             <Spin size="large" />
           </div>
@@ -120,7 +133,6 @@ const HistoryPage = () => {
                 >
                   {item.title}
                 </p>
-                {/* === SỬA LỖI: Dùng đúng tên trường API === */}
                 <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
                   <span className="flex items-center gap-1">
                     <FiCalendar size={14} /> {dayjs(item.startTime).format("DD/MM/YYYY")}
@@ -154,7 +166,6 @@ const HistoryPage = () => {
               {selectedMeeting.title}
             </h2>
 
-            {/* === SỬA LỖI: Dùng đúng tên trường API === */}
             <div className="space-y-2 text-gray-700 dark:text-gray-300 text-sm">
               <p className="flex items-center gap-2">
                 <FiCalendar size={14} /> <strong>Ngày:</strong> 
@@ -169,26 +180,30 @@ const HistoryPage = () => {
                 {selectedMeeting.room?.name || "N/A"}
               </p>
 
-              {activeTab === "joined" && selectedMeeting.participants && (
+              {/* === SỬA LỖI LOGIC HIỂN THỊ NGƯỜI THAM GIA === */}
+              {selectedMeeting.participants && (
                 <div className="mt-3">
                   <p className="flex items-center gap-2 font-medium text-gray-800 dark:text-gray-100">
                     <FiUsers size={14} /> Người tham gia:
                   </p>
-                  <ul className="mt-2 ml-6 list-disc space-y-1">
-                    {selectedMeeting.participants.map((p, i) => (
-                      <li key={i}>
-                        {p.fullName} {/* API chỉ trả về fullName */}
+                  {/* Sử dụng list-none để căn chỉnh đẹp hơn */}
+                  <ul className="mt-2 ml-2 list-none space-y-1 p-0">
+                    {selectedMeeting.participants.map((p) => (
+                      <li key={p.id} className="flex justify-between items-center py-1">
+                        <span className="text-gray-800 dark:text-gray-100">{p.fullName}</span>
+                        {/* Hiển thị trạng thái (nếu là tab "Đã tham gia") */}
+                        {activeTab === "joined" && getTag(p.status)}
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
+              {/* === KẾT THÚC SỬA LỖI === */}
 
               {activeTab === "cancelled" && (
                 <p className="mt-3 text-red-600 dark:text-red-400">
-                  {/* API 'getMyMeetings' không trả về lý do hủy. 
-                      Chúng ta cần 1 API khác (nếu có) hoặc hiển thị chung. */}
                   <strong>Trạng thái:</strong> Đã hủy
+                  {/* (API getMyMeetings không có lý do hủy, nên chúng ta chỉ hiển thị trạng thái) */}
                 </p>
               )}
 

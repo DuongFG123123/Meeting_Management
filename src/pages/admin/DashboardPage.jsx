@@ -18,7 +18,7 @@ import {
   FiUsers, 
   FiClock, 
   FiCalendar, 
-  FiCheckSquare // Đổi icon
+  FiCheckSquare 
 } from "react-icons/fi";
 
 // === 1. IMPORTS ĐẦY ĐỦ ===
@@ -43,7 +43,7 @@ dayjs.extend(isBetween);
 // Template cho các thẻ (sẽ được cập nhật)
 const cardTemplates = [
   { label: "Cuộc họp hôm nay", value: "0", icon: <FiCalendar /> },
-  { label: "Tổng người tham gia (hôm nay)", value: "0", icon: <FiUsers /> },
+  { label: "Người tham gia (hôm nay)", value: "0", icon: <FiUsers /> }, // Đổi tên
   { label: "Thời lượng họp TB", value: "0", icon: <FiClock /> },
   { label: "Cuộc họp sắp tới", value: "0", icon: <FiCheckSquare /> },
 ];
@@ -68,11 +68,11 @@ export default function DashboardPage() {
   const [calendarResources, setCalendarResources] = useState([]);
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-const tooltipRef = useRef();
+  const tooltipRef = useRef(); // (Cho tooltip)
 
-// Hàm tạo nội dung tooltip
-// Hàm tạo nội dung tooltip
+// Hàm tạo nội dung tooltip (Giữ nguyên)
 const getEventTooltipContent = (event) => {
+  // ... (code tooltip của bạn giữ nguyên)
   const startTime = dayjs(event.start).format('HH:mm');
   const endTime = dayjs(event.end).format('HH:mm');
   const dateDisplay = dayjs(event.start).format('DD/MM/YYYY');
@@ -91,12 +91,13 @@ const getEventTooltipContent = (event) => {
   `;
 };
 
-// Xử lý hover cuộc họp để hiển thị tooltip
+// Tooltip handlers (Giữ nguyên)
 const handleEventMouseEnter = (info) => {
   handleEventMouseLeave();
 
   const tooltipHtml = getEventTooltipContent(info.event);
   let tooltip = document.createElement("div");
+  // ... (toàn bộ code style của tooltip)
   tooltip.innerHTML = tooltipHtml;
   tooltip.style.position = "absolute";
   tooltip.style.zIndex = 9999;
@@ -109,12 +110,10 @@ const handleEventMouseEnter = (info) => {
   tooltip.style.pointerEvents = "none";
   tooltip.style.transition = "opacity 0.15s";
   tooltip.style.opacity = "0.93";
-  
   if (document.documentElement.classList.contains("dark")) {
     tooltip.style.background = "#334155";
     tooltip.style.color = "#e0eafb";
   }
-  
   document.body.appendChild(tooltip);
   tooltipRef.current = tooltip;
 
@@ -154,6 +153,7 @@ const handleEventMouseLeave = () => {
   // CSS cho FullCalendar (giữ nguyên)
   useEffect(() => {
     const style = document.createElement("style");
+    // ... (code CSS của bạn giữ nguyên)
     style.innerHTML = `
       .fc .fc-col-header-cell-cushion,
       .fc .fc-timeline-slot-cushion,
@@ -174,7 +174,7 @@ const handleEventMouseLeave = () => {
     return () => document.head.removeChild(style);
   }, []);
 
-  // === 3. useEffect TẢI VÀ XỬ LÝ TẤT CẢ DỮ LIỆU ===
+  // === 3. useEffect TẢI VÀ XỬ LÝ TẤT CẢ DỮ LIỆU (ĐÃ SỬA) ===
   useEffect(() => {
     const fetchDashboardData = async () => {
       setLoading(true);
@@ -184,38 +184,44 @@ const handleEventMouseLeave = () => {
           getAllMeetings() // Lấy 1000 cuộc họp
         ]);
 
-        // === A. XỬ LÝ LỊCH (Timeline) ===
+        // === A. XỬ LÝ LỊCH (Timeline) (Giữ nguyên) ===
         const resources = (roomsRes.data || []).map(room => ({
           id: room.id.toString(),
           title: room.name
         }));
         setCalendarResources(resources);
 
+        // (API mới đã thay đổi participants, nhưng logic map này vẫn đúng)
         const meetings = meetingsRes.data?.content || [];
         const events = meetings.map(meeting => ({
-  id: meeting.id.toString(),
-  title: meeting.title,
-  start: meeting.startTime,
-  end: meeting.endTime,
-  resourceId: meeting.room?.id?.toString(),
-  backgroundColor: meeting.status === 'CONFIRMED' ? "#3B82F6" : "#F59E0B",
-  borderColor: meeting.status === 'CONFIRMED' ? "#2563EB" : "#D97706",
-  extendedProps: {
-    organizer: meeting.organizer?.fullName || "Không rõ",
-    roomName: meeting.room?.name || "Không có phòng",
-    location: meeting.room?.location || "Không có địa điểm"
-  }
-}));
+          id: meeting.id.toString(),
+          title: meeting.title,
+          start: meeting.startTime,
+          end: meeting.endTime,
+          resourceId: meeting.room?.id?.toString(),
+          backgroundColor: meeting.status === 'CONFIRMED' ? "#3B82F6" : "#F59E0B",
+          borderColor: meeting.status === 'CONFIRMED' ? "#2563EB" : "#D97706",
+          extendedProps: {
+            organizer: meeting.organizer?.fullName || "Không rõ",
+            roomName: meeting.room?.name || "Không có phòng",
+            location: meeting.room?.location || "Không có địa điểm"
+          }
+        }));
         setCalendarEvents(events);
         
-        // === B. XỬ LÝ THỐNG KÊ (Cards & Charts) ===
+        // === B. XỬ LÝ THỐNG KÊ (Cards & Charts) (ĐÃ SỬA) ===
         const now = dayjs();
         // Chỉ tính các cuộc họp đã xác nhận (không bị hủy)
         const activeMeetings = meetings.filter(m => m.status === 'CONFIRMED');
 
         // 1. Tính K-Cards
         const meetingsToday = activeMeetings.filter(m => dayjs(m.startTime).isToday());
-        const participantsToday = meetingsToday.reduce((acc, m) => acc + (m.participants?.length || 0), 0);
+        
+        // 🎯 SỬA LỖI: Chỉ đếm người 'ACCEPTED'
+        const participantsToday = meetingsToday.reduce((acc, m) => {
+          const acceptedCount = m.participants?.filter(p => p.status === 'ACCEPTED').length || 0;
+          return acc + acceptedCount;
+        }, 0);
         
         const totalDuration = activeMeetings.reduce((acc, m) => {
           const start = dayjs(m.startTime);
@@ -233,26 +239,26 @@ const handleEventMouseLeave = () => {
           { ...cardTemplates[3], value: upcomingMeetings.toString() },
         ]);
 
-        // 2. Tính Bar Chart (Cuộc họp theo T2-T6 tuần này)
+        // 2. Tính Bar Chart (Giữ nguyên, vì chỉ đếm số cuộc họp)
         const weekDays = [
           { name: "T2", count: 0 }, { name: "T3", count: 0 },
           { name: "T4", count: 0 }, { name: "T5", count: 0 },
           { name: "T6", count: 0 }
         ];
-        const startOfWeek = now.startOf('isoWeek'); // Bắt đầu từ T2
-        const endOfWeek = now.endOf('isoWeek');     // Kết thúc ở CN
+        const startOfWeek = now.startOf('isoWeek');
+        const endOfWeek = now.endOf('isoWeek');
         
         activeMeetings
           .filter(m => dayjs(m.startTime).isBetween(startOfWeek, endOfWeek))
           .forEach(m => {
-            const dayIndex = dayjs(m.startTime).isoWeekday() - 1; // 1(T2) -> 0
-            if (dayIndex >= 0 && dayIndex < 5) { // Chỉ lấy T2-T6
+            const dayIndex = dayjs(m.startTime).isoWeekday() - 1;
+            if (dayIndex >= 0 && dayIndex < 5) {
               weekDays[dayIndex].count++;
             }
           });
         setMeetingsPerDayData(weekDays);
 
-        // 3. Tính Pie Chart (Phân bổ theo phòng)
+        // 3. Tính Pie Chart (Giữ nguyên, vì chỉ đếm số cuộc họp)
         const roomUsage = {};
         activeMeetings.forEach(m => {
           const roomName = m.room?.name || "Không có phòng";
@@ -299,7 +305,7 @@ const handleEventMouseLeave = () => {
         <>
           {/* Cards tổng quan (Dùng state) */}
           <div className="grid grid-cols-4 gap-4">
-            {stats.map((card, i) => ( // <-- DÙNG STATE
+            {stats.map((card, i) => ( 
               <div
                 key={i}
                 className="flex items-center gap-3 bg-white dark:bg-slate-800 
@@ -358,7 +364,7 @@ const handleEventMouseLeave = () => {
                     // Hiển thị tên và %
                     formatter={(value) => {
                       const total = roomUsageData.reduce((acc, entry) => acc + entry.value, 0);
-                      const percent = ((value / total) * 100).toFixed(0);
+                      const percent = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
                       return `${value} (${percent}%)`;
                     }}
                   />
@@ -372,8 +378,7 @@ const handleEventMouseLeave = () => {
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">
               🗓️ Lịch họp tổng hợp trong ngày
             </h3>
-            {/* FullCalendar không nằm trong spinner chính vì nó có logic loading riêng (calendarLoading) */}
-            {/* SỬA: Đã gộp chung 1 loading state */}
+            
             <FullCalendar
               plugins={[resourceTimelinePlugin]}
               schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
@@ -415,22 +420,22 @@ const handleEventMouseLeave = () => {
                   </div>
                 `,
               })}
-            /* ✅ Bổ sung phần này để fix hiển thị 0:00 ở chế độ month */
-  views={{
-    resourceTimelineDay: {
-      slotDuration: { hours: 1 },
-      slotLabelFormat: [{ hour: "2-digit", minute: "2-digit", hour12: false }],
-    },
-    resourceTimelineWeek: {
-      slotDuration: { days: 1 },
-      slotLabelFormat: [{ weekday: "short", day: "numeric" }],
-    },
-    resourceTimelineMonth: {
-      slotDuration: { days: 1 },
-      slotLabelFormat: [{ day: "numeric" }], // ✅ Hiển thị ngày 1, 2, 3, ...
-    },
-  }}
-/>
+              /* Bổ sung phần này để fix hiển thị 0:00 ở chế độ month */
+              views={{
+                resourceTimelineDay: {
+                  slotDuration: { hours: 1 },
+                  slotLabelFormat: [{ hour: "2-digit", minute: "2-digit", hour12: false }],
+                },
+                resourceTimelineWeek: {
+                  slotDuration: { days: 1 },
+                  slotLabelFormat: [{ weekday: "short", day: "numeric" }],
+                },
+                resourceTimelineMonth: {
+                  slotDuration: { days: 1 },
+                  slotLabelFormat: [{ day: "numeric" }], // ✅ Hiển thị ngày 1, 2, 3, ...
+                },
+              }}
+            />
           </div>
         </>
       )}
