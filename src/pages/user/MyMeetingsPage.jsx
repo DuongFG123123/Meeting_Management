@@ -8,11 +8,13 @@ import { getMyMeetings, getMeetingById, createMeeting, getRooms, getDevices } fr
 import { searchUsers } from "../../services/userService";
 import { Modal, Spin, Descriptions, Tag, DatePicker, TimePicker, Select, Input, Button, Form, message, Card, Divider, Checkbox } from "antd";
 import { FiCalendar, FiPlusCircle, FiUsers } from "react-icons/fi";
-import { toast } from "react-toastify";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import utc from "dayjs/plugin/utc";
 import { useAuth } from "../../context/AuthContext";
+
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 dayjs.locale("vi");
 dayjs.extend(utc);
@@ -20,7 +22,7 @@ dayjs.extend(utc);
 const { TextArea } = Input;
 const { Option } = Select;
 
-// Tooltip tối giản: chỉ Tên cuộc họp, Thời gian, Địa điểm
+// Tooltip tối giản: Tên cuộc họp, Thời gian, Địa điểm
 function getEventTooltipContent(event) {
   const { title, start, end, extendedProps } = event;
   const time = `${dayjs(start).format("HH:mm")} - ${dayjs(end).format("HH:mm, DD/MM/YYYY")}`;
@@ -272,12 +274,26 @@ const MyMeetingPage = () => {
       };
 
       await createMeeting(payload);
-      message.success("✅ Đặt lịch họp thành công!");
+      toast.success("🎉 Tạo cuộc họp thành công!");
       setQuickBooking({ open: false, start: null, end: null });
       fetchMeetings();
     } catch (err) {
       console.error("❌ Lỗi tạo cuộc họp:", err);
-      message.error(err.response?.data?.message || "Không thể tạo cuộc họp!");
+      const msg = err?.response?.data?.message || "Không thể tạo cuộc họp!";
+
+      // ⚠️ Hiển thị thông báo toast phù hợp
+      if (msg.toLowerCase().includes("bảo trì") && msg.toLowerCase().includes("phòng")) {
+        toast.error("🚫 Phòng họp đang bảo trì, vui lòng chọn phòng khác!");
+      } else if (
+        msg.toLowerCase().includes("bảo trì") &&
+        msg.toLowerCase().includes("thiết bị")
+      ) {
+        toast.error("⚙️ Thiết bị đang bảo trì, vui lòng bỏ chọn thiết bị này!");
+      } else if (err.response?.status === 403) {
+        toast.error("❌ Không thể tạo cuộc họp: Phòng hoặc thiết bị không khả dụng!");
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setCreating(false);
     }
@@ -321,6 +337,7 @@ const MyMeetingPage = () => {
 
   return (
     <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-500">
+      <ToastContainer position="top-right" autoClose={2500} />
       {/* Header */}
       <div className="flex items-center gap-4 mb-6 border-b pb-3 border-gray-200 dark:border-gray-700">
         <div className="p-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-blue-500 shadow-md">
@@ -487,6 +504,13 @@ const MyMeetingPage = () => {
                   use12Hours
                   format="hh:mm A"
                   minuteStep={5}
+                  onSelect={(value) => {
+                    if (value) form.setFieldValue("time", value);
+                  }}
+                  onOpenChange={(openStatus) => {
+                    const value = form.getFieldValue("time");
+                    if (value) form.setFieldValue("time", value);
+                  }}
                 />
               </Form.Item>
 
