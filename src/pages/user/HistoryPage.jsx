@@ -1,54 +1,56 @@
+// src/pages/user/HistoryPage.jsx
 import React, { useEffect, useState } from "react";
 import { FiCalendar, FiMapPin, FiClock, FiUsers, FiX } from "react-icons/fi";
+import { Spin, message } from "antd"; // <-- THÊM
+import { getMyMeetings } from "../../services/meetingService"; // <-- THÊM
+import dayjs from "dayjs"; // <-- THÊM
+import "dayjs/locale/vi";
+dayjs.locale("vi");
 
 const HistoryPage = () => {
   const [activeTab, setActiveTab] = useState("joined"); // joined | cancelled
   const [joinedMeetings, setJoinedMeetings] = useState([]);
   const [cancelledMeetings, setCancelledMeetings] = useState([]);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
+  const [loading, setLoading] = useState(true); // <-- THÊM STATE LOADING
 
+  // === 1. TẢI DỮ LIỆU TỪ API ===
   useEffect(() => {
-    // ✅ Giả lập dữ liệu từ API
-    setTimeout(() => {
-      setJoinedMeetings([
-        {
-          id: 1,
-          title: "Họp quý 3 - Đánh giá hiệu suất",
-          date: "2025-09-21",
-          time: "09:00 - 11:00",
-          room: "Phòng A1",
-          participants: [
-            { name: "Nguyễn Văn A", email: "a@company.com" },
-            { name: "Trần Thị B", email: "b@guest.com" },
-          ],
-          notes: "Tổng kết hiệu suất quý và kế hoạch quý tới.",
-        },
-        {
-          id: 2,
-          title: "Họp dự án - Tiến độ Sprint 5",
-          date: "2025-10-10",
-          time: "14:00 - 15:30",
-          room: "Phòng B2",
-          participants: [
-            { name: "Phạm Văn C", email: "c@company.com" },
-            { name: "Lê Thị D", email: "d@guest.com" },
-          ],
-          notes: "Thảo luận về deadline và demo chức năng mới.",
-        },
-      ]);
+    const fetchHistory = async () => {
+      setLoading(true);
+      try {
+        // Lấy 100 cuộc họp gần nhất
+        const res = await getMyMeetings(0, 100); 
+        const allMeetings = res.data?.content || [];
+        const now = dayjs();
 
-      setCancelledMeetings([
-        {
-          id: 3,
-          title: "Họp nội bộ tháng 11",
-          date: "2025-11-02",
-          time: "10:00 - 11:00",
-          room: "Phòng C1",
-          reason: "Trưởng nhóm bận công tác đột xuất.",
-        },
-      ]);
-    }, 400);
-  }, []);
+        // 2. Lọc dữ liệu
+        const pastMeetings = allMeetings.filter(m => 
+          dayjs(m.endTime).isBefore(now)
+        );
+        
+        const cancelled = allMeetings.filter(m => 
+          m.status === 'CANCELLED'
+        );
+
+        // Tab "Đã tham gia" = Các cuộc họp đã qua VÀ không bị hủy
+        setJoinedMeetings(
+          pastMeetings.filter(m => m.status !== 'CANCELLED')
+        );
+
+        // Tab "Đã hủy" = Tất cả các cuộc họp bị hủy (cả quá khứ và tương lai)
+        setCancelledMeetings(cancelled);
+
+      } catch (err) {
+        console.error("Lỗi tải lịch sử họp:", err);
+        message.error("Không thể tải lịch sử cuộc họp.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, []); // Chỉ chạy 1 lần
 
   const handleMeetingClick = (meeting) => {
     setSelectedMeeting(meeting);
@@ -66,7 +68,7 @@ const HistoryPage = () => {
         📖 Lịch sử họp
       </h1>
 
-      {/* Tabs */}
+      {/* Tabs (Giữ nguyên) */}
       <div className="flex gap-3 mb-6">
         <button
           className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
@@ -90,9 +92,13 @@ const HistoryPage = () => {
         </button>
       </div>
 
-      {/* Danh sách cuộc họp */}
+      {/* === 3. DANH SÁCH CUỘC HỌP (ĐÃ CẬP NHẬT) === */}
       <div className="bg-white dark:bg-slate-800 shadow-md rounded-2xl p-5 transition-colors duration-300">
-        {meetings.length === 0 ? (
+        {loading ? ( // <-- THÊM SPINNER
+          <div className="flex justify-center items-center py-16">
+            <Spin size="large" />
+          </div>
+        ) : meetings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-gray-500 dark:text-gray-400">
             <FiCalendar size={32} className="mb-3" />
             <p>Không có cuộc họp nào trong danh sách này.</p>
@@ -114,15 +120,17 @@ const HistoryPage = () => {
                 >
                   {item.title}
                 </p>
+                {/* === SỬA LỖI: Dùng đúng tên trường API === */}
                 <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
                   <span className="flex items-center gap-1">
-                    <FiCalendar size={14} /> {item.date}
+                    <FiCalendar size={14} /> {dayjs(item.startTime).format("DD/MM/YYYY")}
                   </span>
                   <span className="flex items-center gap-1">
-                    <FiClock size={14} /> {item.time}
+                    <FiClock size={14} /> 
+                    {`${dayjs(item.startTime).format("HH:mm")} - ${dayjs(item.endTime).format("HH:mm")}`}
                   </span>
                   <span className="flex items-center gap-1">
-                    <FiMapPin size={14} /> {item.room}
+                    <FiMapPin size={14} /> {item.room?.name || "N/A"}
                   </span>
                 </div>
               </li>
@@ -131,7 +139,7 @@ const HistoryPage = () => {
         )}
       </div>
 
-      {/* Modal Chi tiết */}
+      {/* === 4. MODAL CHI TIẾT (ĐÃ CẬP NHẬT) === */}
       {selectedMeeting && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-lg relative">
@@ -146,15 +154,19 @@ const HistoryPage = () => {
               {selectedMeeting.title}
             </h2>
 
+            {/* === SỬA LỖI: Dùng đúng tên trường API === */}
             <div className="space-y-2 text-gray-700 dark:text-gray-300 text-sm">
               <p className="flex items-center gap-2">
-                <FiCalendar size={14} /> <strong>Ngày:</strong> {selectedMeeting.date}
+                <FiCalendar size={14} /> <strong>Ngày:</strong> 
+                {dayjs(selectedMeeting.startTime).format("DD/MM/YYYY")}
               </p>
               <p className="flex items-center gap-2">
-                <FiClock size={14} /> <strong>Giờ:</strong> {selectedMeeting.time}
+                <FiClock size={14} /> <strong>Giờ:</strong> 
+                {`${dayjs(selectedMeeting.startTime).format("HH:mm")} - ${dayjs(selectedMeeting.endTime).format("HH:mm")}`}
               </p>
               <p className="flex items-center gap-2">
-                <FiMapPin size={14} /> <strong>Phòng:</strong> {selectedMeeting.room}
+                <FiMapPin size={14} /> <strong>Phòng:</strong> 
+                {selectedMeeting.room?.name || "N/A"}
               </p>
 
               {activeTab === "joined" && selectedMeeting.participants && (
@@ -165,25 +177,24 @@ const HistoryPage = () => {
                   <ul className="mt-2 ml-6 list-disc space-y-1">
                     {selectedMeeting.participants.map((p, i) => (
                       <li key={i}>
-                        {p.name} —{" "}
-                        <span className="text-blue-600 dark:text-blue-400">
-                          {p.email}
-                        </span>
+                        {p.fullName} {/* API chỉ trả về fullName */}
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
 
-              {activeTab === "cancelled" && selectedMeeting.reason && (
+              {activeTab === "cancelled" && (
                 <p className="mt-3 text-red-600 dark:text-red-400">
-                  <strong>Lý do hủy:</strong> {selectedMeeting.reason}
+                  {/* API 'getMyMeetings' không trả về lý do hủy. 
+                      Chúng ta cần 1 API khác (nếu có) hoặc hiển thị chung. */}
+                  <strong>Trạng thái:</strong> Đã hủy
                 </p>
               )}
 
-              {selectedMeeting.notes && (
+              {selectedMeeting.description && (
                 <p className="mt-3 italic text-gray-500 dark:text-gray-400">
-                  Ghi chú: {selectedMeeting.notes}
+                  Ghi chú: {selectedMeeting.description}
                 </p>
               )}
             </div>
