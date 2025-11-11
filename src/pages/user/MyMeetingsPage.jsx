@@ -126,7 +126,7 @@ const getErrorToastConfig = (errorInfo) => {
 const { TextArea } = Input;
 const { Option } = Select;
 
-// Tooltip tối giản: Tên cuộc họp, Thời gian, Địa điểm
+// Tooltip: Tên cuộc họp, Thời gian, Địa điểm
 function getEventTooltipContent(event) {
   const { title, start, end, extendedProps } = event;
   const time = `${dayjs(start).format("HH:mm")} - ${dayjs(end).format("HH:mm, DD/MM/YYYY")}`;
@@ -164,7 +164,7 @@ const MyMeetingPage = () => {
   const [form] = Form.useForm();
   const { user } = useAuth();
 
-  const tooltipRef = useRef(); // (Cho tooltip)
+  const tooltipRef = useRef();
 
   // Tải danh sách phòng và thiết bị khi mở form đặt lịch
   useEffect(() => {
