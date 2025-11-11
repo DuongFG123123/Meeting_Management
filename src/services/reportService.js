@@ -15,3 +15,8 @@ export const getAllMeetings = (page = 0, size = 1000) => {
     }
   });
 };
+export const getVisitorReport = (date) => {
+  return api.get('/reports/visitors', {
+    params: { date }
+  });
+};
