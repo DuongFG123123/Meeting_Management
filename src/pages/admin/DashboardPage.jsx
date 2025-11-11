@@ -1,5 +1,5 @@
 // src/pages/admin/DashboardPage.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import resourceTimelinePlugin from "@fullcalendar/resource-timeline";
 import {
@@ -67,7 +67,80 @@ export default function DashboardPage() {
   const [roomUsageData, setRoomUsageData] = useState([]);
   const [calendarResources, setCalendarResources] = useState([]);
   const [calendarEvents, setCalendarEvents] = useState([]);
-  const [loading, setLoading] = useState(true); // 1 state loading duy nhất
+  const [loading, setLoading] = useState(true);
+const tooltipRef = useRef();
+
+// Hàm tạo nội dung tooltip
+// Hàm tạo nội dung tooltip
+const getEventTooltipContent = (event) => {
+  const startTime = dayjs(event.start).format('HH:mm');
+  const endTime = dayjs(event.end).format('HH:mm');
+  const dateDisplay = dayjs(event.start).format('DD/MM/YYYY');
+  const duration = dayjs(event.end).diff(dayjs(event.start), 'minute');
+  
+  return `
+    <div style="line-height: 1.6; min-width: 220px;">
+      <div style="font-weight: 600; margin-bottom: 6px; font-size: 14px;">${event.title}</div>
+      <div style="font-size: 12px; opacity: 0.9; margin-bottom: 3px;">
+        <strong>Ngày:</strong> ${dateDisplay}
+      </div>
+      <div style="font-size: 12px; opacity: 0.9; margin-bottom: 3px;">
+        <strong>Thời gian:</strong> ${startTime} - ${endTime} (${duration}m)
+      </div>
+    </div>
+  `;
+};
+
+// Xử lý hover cuộc họp để hiển thị tooltip
+const handleEventMouseEnter = (info) => {
+  handleEventMouseLeave();
+
+  const tooltipHtml = getEventTooltipContent(info.event);
+  let tooltip = document.createElement("div");
+  tooltip.innerHTML = tooltipHtml;
+  tooltip.style.position = "absolute";
+  tooltip.style.zIndex = 9999;
+  tooltip.style.background = "#222";
+  tooltip.style.color = "#fff";
+  tooltip.style.padding = "8px 14px";
+  tooltip.style.borderRadius = "8px";
+  tooltip.style.boxShadow = "0 2px 12px rgba(0,0,0,0.3)";
+  tooltip.style.fontSize = "13px";
+  tooltip.style.pointerEvents = "none";
+  tooltip.style.transition = "opacity 0.15s";
+  tooltip.style.opacity = "0.93";
+  
+  if (document.documentElement.classList.contains("dark")) {
+    tooltip.style.background = "#334155";
+    tooltip.style.color = "#e0eafb";
+  }
+  
+  document.body.appendChild(tooltip);
+  tooltipRef.current = tooltip;
+
+  const mouse = info.jsEvent;
+  function positionTooltip(e) {
+    tooltip.style.left = e.pageX + 16 + "px";
+    tooltip.style.top = e.pageY + 9 + "px";
+  }
+  positionTooltip(mouse);
+
+  function onMove(ev) {
+    positionTooltip(ev);
+  }
+  document.addEventListener('mousemove', onMove);
+  tooltip._removeMousemove = () => {
+    document.removeEventListener('mousemove', onMove);
+  };
+};
+
+const handleEventMouseLeave = () => {
+  if (tooltipRef.current) {
+    if (tooltipRef.current._removeMousemove) tooltipRef.current._removeMousemove();
+    if (tooltipRef.current.parentNode) tooltipRef.current.parentNode.removeChild(tooltipRef.current);
+    tooltipRef.current = null;
+  }
+};
 
   // Theo dõi dark mode (giữ nguyên)
   useEffect(() => {
@@ -120,14 +193,19 @@ export default function DashboardPage() {
 
         const meetings = meetingsRes.data?.content || [];
         const events = meetings.map(meeting => ({
-          id: meeting.id.toString(),
-          title: meeting.title,
-          start: meeting.startTime,
-          end: meeting.endTime,
-          resourceId: meeting.room?.id?.toString(),
-          backgroundColor: meeting.status === 'CONFIRMED' ? "#3B82F6" : "#F59E0B",
-          borderColor: meeting.status === 'CONFIRMED' ? "#2563EB" : "#D97706",
-        }));
+  id: meeting.id.toString(),
+  title: meeting.title,
+  start: meeting.startTime,
+  end: meeting.endTime,
+  resourceId: meeting.room?.id?.toString(),
+  backgroundColor: meeting.status === 'CONFIRMED' ? "#3B82F6" : "#F59E0B",
+  borderColor: meeting.status === 'CONFIRMED' ? "#2563EB" : "#D97706",
+  extendedProps: {
+    organizer: meeting.organizer?.fullName || "Không rõ",
+    roomName: meeting.room?.name || "Không có phòng",
+    location: meeting.room?.location || "Không có địa điểm"
+  }
+}));
         setCalendarEvents(events);
         
         // === B. XỬ LÝ THỐNG KÊ (Cards & Charts) ===
@@ -316,6 +394,8 @@ export default function DashboardPage() {
               eventMinWidth={80}
               locale="vi"
               slotLabelFormat={{ hour: "numeric", minute: "2-digit", hour12: false }}
+              eventMouseEnter={handleEventMouseEnter} 
+              eventMouseLeave={handleEventMouseLeave}
               resourceLabelContent={(arg) => ({
                 html: `<span class='text-sm font-medium ${isDarkMode ? "text-gray-200" : "text-gray-800"}'>${arg.resource.title}</span>`,
               })}
