@@ -4,7 +4,6 @@ import { FiSearch, FiTool, FiMonitor, FiUsers } from "react-icons/fi";
 import { Spin, message } from "antd"; // <-- THÊM
 import { getAllRooms } from "../../services/roomService"; // <-- CHỈ CẦN API NÀY
 import { useNavigate } from "react-router-dom";
-// (Không cần dayjs nữa)
 
 const UserRoomsPage = () => {
   const [rooms, setRooms] = useState([]); 
@@ -80,7 +79,7 @@ const UserRoomsPage = () => {
 
       {/* Bộ lọc & tìm kiếm (ĐÃ CẬP NHẬT) */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-        {/* Tìm kiếm (giữ nguyên) */}
+        {/* Tìm kiếm */}
         <div className="relative w-full md:w-1/2">
            <FiSearch className="absolute top-3 left-3 text-gray-500 dark:text-gray-400" />
            <input
