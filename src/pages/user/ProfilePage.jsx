@@ -1,31 +1,45 @@
 // src/pages/user/ProfilePage.jsx
 import React, { useEffect, useState } from "react";
 import { Form, Input, Button, message, Card, Spin } from "antd";
-import { FiUser, FiSave } from "react-icons/fi";
+import { FiUser, FiSave, FiMail, FiShield } from "react-icons/fi"; // <-- Thêm icon
 import { useAuth } from "../../context/AuthContext";
 import { getMyProfile, updateMyProfile } from "../../services/userService";
+
+// Hàm trợ giúp để dịch Role
+const formatRole = (role) => {
+  if (role === "ROLE_ADMIN") return "Quản trị viên";
+  if (role === "ROLE_USER") return "Người dùng";
+  return role;
+};
 
 const ProfilePage = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(true); // Bắt đầu là true để tải
   const [saving, setSaving] = useState(false); // Loading cho nút Lưu
-  const { user } = useAuth(); // Chỉ dùng để kiểm tra đã đăng nhập
+  const { user } = useAuth(); // <-- Lấy dữ liệu user từ Context
 
-  // 1. Tải thông tin profile (fullName) khi trang mở
+  // 1. Tải thông tin động (fullName) VÀ set thông tin tĩnh (email, role)
   useEffect(() => {
-    // Chỉ tải nếu đã đăng nhập
     if (!user) {
       setLoading(false);
       return;
     }
 
+    // === THÊM MỚI: Set dữ liệu tĩnh từ Auth Context ===
+    // Dữ liệu này không cần gọi API vì nó có sẵn trong token
+    form.setFieldsValue({
+      username: user.username,
+      role: user.roles.map(formatRole).join(', '), // Hiển thị vai trò
+    });
+    // ===========================================
+
     const fetchProfile = async () => {
       setLoading(true);
       try {
-        // Gọi API GET /api/v1/users/profile
+        // Gọi API GET /api/v1/users/profile (chỉ để lấy fullName)
         const res = await getMyProfile(); 
         
-        // Gán fullName vào form
+        // Gán fullName (dữ liệu có thể thay đổi)
         form.setFieldsValue({
           fullName: res.data.fullName,
         });
@@ -40,7 +54,7 @@ const ProfilePage = () => {
     fetchProfile();
   }, [user, form]); // Chạy lại nếu user thay đổi
 
-  // 2. Xử lý khi nhấn nút Lưu
+  // 2. Xử lý khi nhấn nút Lưu (Giữ nguyên)
   const handleSave = async (values) => {
     setSaving(true);
     try {
@@ -83,7 +97,31 @@ const ProfilePage = () => {
             onFinish={handleSave}
             className="dark:text-gray-100"
           >
-            {/* === BỎ: Trường Email === */}
+            {/* === THÊM: Tên đăng nhập (Email) === */}
+            <Form.Item
+              label="Email (Tên đăng nhập)"
+              name="username"
+              className="dark:[&_.ant-form-item-label>label]:text-gray-300"
+            >
+              <Input 
+                prefix={<FiMail className="text-gray-400" />}
+                disabled // Không cho phép sửa
+                className="dark:bg-slate-700 dark:text-gray-400 dark:border-slate-600"
+              />
+            </Form.Item>
+
+            {/* === THÊM: Vai trò === */}
+            <Form.Item
+              label="Vai trò"
+              name="role"
+              className="dark:[&_.ant-form-item-label>label]:text-gray-300"
+            >
+              <Input 
+                prefix={<FiShield className="text-gray-400" />}
+                disabled // Không cho phép sửa
+                className="dark:bg-slate-700 dark:text-gray-400 dark:border-slate-600"
+              />
+            </Form.Item>
 
             {/* Họ và tên (Cho phép sửa) */}
             <Form.Item
@@ -93,6 +131,7 @@ const ProfilePage = () => {
               className="dark:[&_.ant-form-item-label>label]:text-gray-300"
             >
               <Input 
+                prefix={<FiUser className="text-gray-400" />}
                 placeholder="Nhập họ và tên đầy đủ của bạn"
                 className="dark:bg-slate-700 dark:text-white dark:border-slate-600"
               />
