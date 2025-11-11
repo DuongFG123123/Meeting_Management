@@ -13,10 +13,10 @@ export default function ChangePasswordPage() {
   const [alert, setAlert] = useState({ type: '', message: '' });
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState({
-    old: false,
-    new: false,
-    confirm: false
-  });
+  oldPassword: false,
+  newPassword: false,
+  confirmPassword: false,
+});
 
   // Hàm set value input
   const handleChange = (key, value) => {
