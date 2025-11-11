@@ -344,6 +344,7 @@ export default function RoomsPage() {
           <table className="min-w-full table-auto text-base text-left">
             <thead className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
               <tr>
+                <th className="p-4 text-base font-semibold w-16">STT</th>
                 <th className="p-4 text-base font-semibold">Tên phòng họp</th>
                 <th className="p-4 text-base font-semibold">Vị trí</th>
                 <th className="p-4 text-base font-semibold">Sức chứa</th>
@@ -357,7 +358,7 @@ export default function RoomsPage() {
               {paginatedRooms.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan="6"
                     className="p-10 text-center text-gray-500 dark:text-gray-400"
                   >
                     <div className="flex flex-col items-center gap-2">
@@ -375,11 +376,14 @@ export default function RoomsPage() {
                   </td>
                 </tr>
               ) : (
-                paginatedRooms.map((room) => (
+                paginatedRooms.map((room, idx) => (
                   <tr
                     key={room.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                   >
+                    <td className="p-4 text-center">
+                      {(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}
+                    </td>
                     <td className="p-4 font-medium text-gray-900 dark:text-white">
                       {room.name}
                     </td>
@@ -424,34 +428,34 @@ export default function RoomsPage() {
             </tbody>
           </table>
         </div>
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-gray-700">
-            <span className="text-base text-gray-600 dark:text-gray-400">
-              Đang hiển thị {paginatedRooms.length} trên tổng số{" "}
-              {filteredRooms.length} phòng họp
-            </span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50"
-              >
-                Trang trước
-              </button>
-              <span className="px-3 py-1 text-base text-gray-700 dark:text-gray-300">
-                Trang {currentPage} / {totalPages}
-              </span>
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50"
-              >
-                Trang sau
-              </button>
-            </div>
-          </div>
-        )}
       </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-gray-700 mt-2">
+          <span className="text-base text-gray-600 dark:text-gray-400">
+            Đang hiển thị {paginatedRooms.length} trên tổng số{" "}
+            {filteredRooms.length} phòng họp
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50"
+            >
+              Trang trước
+            </button>
+            <span className="px-3 py-1 text-base text-gray-700 dark:text-gray-300">
+              Trang {currentPage} / {totalPages}
+            </span>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50"
+            >
+              Trang sau
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal Create/Edit */}
       {isModalOpen && (
