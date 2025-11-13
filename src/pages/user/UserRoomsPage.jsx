@@ -130,7 +130,7 @@ const UserRoomsPage = () => {
                       isAvailable
                         ? // PHÒNG TRỐNG — màu xanh dịu
                           "bg-green-50 border-green-200 hover:shadow-green-300 hover:scale-[1.02] dark:bg-green-900/20 dark:border-green-700"
-                        : // ⭐ PHÒNG BẢO TRÌ — xám
+                        : // PHÒNG BẢO TRÌ — xám
                           "bg-gray-200/60 border-gray-300 cursor-not-allowed dark:bg-slate-700/40 dark:border-slate-600"
                     }
                   `}
