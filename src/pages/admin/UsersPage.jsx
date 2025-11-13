@@ -9,7 +9,7 @@ import { toast } from "react-toastify";
 import { FiUsers, FiPlus, FiTrash2, FiEdit2, FiSearch, FiEye, FiEyeOff } from "react-icons/fi";
 import { motion } from "framer-motion";
 import "react-toastify/dist/ReactToastify.css";
-
+import Pagination from "../../components/Pagination";
 /* Tuỳ chỉnh màu cho Toast theo theme */
 const toastColors = {
   success: "#079830ff", // xanh ngọc dịu
@@ -505,34 +505,12 @@ export default function UsersPage() {
       </motion.div>
 
       {/* Phân trang */}
-      {filteredUsers.length > pageSize && (
-        <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-gray-700 mt-4">
-          {/* Thông tin tổng */}
-          <span className="text-base text-gray-600 dark:text-gray-400">
-            Đang hiển thị {paginatedUsers.length} trên tổng số {filteredUsers.length} người dùng
-          </span>
-          {/* Điều hướng trang */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50 transition-colors"
-            >
-              Trang trước
-            </button>
-            <span className="px-3 py-1 text-base text-gray-700 dark:text-gray-300">
-              Trang {currentPage} / {Math.ceil(filteredUsers.length / pageSize)}
-            </span>
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, Math.ceil(filteredUsers.length / pageSize)))}
-              disabled={currentPage === Math.ceil(filteredUsers.length / pageSize)}
-              className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50 transition-colors"
-            >
-              Trang sau
-            </button>
-          </div>
-        </div>
-      )}
+      <Pagination
+  totalItems={filteredUsers.length}
+  pageSize={pageSize}
+  currentPage={currentPage}
+  onPageChange={setCurrentPage}
+/>
 
       {/* MODAL THÊM NGƯỜI DÙNG */}
       {showAddModal && (
