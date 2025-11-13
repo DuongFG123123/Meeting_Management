@@ -380,7 +380,7 @@ const getRandomColor = () => {
                     dataKey="value"
                   >
                     {roomUsageData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={roomColors[roomUsageData[index]?.name] || COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip
