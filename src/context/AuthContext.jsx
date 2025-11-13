@@ -11,10 +11,10 @@ export const AuthProvider = ({ children }) => {
 
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem("token"));
-  const [initializing, setInitializing] = useState(true); // ✅ Chỉ dùng khi check token ban đầu (hết nháy)
-  const [loading, setLoading] = useState(false); // ✅ Loading riêng cho hành động login
+  const [initializing, setInitializing] = useState(true); 
+  const [loading, setLoading] = useState(false);
 
-  // 🔁 Giữ đăng nhập khi reload trang
+  // 🔁 Load token khi reload trang
   useEffect(() => {
     if (!token) {
       setInitializing(false);
@@ -26,7 +26,6 @@ export const AuthProvider = ({ children }) => {
       const expired = decoded.exp * 1000 < Date.now();
 
       if (expired) {
-        console.warn("Token hết hạn, đăng xuất im lặng");
         logout(true);
       } else {
         api.defaults.headers.common["Authorization"] = token;
@@ -37,14 +36,13 @@ export const AuthProvider = ({ children }) => {
         });
       }
     } catch (err) {
-      console.error("Token không hợp lệ:", err);
       logout(true);
     }
 
     setInitializing(false);
   }, [token]);
 
-  // 🟢 Login không navigate trong context (để tránh reload)
+  // 🟢 Login (Fix lỗi sau khi logout → login sai không hiện toast)
   const login = async (username, password) => {
     setLoading(true);
     try {
@@ -52,7 +50,9 @@ export const AuthProvider = ({ children }) => {
       const { accessToken, tokenType } = res.data;
       const fullToken = `${tokenType} ${accessToken}`;
 
+      // Lưu token
       localStorage.setItem("token", fullToken);
+      api.defaults.headers.common["Authorization"] = fullToken;
       setToken(fullToken);
 
       const decoded = jwtDecode(fullToken);
@@ -64,28 +64,31 @@ export const AuthProvider = ({ children }) => {
 
       return decoded.roles || [];
     } catch (error) {
-      throw error;
+      return Promise.reject(error); // ❗ luôn trả lỗi để LoginPage nhận toast
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔴 Logout (thêm chế độ im lặng)
+  // 🔴 Logout
   const logout = (silent = false) => {
     localStorage.removeItem("token");
+    delete api.defaults.headers.common["Authorization"];
     setUser(null);
     setToken(null);
-    delete api.defaults.headers.common["Authorization"];
     if (!silent) navigate("/login");
   };
 
   const isAuthenticated = !!token;
   const isAdmin = user?.roles?.includes("ROLE_ADMIN");
 
-  // ⏳ Chỉ hiển thị “Đang tải...” khi khởi tạo app, không khi login
   if (initializing) {
-    return <div>Đang tải ứng dụng...</div>;
-  }
+  return (
+    <div className="w-full h-screen flex items-center justify-center text-lg">
+      Đang tải ứng dụng...
+    </div>
+  );
+}
 
   return (
     <AuthContext.Provider
