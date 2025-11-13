@@ -53,7 +53,7 @@ const COLORS = ["#60A5FA", "#A78BFA", "#F472B6", "#34D399", "#FBBF24"];
 // Hàm trợ giúp format thời lượng (ví dụ: 125 -> "2h 5m")
 const formatDuration = (minutes) => {
   if (isNaN(minutes) || minutes <= 0) return "0m";
-  const d = dayjs.duration(minutes, 'minutes');
+const d = dayjs.duration(minutes, 'minutes');
   if (minutes < 60) return `${minutes}m`;
   return `${Math.floor(d.asHours())}h ${d.minutes()}m`;
 };
@@ -69,9 +69,10 @@ export default function DashboardPage() {
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const tooltipRef = useRef(); // (Cho tooltip)
+  const [roomColors, setRoomColors] = useState({});
 
 // Hàm tạo nội dung tooltip (Giữ nguyên)
-const getEventTooltipContent = (event) => {
+  const getEventTooltipContent = (event) => {
   // ... (code tooltip của bạn giữ nguyên)
   const startTime = dayjs(event.start).format('HH:mm');
   const endTime = dayjs(event.end).format('HH:mm');
@@ -173,7 +174,14 @@ const handleEventMouseLeave = () => {
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
-
+// Hàm random màu sáng dễ nhìn
+const getRandomColor = () => {
+  const colors = [
+    "#60A5FA", "#A78BFA", "#F472B6", "#34D399", "#FBBF24",
+    "#F87171", "#4ADE80", "#38BDF8", "#C084FC", "#FCD34D"
+  ];
+  return colors[Math.floor(Math.random() * colors.length)];
+};
   // === 3. useEffect TẢI VÀ XỬ LÝ TẤT CẢ DỮ LIỆU (ĐÃ SỬA) ===
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -184,30 +192,35 @@ const handleEventMouseLeave = () => {
           getAllMeetings() // Lấy 1000 cuộc họp
         ]);
 
-        // === A. XỬ LÝ LỊCH (Timeline) (Giữ nguyên) ===
-        const resources = (roomsRes.data || []).map(room => ({
-          id: room.id.toString(),
-          title: room.name
-        }));
-        setCalendarResources(resources);
+        // === A. XỬ LÝ LỊCH (Timeline) ===
+const roomColorMap = {};
+const resources = (roomsRes.data || []).map(room => {
+  roomColorMap[room.id] = roomColors[room.id] || getRandomColor();
+  return {
+    id: room.id.toString(),
+    title: room.name,
+  };
+});
+setCalendarResources(resources);
+setRoomColors(roomColorMap);
 
-        // (API mới đã thay đổi participants, nhưng logic map này vẫn đúng)
-        const meetings = meetingsRes.data?.content || [];
-        const events = meetings.map(meeting => ({
-          id: meeting.id.toString(),
-          title: meeting.title,
-          start: meeting.startTime,
-          end: meeting.endTime,
-          resourceId: meeting.room?.id?.toString(),
-          backgroundColor: meeting.status === 'CONFIRMED' ? "#3B82F6" : "#F59E0B",
-          borderColor: meeting.status === 'CONFIRMED' ? "#2563EB" : "#D97706",
-          extendedProps: {
-            organizer: meeting.organizer?.fullName || "Không rõ",
-            roomName: meeting.room?.name || "Không có phòng",
-            location: meeting.room?.location || "Không có địa điểm"
-          }
-        }));
-        setCalendarEvents(events);
+// ✅ Lấy dữ liệu cuộc họp (có thể là mảng hoặc object.content)
+const meetings = Array.isArray(meetingsRes.data)
+  ? meetingsRes.data
+  : meetingsRes.data?.content || [];
+
+// ✅ Map dữ liệu thành sự kiện
+const events = meetings.map(meeting => ({
+  id: meeting.id.toString(),
+  title: `${meeting.title} - ${meeting.room?.name || "Không rõ phòng"}`,
+  start: meeting.startTime,
+  end: meeting.endTime,
+  resourceId: meeting.room?.id?.toString(),
+  backgroundColor: roomColorMap[meeting.room?.id] || "#94A3B8",
+  borderColor: roomColorMap[meeting.room?.id] || "#94A3B8",
+  textColor: "#fff",
+}));
+setCalendarEvents(events);
         
         // === B. XỬ LÝ THỐNG KÊ (Cards & Charts) (ĐÃ SỬA) ===
         const now = dayjs();
@@ -264,11 +277,15 @@ const handleEventMouseLeave = () => {
           const roomName = m.room?.name || "Không có phòng";
           roomUsage[roomName] = (roomUsage[roomName] || 0) + 1;
         });
-        const pieData = Object.keys(roomUsage).map(name => ({
-          name: name,
-          value: roomUsage[name]
-        }));
-        setRoomUsageData(pieData);
+        const pieData = Object.keys(roomUsage).map(name => {
+        const room = (roomsRes.data || []).find(r => r.name === name);
+        return {
+          name,
+          value: roomUsage[name],
+          roomId: room?.id, // thêm ID để tiện dùng màu
+        };
+      });
+      setRoomUsageData(pieData);
 
       } catch (err) {
         console.error("❌ Lỗi tải dữ liệu Dashboard:", err);
@@ -363,18 +380,14 @@ const handleEventMouseLeave = () => {
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">👥 Phân bổ theo phòng họp</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
-                  <Pie
-                    data={roomUsageData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    dataKey="value"
-                  >
-                    {roomUsageData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
+                  <Pie data={roomUsageData} cx="50%" cy="50%" outerRadius={80} dataKey="value">
+  {roomUsageData.map((entry, index) => (
+    <Cell 
+      key={`cell-${index}`} 
+      fill={roomColors[entry.roomId] || COLORS[index % COLORS.length]} 
+    />
+  ))}
+</Pie>
                   <Tooltip
                     contentStyle={{
                       backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
@@ -403,6 +416,7 @@ const handleEventMouseLeave = () => {
             </h3>
             
             <FullCalendar
+              key={calendarEvents.length} // ép render lại mỗi khi đổi dữ liệu
               plugins={[resourceTimelinePlugin]}
               schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
               initialView="resourceTimelineDay"
