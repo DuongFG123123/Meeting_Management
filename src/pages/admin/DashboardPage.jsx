@@ -53,7 +53,7 @@ const COLORS = ["#60A5FA", "#A78BFA", "#F472B6", "#34D399", "#FBBF24"];
 // Hàm trợ giúp format thời lượng (ví dụ: 125 -> "2h 5m")
 const formatDuration = (minutes) => {
   if (isNaN(minutes) || minutes <= 0) return "0m";
-  const d = dayjs.duration(minutes, 'minutes');
+const d = dayjs.duration(minutes, 'minutes');
   if (minutes < 60) return `${minutes}m`;
   return `${Math.floor(d.asHours())}h ${d.minutes()}m`;
 };
@@ -69,9 +69,10 @@ export default function DashboardPage() {
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const tooltipRef = useRef(); // (Cho tooltip)
+  const [roomColors, setRoomColors] = useState({});
 
 // Hàm tạo nội dung tooltip (Giữ nguyên)
-const getEventTooltipContent = (event) => {
+  const getEventTooltipContent = (event) => {
   // ... (code tooltip của bạn giữ nguyên)
   const startTime = dayjs(event.start).format('HH:mm');
   const endTime = dayjs(event.end).format('HH:mm');
