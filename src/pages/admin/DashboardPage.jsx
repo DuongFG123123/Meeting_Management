@@ -272,11 +272,15 @@ const getRandomColor = () => {
           const roomName = m.room?.name || "Không có phòng";
           roomUsage[roomName] = (roomUsage[roomName] || 0) + 1;
         });
-        const pieData = Object.keys(roomUsage).map(name => ({
-          name: name,
-          value: roomUsage[name]
-        }));
-        setRoomUsageData(pieData);
+        const pieData = Object.keys(roomUsage).map(name => {
+        const room = (roomsRes.data || []).find(r => r.name === name);
+        return {
+          name,
+          value: roomUsage[name],
+          roomId: room?.id, // thêm ID để tiện dùng màu
+        };
+      });
+      setRoomUsageData(pieData);
 
       } catch (err) {
         console.error("❌ Lỗi tải dữ liệu Dashboard:", err);
@@ -371,18 +375,14 @@ const getRandomColor = () => {
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">👥 Phân bổ theo phòng họp</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
-                  <Pie
-                    data={roomUsageData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    dataKey="value"
-                  >
-                    {roomUsageData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={roomColors[roomUsageData[index]?.name] || COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
+                  <Pie data={roomUsageData} cx="50%" cy="50%" outerRadius={80} dataKey="value">
+  {roomUsageData.map((entry, index) => (
+    <Cell 
+      key={`cell-${index}`} 
+      fill={roomColors[entry.roomId] || COLORS[index % COLORS.length]} 
+    />
+  ))}
+</Pie>
                   <Tooltip
                     contentStyle={{
                       backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
