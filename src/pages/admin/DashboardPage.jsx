@@ -416,6 +416,7 @@ setCalendarEvents(events);
             </h3>
             
             <FullCalendar
+              key={calendarEvents.length} // ép render lại mỗi khi đổi dữ liệu
               plugins={[resourceTimelinePlugin]}
               schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
               initialView="resourceTimelineDay"
