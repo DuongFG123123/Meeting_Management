@@ -147,6 +147,7 @@ function getEventTooltipContent(event) {
     </div>
   `;
 }
+
 // Helper để xác định slot có hợp lệ để đặt lịch không (không ở quá khứ, trong giờ hành chính và KHÔNG phải thứ 7, CN)
 function isBusinessTime(date) {
   // date là JS Date hoặc dayjs object theo local time của lịch FullCalendar
@@ -156,9 +157,16 @@ function isBusinessTime(date) {
   // Ngày trong tuần: 0 (CN), 6 (T7)
   const day = d.day();
   if (day === 0 || day === 6) return false;
-  // Giờ hành chính: >= 08:00 và < 18:00
+  // Giờ hành chính: >= 08:00 và <= 18:00 (CHỈ SỬA Ở ĐÂY)
   const hour = d.hour();
-  return hour >= WORK_HOUR_START && hour < WORK_HOUR_END;
+  const minute = d.minute();
+  // Cho phép đặt giờ đúng từ 08:00 đến 18:00: Không được bắt đầu trước 08:00 và không kết thúc sau 18:00
+  // Để hỗ trợ book từ 10h đến đúng 18h (tức end là 18:00), cần trả về true khi giờ nhỏ hơn 18 HOẶC (giờ=18 && phút=0)
+  return (
+    hour > WORK_HOUR_START && hour < WORK_HOUR_END
+    || (hour === WORK_HOUR_START)
+    || (hour === WORK_HOUR_END && minute === 0)
+  );
 }
 
 // CSS cho các slot không hợp lệ (không dùng được)
@@ -472,8 +480,13 @@ const MyMeetingPage = () => {
     let end = selection?.endStr ? dayjs(selection.endStr) : null;
     if (!start || !end) return;
 
+    // Thay đổi này đảm bảo nếu thời điểm kết thúc là đúng 18:00 thì vẫn coi là hợp lệ
     // Kiểm tra chọn toàn bộ trong business time (giờ hành chính, không quá khứ, KHÔNG phải T7/CN)
-    if (!isBusinessTime(start) || !isBusinessTime(end.subtract(1, "minute"))) {
+    const isStartOk = isBusinessTime(start);
+    // Để xét chấp nhận end = 18:00 (tức phút cuối cùng của work hours), truyền thẳng end thay vì end.subtract(1, "minute")
+    const isEndOk = isBusinessTime(end);
+
+    if (!isStartOk || !isEndOk) {
       toast.warn("Chỉ được tạo lịch trong giờ hành chính từ thứ 2 đến thứ 6 và không chọn quá khứ!");
       return;
     }
@@ -557,7 +570,10 @@ const MyMeetingPage = () => {
       // Đảm bảo tạo cuộc họp đúng giờ hành chính thứ 2-6
       const localStart = dayjs(startTime).local();
       const localEnd = dayjs(endTime).local();
-      if (!isBusinessTime(localStart) || !isBusinessTime(localEnd.subtract(1, "minute"))) {
+
+      // Nếu thời điểm kết thúc là 18:00 thì vẫn coi là hợp lệ
+      // Phần kiểm tra này phải xét end là đúng 18:00, ví dụ: họp từ 10:00 đến 18:00 là cho phép
+      if (!isBusinessTime(localStart) || !isBusinessTime(localEnd)) {
         toast.error("Bạn chỉ có thể tạo họp trong giờ hành chính (08:00-18:00, từ thứ 2 đến thứ 6).");
         return;
       }
@@ -741,7 +757,7 @@ const MyMeetingPage = () => {
             // ĐÃ BỔ SUNG: loại trừ luôn thứ 7 (6), chủ nhật (0)
             selectAllow={function(selectInfo) {
               const start = dayjs(selectInfo.start);
-              const end = dayjs(selectInfo.end).subtract(1, "minute");
+              const end = dayjs(selectInfo.end);
               // Chặn thứ 7 (6) & chủ nhật (0) cho cả start & end
               const validStart = isBusinessTime(start);
               const validEnd = isBusinessTime(end);
@@ -751,7 +767,7 @@ const MyMeetingPage = () => {
             // -- Chặn drag, resize event ra ngoài giờ hành chính (nếu cần, cho UX tốt hơn)
             eventAllow={function(dropInfo, draggedEvent) {
               const start = dayjs(dropInfo.start);
-              const end = dayjs(dropInfo.end).subtract(1, "minute");
+              const end = dayjs(dropInfo.end);
               // Chặn thứ 7 (6) & chủ nhật (0) cho cả start & end
               const validStart = isBusinessTime(start);
               const validEnd = isBusinessTime(end);
@@ -914,9 +930,11 @@ const MyMeetingPage = () => {
                         return Promise.reject("Thời gian họp phải ở tương lai!");
                       }
                       // Chỉ cho phép chọn trong giờ hành chính
+                      // ---- SỬA CHỖ NÀY: cho phép đúng 18:00
                       const h = value.hour();
-                      if (h < WORK_HOUR_START || h >= WORK_HOUR_END) {
-                        return Promise.reject("Chỉ đặt trong giờ hành chính (08:00-18:00)");
+                      const m = value.minute();
+                      if (h < WORK_HOUR_START || h > WORK_HOUR_END || (h === WORK_HOUR_END && m !== 0)) {
+                        return Promise.reject("Chỉ đặt trong giờ hành chính (08:00-18:00, kết thúc đúng 18:00)");
                       }
                       return Promise.resolve();
                     },
@@ -938,8 +956,16 @@ const MyMeetingPage = () => {
                   disabledHours={() => {
                     let hours = [];
                     for (let i = 0; i < WORK_HOUR_START; i++) hours.push(i);
-                    for (let i = WORK_HOUR_END; i < 24; i++) hours.push(i);
+                    for (let i = WORK_HOUR_END + 1; i < 24; i++) hours.push(i);
                     return hours;
+                  }}
+                  // Đảm bảo nếu giờ là 18 thì chỉ cho chọn phút = 0
+                  disabledMinutes={(selectedHour) => {
+                    if (selectedHour === WORK_HOUR_END) {
+                      // chỉ cho chọn phút = 0 nếu là 18h
+                      return Array.from({ length: 60 }, (_, m) => m).filter(m => m !== 0);
+                    }
+                    return [];
                   }}
                 />
               </Form.Item>
