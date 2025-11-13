@@ -1,3 +1,4 @@
+// src/pages/user/CreateMeetingPage.jsx
 import React, { useEffect, useState, useRef } from "react";
 import {
   DatePicker,
@@ -17,12 +18,15 @@ import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import utc from "dayjs/plugin/utc";
 import { useAuth } from "../../context/AuthContext";
+
+// === 1. THAY ĐỔI IMPORT (THEO YÊU CẦU BACKEND) ===
 import {
   createMeeting,
   getRooms,
-  getDevices,
+  // BỎ: getDevices,
 } from "../../services/meetingService";
 import { searchUsers } from "../../services/userService";
+import { getAvailableDevices } from "../../services/deviceService"; // <-- IMPORT API MỚI
 
 // 🧁 Toast thông báo
 import { toast, ToastContainer } from "react-toastify";
@@ -35,17 +39,29 @@ const { TextArea } = Input;
 const { Option } = Select;
 
 const CreateMeetingPage = () => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Loading khi submit form
   const [rooms, setRooms] = useState([]);
-  const [devices, setDevices] = useState([]);
+  
+  // === 2. STATE MỚI CHO THIẾT BỊ ===
+  const [availableDevices, setAvailableDevices] = useState([]);
+  const [devicesLoading, setDevicesLoading] = useState(false);
+
+  // State tìm kiếm (giữ nguyên)
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const debounceTimer = useRef(null);
+
   const [form] = Form.useForm();
   const { user } = useAuth();
   const [isRecurring, setIsRecurring] = useState(false);
+  
+  // === DÙNG Form.useWatch ĐỂ THEO DÕI THỜI GIAN ===
+  const watchedDate = Form.useWatch('date', form);
+  const watchedTime = Form.useWatch('time', form);
+  const watchedDuration = Form.useWatch('duration', form);
+  // ===========================================
 
-  // Style cho dropdown AntD
+  // Style cho dropdown AntD (giữ nguyên)
   const getDropdownStyle = () => {
     const isDark = document.documentElement.classList.contains("dark");
     return {
@@ -56,9 +72,10 @@ const CreateMeetingPage = () => {
     };
   };
 
-  // Load phòng và thiết bị
+  // === 3. SỬA useEffect TẢI DỮ LIỆU BAN ĐẦU ===
+  // (Chỉ tải Phòng, không tải Thiết bị nữa)
   useEffect(() => {
-    const fetchDropdownData = async () => {
+    const fetchRoomsData = async () => {
       try {
         const roomRes = await getRooms();
         setRooms(roomRes.data || []);
@@ -66,19 +83,60 @@ const CreateMeetingPage = () => {
         console.error("❌ Lỗi tải phòng họp:", err);
         message.error("Không thể tải danh sách phòng họp!");
       }
+    };
+    fetchRoomsData();
+  }, []); // Chạy 1 lần khi trang mở
+  
+  // === 4. useEffect MỚI ĐỂ THEO DÕI THỜI GIAN VÀ TẢI THIẾT BỊ ===
+  useEffect(() => {
+    const fetchDevices = async () => {
+      // Nếu 1 trong 3 giá trị chưa có, không gọi API
+      if (!watchedDate || !watchedTime || !watchedDuration) {
+        setAvailableDevices([]); // Xóa danh sách
+        return;
+      }
+      
+      setDevicesLoading(true);
+      // Xóa các thiết bị đã chọn (vì thời gian thay đổi)
+      form.setFieldsValue({ deviceIds: [] });
 
       try {
-        const deviceRes = await getDevices();
-        setDevices(deviceRes.data || []);
+        // Tính toán startTime và endTime (logic UTC đã sửa)
+        const startTimeUTC = dayjs.utc()
+          .year(watchedDate.year())
+          .month(watchedDate.month())
+          .date(watchedDate.date())
+          .hour(watchedTime.hour())
+          .minute(watchedTime.minute())
+          .second(0)
+          .millisecond(0);
+        
+        const startTime = startTimeUTC.toISOString();
+        const endTime = startTimeUTC.add(watchedDuration, 'minute').toISOString();
+
+        // Gọi API mới
+        const res = await getAvailableDevices(startTime, endTime);
+        setAvailableDevices(res.data || []);
+
       } catch (err) {
-        console.error("❌ Lỗi tải thiết bị:", err);
-        message.error("Không thể tải danh sách thiết bị!");
+        console.error("Lỗi tải thiết bị khả dụng:", err);
+        message.error("Không thể tải danh sách thiết bị khả dụng.");
+        setAvailableDevices([]); // Đặt lại nếu lỗi
+      } finally {
+        setDevicesLoading(false);
       }
     };
-    fetchDropdownData();
-  }, []);
 
-  // CSS cho dark mode
+    // Dùng debounce để tránh gọi API liên tục khi người dùng thay đổi
+    const timer = setTimeout(() => {
+      fetchDevices();
+    }, 500); // Trễ 500ms
+
+    return () => clearTimeout(timer); // Dọn dẹp
+
+  }, [watchedDate, watchedTime, watchedDuration, form]); // Chạy lại khi thời gian thay đổi
+
+  // CSS cho dark mode (giữ nguyên)
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
@@ -96,7 +154,7 @@ const CreateMeetingPage = () => {
     return () => document.head.removeChild(style);
   }, []);
 
-  // Tìm kiếm người dùng
+  // Tìm kiếm người dùng (giữ nguyên)
   const handleSearchUsers = (query) => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
 
@@ -125,7 +183,7 @@ const CreateMeetingPage = () => {
     }
   };
 
-  // Gửi form
+  // Gửi form (giữ nguyên logic UTC)
   const handleCreateMeeting = async (values) => {
     try {
       setLoading(true);
@@ -162,7 +220,7 @@ const CreateMeetingPage = () => {
         endTime,
         roomId: values.roomId,
         participantIds,
-        deviceIds: values.deviceIds || [],
+        deviceIds: values.deviceIds || [], // Dữ liệu đã được lọc
         recurrenceRule: values.isRecurring
           ? {
               frequency: values.frequency || "DAILY",
@@ -182,6 +240,7 @@ const CreateMeetingPage = () => {
       // ✅ Toast thành công
       toast.success("🎉 Tạo cuộc họp thành công!");
       form.resetFields();
+      setAvailableDevices([]); // Xóa ds thiết bị
     } catch (err) {
       console.error("❌ Lỗi tạo cuộc họp:", err);
       const msg = err?.response?.data?.message || "Không thể tạo cuộc họp!";
@@ -194,10 +253,12 @@ const CreateMeetingPage = () => {
         msg.toLowerCase().includes("thiết bị")
       ) {
         toast.error("⚙️ Thiết bị đang bảo trì, vui lòng bỏ chọn thiết bị này!");
+      } else if (err.response?.status === 409) {
+         toast.error(`🚫 Xung đột: ${msg}`); // "Một trong các thiết bị bạn chọn đã bị đặt..."
       } else if (err.response?.status === 403) {
-        toast.error("❌ Không thể tạo cuộc họp: Phòng hoặc thiết bị không khả dụng!");
+         toast.error("❌ Không thể tạo cuộc họp: Phòng hoặc thiết bị không khả dụng!");
       } else {
-        toast.error(msg);
+         toast.error(msg);
       }
     } finally {
       setLoading(false);
@@ -248,7 +309,7 @@ const CreateMeetingPage = () => {
               <Input placeholder="Nhập tên cuộc họp..." />
             </Form.Item>
 
-            {/* Thời gian */}
+            {/* Thời gian (Đã fix validator) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Form.Item
                 label="Ngày họp"
@@ -272,14 +333,16 @@ const CreateMeetingPage = () => {
                     validator(_, value) {
                       const date = getFieldValue("date");
                       if (!date || !value) return Promise.resolve();
-
+                      
+                      // Logic validator UTC (Đã sửa)
                       const selectedUTC = dayjs.utc()
                         .year(date.year())
                         .month(date.month())
                         .date(date.date())
                         .hour(value.hour())
-                        .minute(value.minute());
-
+                        .minute(value.minute())
+                        .second(0);
+                      
                       if (selectedUTC.isBefore(dayjs.utc().add(1, "minute"))) {
                         return Promise.reject("⏰ Thời gian họp phải ở tương lai!");
                       }
@@ -293,17 +356,10 @@ const CreateMeetingPage = () => {
                   use12Hours
                   format="hh:mm A"
                   minuteStep={5}
-                  onSelect={(value) => {
-                    if (value) form.setFieldValue("time", value);
-                  }}
-                  onOpenChange={(openStatus) => {
-                    const value = form.getFieldValue("time");
-                    if (value) form.setFieldValue("time", value);
-                  }}
                 />
               </Form.Item>
 
-              <Form.Item label="Thời lượng" name="duration" initialValue={60}>
+              <Form.Item label="Thời lượng" name="duration" initialValue={60} rules={[{ required: true, message: "Vui lòng chọn thời lượng" }]}>
                 <Select styles={getDropdownStyle()}>
                   <Option value={15}>15 phút</Option>
                   <Option value={30}>30 phút</Option>
@@ -315,7 +371,7 @@ const CreateMeetingPage = () => {
               </Form.Item>
             </div>
 
-            {/* Phòng họp */}
+            {/* Phòng họp (giữ nguyên) */}
             <Form.Item
               label="Phòng họp"
               name="roomId"
@@ -331,22 +387,28 @@ const CreateMeetingPage = () => {
               />
             </Form.Item>
 
-            {/* Thiết bị */}
+            {/* === 5. CẬP NHẬT JSX CHO THIẾT BỊ === */}
             <Form.Item label="Thiết bị sử dụng" name="deviceIds">
               <Select
                 mode="multiple"
-                placeholder="-- Chọn thiết bị --"
-                options={devices.map((d) => ({
+                placeholder={
+                  !watchedDate || !watchedTime ? "Vui lòng chọn ngày và giờ trước" : "Chọn thiết bị khả dụng"
+                }
+                // Vô hiệu hóa nếu chưa chọn thời gian
+                disabled={!watchedDate || !watchedTime || devicesLoading} 
+                loading={devicesLoading} // Hiển thị spinner
+                options={availableDevices.map((d) => ({ // <-- Dùng state mới
                   label: d.name,
                   value: d.id,
                 }))}
                 styles={getDropdownStyle()}
               />
             </Form.Item>
+            {/* === KẾT THÚC CẬP NHẬT JSX === */}
 
             <Divider />
 
-            {/* Người tham gia */}
+            {/* Người tham gia (giữ nguyên) */}
             <Form.Item
               label={
                 <span>
@@ -375,7 +437,7 @@ const CreateMeetingPage = () => {
               />
             </Form.Item>
 
-            {/* Email khách mời */}
+            {/* Email khách mời (giữ nguyên) */}
             <Form.Item
               label="Email khách mời (Bên ngoài)"
               name="guestEmails"
@@ -409,7 +471,7 @@ const CreateMeetingPage = () => {
 
             <Divider />
 
-            {/* Lặp lại */}
+            {/* Lặp lại (giữ nguyên) */}
             <Form.Item name="isRecurring" valuePropName="checked">
               <Checkbox>Lặp lại cuộc họp này</Checkbox>
             </Form.Item>
@@ -427,7 +489,11 @@ const CreateMeetingPage = () => {
                   />
                 </Form.Item>
                 <Form.Item label="Lặp lại đến" name="repeatUntil">
-                  <DatePicker className="w-full" format="DD/MM/YYYY" />
+                  <DatePicker 
+                    className="w-full" 
+                    format="DD/MM/YYYY" 
+                    disabledDate={(current) => current && current < dayjs().startOf("day")}
+                  />
                 </Form.Item>
               </div>
             )}
