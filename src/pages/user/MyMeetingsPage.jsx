@@ -28,7 +28,7 @@ import {
   Divider,
   Checkbox,
 } from "antd";
-import { FiCalendar, FiPlusCircle, FiUsers } from "react-icons/fi";
+import { FiCalendar, FiPlusCircle, FiUsers, FiEdit, FiAlertTriangle } from "react-icons/fi";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import utc from "dayjs/plugin/utc";
@@ -36,6 +36,9 @@ import { useAuth } from "../../context/AuthContext";
 
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
+import EditMeetingModal from "../../components/user/EditMeetingModal";
+import DeleteMeetingModal from "../../components/user/DeleteMeetingModal";
 
 dayjs.locale("vi");
 dayjs.extend(utc);
@@ -154,6 +157,10 @@ const MyMeetingPage = () => {
   const [creating, setCreating] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
 
+  // Thêm state mới cho modal sửa/xoá
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
   // State form data
   const [rooms, setRooms] = useState([]);
   const [devices, setDevices] = useState([]);
@@ -243,7 +250,7 @@ const MyMeetingPage = () => {
       setMeetingDetail(null);
       setIsModalOpen(true);
       const res = await getMeetingById(id);
-      setMeetingDetail(res.data);
+      setMeetingDetail(res.data); // res.data sẽ chứa recurrenceSeriesId nếu có
     } catch (err) {
       console.error("Lỗi khi lấy chi tiết:", err);
       toast.error("Không thể tải chi tiết cuộc họp!");
@@ -554,15 +561,44 @@ const MyMeetingPage = () => {
         </div>
       )}
 
-      {/* Modal chi tiết cuộc họp */}
+      {/* Modal chi tiết cuộc họp - CẬP NHẬT PHẦN FOOTER */}
       <Modal
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
-        footer={null}
+        footer={
+          meetingDetail && meetingDetail.organizer?.id === user?.id ? (
+            <div className="flex justify-end gap-2">
+              <Button
+                type="primary"
+                icon={<FiEdit />}
+                onClick={() => {
+                  setIsEditModalOpen(true);
+                  setIsModalOpen(false);
+                }}
+                className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500"
+              >
+                Sửa
+              </Button>
+              <Button
+                danger
+                icon={<FiAlertTriangle />}
+                onClick={() => {
+                  setIsDeleteModalOpen(true);
+                  setIsModalOpen(false);
+                }}
+              >
+                Hủy họp
+              </Button>
+            </div>
+          ) : (
+            <Button onClick={() => setIsModalOpen(false)}>Đóng</Button>
+          )
+        }
         title={<span className="dark:text-white">Chi tiết cuộc họp</span>}
         width={600}
         className="dark:[&_.ant-modal-content]:bg-gray-800 dark:[&_.ant-modal-content]:text-gray-200"
       >
+        {/* Giữ nguyên nội dung bên trong */}
         {meetingDetail ? (
           <Descriptions
             bordered
@@ -850,6 +886,29 @@ const MyMeetingPage = () => {
           </Form>
         </Card>
       </Modal>
+
+      {/* Modal chỉnh sửa cuộc họp */}
+      <EditMeetingModal
+        open={isEditModalOpen}
+        onCancel={() => setIsEditModalOpen(false)}
+        meetingDetail={meetingDetail}
+        onSuccess={() => {
+          fetchMeetings();
+          setMeetingDetail(null);
+        }}
+      />
+
+      {/* Modal xóa cuộc họp */}
+      <DeleteMeetingModal
+        open={isDeleteModalOpen}
+        onCancel={() => setIsDeleteModalOpen(false)}
+        meetingDetail={meetingDetail}
+        onSuccess={() => {
+          fetchMeetings();
+          setMeetingDetail(null);
+        }}
+      />
+
     </div>
   );
 };
