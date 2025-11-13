@@ -4,7 +4,7 @@ import { getDevices, createDevice, updateDevice, deleteDevice } from "../../serv
 import { Search, Plus, Edit2, Trash2, X, Check, AlertTriangle } from "lucide-react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import Pagination from "../../components/Pagination";
 const toastColors = {
   success: "#10b981", // xanh ngọc dịu
   error: "#ef4444", // đỏ ấm
@@ -451,37 +451,12 @@ export default function DevicesPage() {
       </div>
 
       {/* 📄 Phân trang */}
-      {filteredDevices.length > 5 && (
-        <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-gray-700 mt-4">
-          {/* Thông tin tổng */}
-          <span className="text-base text-gray-600 dark:text-gray-400">
-            Đang hiển thị {paginatedDevices.length} trên tổng số {filteredDevices.length} thiết bị
-          </span>
-
-          {/* Điều hướng trang */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50 transition-colors"
-            >
-              Trang trước
-            </button>
-
-            <span className="px-3 py-1 text-base text-gray-700 dark:text-gray-300">
-              Trang {currentPage} / {Math.ceil(filteredDevices.length / 5)}
-            </span>
-
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, Math.ceil(filteredDevices.length / 5)))}
-              disabled={currentPage === Math.ceil(filteredDevices.length / 5)}
-              className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50 transition-colors"
-            >
-              Trang sau
-            </button>
-          </div>
-        </div>
-      )}
+      <Pagination
+  totalItems={filteredDevices.length}
+  pageSize={ITEMS_PER_PAGE}
+  currentPage={currentPage}
+  onPageChange={(page) => setCurrentPage(page)}
+/>
 
       {/* ==================== MODAL THÊM/SỬA THIẾT BỊ ==================== */}
       {isModalOpen && (

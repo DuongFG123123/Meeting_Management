@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { getRooms, createRoom, updateRoom, deleteRoom} from "../../services/roomService";
 import { Search, Plus, Edit2, Trash2, X, Check, AlertCircle,  AlertTriangle, Building } from "lucide-react";
 import { toast } from "react-toastify";
-
+import Pagination from "../../components/Pagination";
 const toastColors = {
   success: "#10b981", // xanh ngọc dịu
   error: "#ef4444", // đỏ ấm
@@ -429,33 +429,16 @@ export default function RoomsPage() {
           </table>
         </div>
       </div>
+      
+      {/* Phân trang */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-gray-700 mt-2">
-          <span className="text-base text-gray-600 dark:text-gray-400">
-            Đang hiển thị {paginatedRooms.length} trên tổng số{" "}
-            {filteredRooms.length} phòng họp
-          </span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50"
-            >
-              Trang trước
-            </button>
-            <span className="px-3 py-1 text-base text-gray-700 dark:text-gray-300">
-              Trang {currentPage} / {totalPages}
-            </span>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50"
-            >
-              Trang sau
-            </button>
-          </div>
-        </div>
-      )}
+  <Pagination
+    totalItems={filteredRooms.length}
+    pageSize={ITEMS_PER_PAGE}
+    currentPage={currentPage}
+    onPageChange={handlePageChange}
+  />
+)}
 
       {/* Modal Create/Edit */}
       {isModalOpen && (
