@@ -192,34 +192,35 @@ const getRandomColor = () => {
           getAllMeetings() // Lấy 1000 cuộc họp
         ]);
 
-        // === A. XỬ LÝ LỊCH (Timeline) (Giữ nguyên) ===
-        const roomColorMap = {};
-        const resources = (roomsRes.data || []).map(room => {
-        // Nếu phòng chưa có màu, random màu mới
-          roomColorMap[room.id] = roomColors[room.id] || getRandomColor();
-          return {
-            id: room.id.toString(),
-            title: room.name,
-          };
-        });
-        setCalendarResources(resources);
-        setRoomColors(roomColorMap);
+        // === A. XỬ LÝ LỊCH (Timeline) ===
+const roomColorMap = {};
+const resources = (roomsRes.data || []).map(room => {
+  roomColorMap[room.id] = roomColors[room.id] || getRandomColor();
+  return {
+    id: room.id.toString(),
+    title: room.name,
+  };
+});
+setCalendarResources(resources);
+setRoomColors(roomColorMap);
 
-        // (API mới đã thay đổi participants, nhưng logic map này vẫn đúng)
-        if (meetingsRes.data && Array.isArray(meetingsRes.data)) {
-  const meetings = meetingsRes.data;
-  const events = meetings.map(meeting => ({
-    id: meeting.id.toString(),
-    title: `${meeting.title} - ${meeting.room?.name || "Không rõ phòng"}`,
-    start: meeting.startTime,
-    end: meeting.endTime,
-    resourceId: meeting.room?.id?.toString(),
-    backgroundColor: roomColorMap[meeting.room?.id] || "#94A3B8",
-    borderColor: roomColorMap[meeting.room?.id] || "#94A3B8",
-    textColor: "#fff",
-  }));
-  setCalendarEvents(events);
-}
+// ✅ Lấy dữ liệu cuộc họp (có thể là mảng hoặc object.content)
+const meetings = Array.isArray(meetingsRes.data)
+  ? meetingsRes.data
+  : meetingsRes.data?.content || [];
+
+// ✅ Map dữ liệu thành sự kiện
+const events = meetings.map(meeting => ({
+  id: meeting.id.toString(),
+  title: `${meeting.title} - ${meeting.room?.name || "Không rõ phòng"}`,
+  start: meeting.startTime,
+  end: meeting.endTime,
+  resourceId: meeting.room?.id?.toString(),
+  backgroundColor: roomColorMap[meeting.room?.id] || "#94A3B8",
+  borderColor: roomColorMap[meeting.room?.id] || "#94A3B8",
+  textColor: "#fff",
+}));
+setCalendarEvents(events);
         
         // === B. XỬ LÝ THỐNG KÊ (Cards & Charts) (ĐÃ SỬA) ===
         const now = dayjs();
