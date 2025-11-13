@@ -333,13 +333,26 @@ const handleEventMouseLeave = () => {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? "#334155" : "#e5e7eb"} />
                   <XAxis dataKey="name" stroke={isDarkMode ? "#cbd5e1" : "#475569"} />
                   <YAxis stroke={isDarkMode ? "#cbd5e1" : "#475569"} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
-                      color: isDarkMode ? "#f8fafc" : "#1e293b",
-                      borderRadius: "8px", border: "none",
-                    }}
-                  />
+                  
+
+<Tooltip
+  contentStyle={{
+    backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
+    color: isDarkMode ? "#f8fafc" : "#1e293b",
+    borderRadius: "8px",
+    border: "none",
+  }}
+  itemStyle={{
+    color: isDarkMode ? "#f8fafc" : "#1e293b", // Đồng bộ màu chữ tooltip
+  }}
+  formatter={(value) => {
+    const total = roomUsageData.reduce((acc, entry) => acc + entry.value, 0);
+    const percent = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
+    return `${value} (${percent}%)`;
+  }}
+/>
+
+
                   <Bar dataKey="count" fill={isDarkMode ? "#818cf8" : "#60A5FA"} radius={[8, 8, 0, 0]} barSize={30} />
                 </BarChart>
               </ResponsiveContainer>
@@ -350,7 +363,14 @@ const handleEventMouseLeave = () => {
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">👥 Phân bổ theo phòng họp</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
-                  <Pie data={roomUsageData} cx="50%" cy="50%" labelLine={false} outerRadius={80} dataKey="value"> {/* <-- DÙNG STATE */}
+                  <Pie
+                    data={roomUsageData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={80}
+                    dataKey="value"
+                  >
                     {roomUsageData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
@@ -359,13 +379,16 @@ const handleEventMouseLeave = () => {
                     contentStyle={{
                       backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
                       color: isDarkMode ? "#f8fafc" : "#1e293b",
-                      borderRadius: "8px", border: "none",
+                      borderRadius: "8px",
+                      border: "none",
                     }}
-                    // Hiển thị tên và %
-                    formatter={(value) => {
+                    itemStyle={{
+                      color: isDarkMode ? "#f8fafc" : "#1e293b",
+                    }}
+                    formatter={(value, name) => {
                       const total = roomUsageData.reduce((acc, entry) => acc + entry.value, 0);
                       const percent = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
-                      return `${value} (${percent}%)`;
+                      return [`${value} (${percent}%)`, name];
                     }}
                   />
                 </PieChart>
