@@ -174,14 +174,6 @@ const handleEventMouseLeave = () => {
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
-// Hàm random màu sáng dễ nhìn
-const getRandomColor = () => {
-  const colors = [
-    "#60A5FA", "#A78BFA", "#F472B6", "#34D399", "#FBBF24",
-    "#F87171", "#4ADE80", "#38BDF8", "#C084FC", "#FCD34D"
-  ];
-  return colors[Math.floor(Math.random() * colors.length)];
-};
   // === 3. useEffect TẢI VÀ XỬ LÝ TẤT CẢ DỮ LIỆU (ĐÃ SỬA) ===
   useEffect(() => {
     const fetchDashboardData = async () => {
