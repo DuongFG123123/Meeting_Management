@@ -22,7 +22,7 @@ export default function AnalogClockPicker({ value, onChange, disabledTime }) {
     return h;
   };
 
-  /** 🔄 Emit to parent */
+  /** Emit to parent */
   useEffect(() => {
     const h = getRealHour().toString().padStart(2, "0");
     const m = minute.toString().padStart(2, "0");
