@@ -400,7 +400,7 @@ export default function UsersPage() {
               <tr>
                 <th className="p-4 text-base font-semibold w-16 text-center">STT</th>
                 <th className="p-4 text-base font-semibold">Họ và tên</th>
-                <th className="p-4 text-base font-semibold">Tên người dùng</th>
+                <th className="p-4 text-base font-semibold">Email</th>
                 <th className="p-4 text-base font-semibold">Vai trò</th>
                 <th className="p-4 text-base font-semibold text-center">Trạng thái</th>
                 <th className="p-4 text-base font-semibold text-center">Hành động</th>
@@ -580,7 +580,7 @@ export default function UsersPage() {
                 {/* Tên người dùng */}
                 <div>
                   <label className="block text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Tên người dùng <span className="text-red-500">*</span>
+                    Email <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"

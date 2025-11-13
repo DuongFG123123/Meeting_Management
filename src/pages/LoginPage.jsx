@@ -1,28 +1,36 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { FiEye, FiEyeOff, FiLogIn } from "react-icons/fi";
 import { motion } from "framer-motion";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 export default function LoginPage() {
+  const navigate = useNavigate();
   const { login, loading } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // 🎯 Xử lý đăng nhập
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await login(username, password);
-      toast.success("Đăng nhập thành công 🎉", { autoClose: 1500 });
+      const roles = await login(username, password);
+      toast.success("🎉 Đăng nhập thành công!", { autoClose: 1000 });
+
+      setTimeout(() => {
+        if (roles.includes("ROLE_ADMIN")) navigate("/admin/dashboard");
+        else navigate("/user/dashboard");
+      }, 1000);
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
         "Sai tài khoản hoặc mật khẩu. Vui lòng thử lại!";
       toast.error(msg, { autoClose: 2000 });
+
+      setUsername("");
+      setPassword("");
     }
   };
 
@@ -54,7 +62,6 @@ export default function LoginPage() {
           </h2>
 
           <div className="space-y-4">
-            {/* Ô nhập username */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Tên đăng nhập (Email)
@@ -70,7 +77,6 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Ô nhập mật khẩu có icon 👁️ */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Mật khẩu
@@ -98,7 +104,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Nút đăng nhập */}
           <motion.button
             type="submit"
             disabled={loading}
@@ -109,7 +114,6 @@ export default function LoginPage() {
             {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </motion.button>
 
-          {/* Link phụ */}
           <div className="text-right mt-3">
             <Link
               to="/forgot-password"
@@ -119,7 +123,6 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          {/* Footer */}
           <p className="text-sm text-gray-500 text-center mt-4">
             © 2025 CMC Global - Meeting Management
           </p>
