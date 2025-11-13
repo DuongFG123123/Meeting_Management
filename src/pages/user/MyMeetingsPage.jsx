@@ -205,6 +205,19 @@ function injectNoBusinessTimeStyle() {
       color: #ef4444;
       border-color: #475569;
     }
+    /* Hiện đường line đỏ thể hiện thời gian thực tại (now-indicator) */
+    .fc .fc-timegrid-now-indicator-arrow,
+    .fc .fc-timegrid-now-indicator-line {
+      background: #ef4444 !important;
+      border-color: #ef4444 !important;
+    }
+    .fc .fc-timegrid-now-indicator-arrow {
+      border-right-color: #ef4444 !important;
+    }
+    .fc .fc-timegrid-now-indicator-line {
+      border-top: 2px solid #ef4444 !important;
+      z-index: 10 !important;
+    }
   `;
   document.head.appendChild(style);
 }
@@ -238,6 +251,9 @@ const MyMeetingPage = () => {
   const { user } = useAuth();
 
   const tooltipRef = useRef();
+
+  // Add a ref for FullCalendar to use for force updating the now time indicator
+  const calendarRef = useRef();
 
   // Inject style khi component render
   useEffect(() => {
@@ -435,6 +451,20 @@ const MyMeetingPage = () => {
     }
     return slots;
   }
+
+  // RED LINE NOW-INDICATOR: force refresh every ~20s to keep now-indicator up to date visually. (Ref: admin DashboardPage.jsx)
+  useEffect(() => {
+    let interval = setInterval(() => {
+      // FullCalendar's "now-indicator" updates only at minute granularity unless forced.
+      // We call calendarApi "updateNow" to force the now indicator line to move.
+      try {
+        if (calendarRef.current && calendarRef.current.getApi) {
+          calendarRef.current.getApi().updateNow();
+        }
+      } catch (e) {}
+    }, 20000); // update every 20 seconds for smoothness but reasonable performance
+    return () => clearInterval(interval);
+  }, []);
 
   // Xử lý click vào khoảng trống trên calendar để đặt lịch nhanh
   const handleDateSelect = (selection) => {
@@ -685,6 +715,7 @@ const MyMeetingPage = () => {
       ) : (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 transition-colors duration-500">
           <FullCalendar
+            ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             initialView="timeGridWeek"
             headerToolbar={{
@@ -737,7 +768,8 @@ const MyMeetingPage = () => {
             }}
             // Sử dụng backgroundEvents để làm mờ vùng không business hour và quá khứ, ĐÃ BỔ SUNG BLOCK T7, CN
             backgroundEvents={(arg) => getNonBusinessHourBackgroundEvents(arg.start, arg.end)}
-            // end ----------
+            // THÊM RED LINE: chỉ cần thuộc tính này trong fullcalendar để hiện line thời gian thực
+            nowIndicator={true}
           />
         </div>
       )}
