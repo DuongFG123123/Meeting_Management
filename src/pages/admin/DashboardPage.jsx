@@ -39,8 +39,8 @@ function stringToColor(str) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
   const hue = hash % 240; // Chọn màu theo hue
-  const saturation = 100;   // 0-100%, 60% là tươi vừa phải
-  const lightness = 70;    // 0-100%, 65% là sáng đẹp
+  const saturation = 100;   // 0-100%
+  const lightness = 50;    // 0-100%
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 // Cài đặt Day.js
