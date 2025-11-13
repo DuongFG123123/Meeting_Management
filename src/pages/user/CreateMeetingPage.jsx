@@ -2,7 +2,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import {
   DatePicker,
-  TimePicker,
   Select,
   Input,
   Button,
@@ -12,6 +11,7 @@ import {
   Divider,
   Checkbox,
   Spin,
+  Modal,
 } from "antd";
 import { FiPlusCircle, FiUsers } from "react-icons/fi";
 import dayjs from "dayjs";
@@ -19,18 +19,14 @@ import "dayjs/locale/vi";
 import utc from "dayjs/plugin/utc";
 import { useAuth } from "../../context/AuthContext";
 
-// === 1. THAY ĐỔI IMPORT (THEO YÊU CẦU BACKEND) ===
-import {
-  createMeeting,
-  getRooms,
-  // BỎ: getDevices,
-} from "../../services/meetingService";
+import { createMeeting, getRooms } from "../../services/meetingService";
 import { searchUsers } from "../../services/userService";
-import { getAvailableDevices } from "../../services/deviceService"; // <-- IMPORT API MỚI
+import { getAvailableDevices } from "../../services/deviceService";
 
-// 🧁 Toast thông báo
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
+import AnalogClockPicker from "../../components/AnalogClockPicker";
 
 dayjs.locale("vi");
 dayjs.extend(utc);
@@ -39,14 +35,12 @@ const { TextArea } = Input;
 const { Option } = Select;
 
 const CreateMeetingPage = () => {
-  const [loading, setLoading] = useState(false); // Loading khi submit form
+  const [loading, setLoading] = useState(false);
   const [rooms, setRooms] = useState([]);
-  
-  // === 2. STATE MỚI CHO THIẾT BỊ ===
+
   const [availableDevices, setAvailableDevices] = useState([]);
   const [devicesLoading, setDevicesLoading] = useState(false);
 
-  // State tìm kiếm (giữ nguyên)
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const debounceTimer = useRef(null);
@@ -54,89 +48,17 @@ const CreateMeetingPage = () => {
   const [form] = Form.useForm();
   const { user } = useAuth();
   const [isRecurring, setIsRecurring] = useState(false);
-  
-  // === DÙNG Form.useWatch ĐỂ THEO DÕI THỜI GIAN ===
-  const watchedDate = Form.useWatch('date', form);
-  const watchedTime = Form.useWatch('time', form);
-  const watchedDuration = Form.useWatch('duration', form);
-  // ===========================================
 
-  // Style cho dropdown AntD (giữ nguyên)
-  const getDropdownStyle = () => {
-    const isDark = document.documentElement.classList.contains("dark");
-    return {
-      popup: {
-        backgroundColor: isDark ? "#1e293b" : "#ffffff",
-        color: isDark ? "#f8fafc" : "#000000",
-      },
-    };
-  };
+  const watchedDate = Form.useWatch("date", form);
+  const watchedTime = Form.useWatch("time", form);
+  const watchedDuration = Form.useWatch("duration", form);
 
-  // === 3. SỬA useEffect TẢI DỮ LIỆU BAN ĐẦU ===
-  // (Chỉ tải Phòng, không tải Thiết bị nữa)
-  useEffect(() => {
-    const fetchRoomsData = async () => {
-      try {
-        const roomRes = await getRooms();
-        setRooms(roomRes.data || []);
-      } catch (err) {
-        console.error("❌ Lỗi tải phòng họp:", err);
-        message.error("Không thể tải danh sách phòng họp!");
-      }
-    };
-    fetchRoomsData();
-  }, []); // Chạy 1 lần khi trang mở
-  
-  // === 4. useEffect MỚI ĐỂ THEO DÕI THỜI GIAN VÀ TẢI THIẾT BỊ ===
-  useEffect(() => {
-    const fetchDevices = async () => {
-      // Nếu 1 trong 3 giá trị chưa có, không gọi API
-      if (!watchedDate || !watchedTime || !watchedDuration) {
-        setAvailableDevices([]); // Xóa danh sách
-        return;
-      }
-      
-      setDevicesLoading(true);
-      // Xóa các thiết bị đã chọn (vì thời gian thay đổi)
-      form.setFieldsValue({ deviceIds: [] });
+  const [clockOpen, setClockOpen] = useState(false);
+  const [clockValue, setClockValue] = useState(dayjs());
 
-      try {
-        // Tính toán startTime và endTime (logic UTC đã sửa)
-        const startTimeUTC = dayjs.utc()
-          .year(watchedDate.year())
-          .month(watchedDate.month())
-          .date(watchedDate.date())
-          .hour(watchedTime.hour())
-          .minute(watchedTime.minute())
-          .second(0)
-          .millisecond(0);
-        
-        const startTime = startTimeUTC.toISOString();
-        const endTime = startTimeUTC.add(watchedDuration, 'minute').toISOString();
-
-        // Gọi API mới
-        const res = await getAvailableDevices(startTime, endTime);
-        setAvailableDevices(res.data || []);
-
-      } catch (err) {
-        console.error("Lỗi tải thiết bị khả dụng:", err);
-        message.error("Không thể tải danh sách thiết bị khả dụng.");
-        setAvailableDevices([]); // Đặt lại nếu lỗi
-      } finally {
-        setDevicesLoading(false);
-      }
-    };
-
-    // Dùng debounce để tránh gọi API liên tục khi người dùng thay đổi
-    const timer = setTimeout(() => {
-      fetchDevices();
-    }, 500); // Trễ 500ms
-
-    return () => clearTimeout(timer); // Dọn dẹp
-
-  }, [watchedDate, watchedTime, watchedDuration, form]); // Chạy lại khi thời gian thay đổi
-
-  // CSS cho dark mode (giữ nguyên)
+  /* ===================================================
+                DARK MODE FIX
+  ==================================================== */
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
@@ -146,7 +68,8 @@ const CreateMeetingPage = () => {
         color: #f8fafc !important;
         border-color: #334155 !important;
       }
-      html.dark .ant-input::placeholder, html.dark textarea.ant-input::placeholder {
+      html.dark .ant-input::placeholder, 
+      html.dark textarea.ant-input::placeholder {
         color: #94a3b8 !important;
       }
     `;
@@ -154,213 +77,245 @@ const CreateMeetingPage = () => {
     return () => document.head.removeChild(style);
   }, []);
 
-  // Tìm kiếm người dùng (giữ nguyên)
-  const handleSearchUsers = (query) => {
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+  /* ===================================================
+                LOAD ROOMS
+  ==================================================== */
+  useEffect(() => {
+    const loadRooms = async () => {
+      try {
+        const res = await getRooms();
+        setRooms(res.data || []);
+      } catch {
+        message.error("Không thể tải danh sách phòng họp!");
+      }
+    };
+    loadRooms();
+  }, []);
 
-    if (query && query.trim().length > 0) {
-      setIsSearching(true);
-      setSearchResults([]);
-
-      debounceTimer.current = setTimeout(async () => {
-        try {
-          const res = await searchUsers(query);
-          const filteredResults = (res.data || []).filter(
-            (u) => u.id !== user?.id
-          );
-          setSearchResults(filteredResults);
-        } catch (err) {
-          console.error("Lỗi tìm kiếm người dùng:", err);
-          message.error("Không thể tìm kiếm người dùng.");
-          setSearchResults([]);
-        } finally {
-          setIsSearching(false);
-        }
-      }, 500);
-    } else {
-      setSearchResults([]);
-      setIsSearching(false);
-    }
-  };
-
-  // Gửi form (giữ nguyên logic UTC)
-  const handleCreateMeeting = async (values) => {
-    try {
-      setLoading(true);
-      if (!user?.id) {
-        message.error("Không lấy được thông tin người dùng hiện tại!");
-        setLoading(false);
+  /* ===================================================
+                LOAD DEVICES WHEN TIME CHANGES
+  ==================================================== */
+  useEffect(() => {
+    const fetchDevices = async () => {
+      if (!watchedDate || !watchedTime || !watchedDuration) {
+        setAvailableDevices([]);
         return;
       }
 
-      const datePart = values.date;
-      const timePart = values.time;
+      setDevicesLoading(true);
 
-      const startTimeUTC = dayjs
+      try {
+        const startTimeUTC = dayjs
+          .utc()
+          .year(watchedDate.year())
+          .month(watchedDate.month())
+          .date(watchedDate.date())
+          .hour(watchedTime.hour())
+          .minute(watchedTime.minute())
+          .second(0);
+
+        const startTime = startTimeUTC.toISOString();
+        const endTime = startTimeUTC.add(watchedDuration, "minute").toISOString();
+
+        const res = await getAvailableDevices(startTime, endTime);
+        setAvailableDevices(res.data || []);
+      } catch (err) {
+        console.error(err);
+        message.error("Không thể tải thiết bị khả dụng!");
+      } finally {
+        setDevicesLoading(false);
+      }
+    };
+
+    const t = setTimeout(fetchDevices, 500);
+    return () => clearTimeout(t);
+  }, [watchedDate, watchedTime, watchedDuration]);
+
+  /* ===================================================
+                SEARCH INTERNAL USERS
+  ==================================================== */
+  const handleSearchUsers = (query) => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    if (!query || !query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const res = await searchUsers(query);
+        setSearchResults((res.data || []).filter((u) => u.id !== user?.id));
+      } catch {
+        message.error("Không thể tìm kiếm người dùng.");
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500);
+  };
+
+  /* ===================================================
+                SUBMIT MEETING
+  ==================================================== */
+  const handleCreateMeeting = async (values) => {
+    try {
+      setLoading(true);
+
+      const date = values.date;
+      const time = values.time;
+
+      const startUTC = dayjs
         .utc()
-        .year(datePart.year())
-        .month(datePart.month())
-        .date(datePart.date())
-        .hour(timePart.hour())
-        .minute(timePart.minute())
+        .year(date.year())
+        .month(date.month())
+        .date(date.date())
+        .hour(time.hour())
+        .minute(time.minute())
         .second(0)
         .millisecond(0);
 
-      const startTime = startTimeUTC.toISOString();
-      const duration = values.duration || 60;
-      const endTime = startTimeUTC.add(duration, "minute").toISOString();
+      const startTime = startUTC.toISOString();
+      const endTime = startUTC.add(values.duration, "minute").toISOString();
 
       const participantIds = Array.from(
         new Set([user.id, ...(values.participantIds || [])])
       );
+
       const payload = {
-        title: values.title,
+        title: values.title.trim(),
         description: values.description || "",
         startTime,
         endTime,
         roomId: values.roomId,
         participantIds,
-        deviceIds: values.deviceIds || [], // Dữ liệu đã được lọc
+        deviceIds: values.deviceIds || [],
+        guestEmails: values.guestEmails || [],
         recurrenceRule: values.isRecurring
           ? {
-              frequency: values.frequency || "DAILY",
+              frequency: values.frequency,
               interval: 1,
-              repeatUntil: dayjs(values.repeatUntil || values.date).format(
-                "YYYY-MM-DD"
-              ),
+              repeatUntil: dayjs(values.repeatUntil).format("YYYY-MM-DD"),
             }
           : null,
         onBehalfOfUserId: null,
-        guestEmails: values.guestEmails || [],
       };
 
-      console.log("📦 Payload gửi đi:", payload);
       await createMeeting(payload);
 
-      // ✅ Toast thành công
       toast.success("🎉 Tạo cuộc họp thành công!");
       form.resetFields();
-      setAvailableDevices([]); // Xóa ds thiết bị
+      setAvailableDevices([]);
     } catch (err) {
-      console.error("❌ Lỗi tạo cuộc họp:", err);
       const msg = err?.response?.data?.message || "Không thể tạo cuộc họp!";
-
-      // ⚠️ Hiển thị thông báo toast phù hợp
-      if (msg.toLowerCase().includes("bảo trì") && msg.toLowerCase().includes("phòng")) {
-        toast.error("🚫 Phòng họp đang bảo trì, vui lòng chọn phòng khác!");
-      } else if (
-        msg.toLowerCase().includes("bảo trì") &&
-        msg.toLowerCase().includes("thiết bị")
-      ) {
-        toast.error("⚙️ Thiết bị đang bảo trì, vui lòng bỏ chọn thiết bị này!");
-      } else if (err.response?.status === 409) {
-         toast.error(`🚫 Xung đột: ${msg}`); // "Một trong các thiết bị bạn chọn đã bị đặt..."
-      } else if (err.response?.status === 403) {
-         toast.error("❌ Không thể tạo cuộc họp: Phòng hoặc thiết bị không khả dụng!");
-      } else {
-         toast.error(msg);
-      }
+      if (msg.includes("bảo trì") && msg.includes("phòng"))
+        toast.error("🚫 Phòng họp đang bảo trì!");
+      else if (msg.includes("bảo trì") && msg.includes("thiết bị"))
+        toast.error("⚙️ Thiết bị đang bảo trì!");
+      else if (err.response?.status === 409)
+        toast.error("🚫 Xung đột: " + msg);
+      else toast.error(msg);
     } finally {
       setLoading(false);
     }
   };
 
+  /* ===================================================
+                      UI
+  ==================================================== */
   return (
-    <div className="p-6 min-h-screen bg-gray-100 dark:bg-[#0f172a] transition-all duration-500">
-      {/* 🧁 Toast thông báo */}
-      <ToastContainer position="top-right" autoClose={2500} />
+    <div className="p-6 min-h-screen bg-gray-100 dark:bg-[#0f172a]">
+      <ToastContainer position="top-right" autoClose={2000} />
 
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6 border-b border-gray-200 dark:border-gray-700 pb-3">
+      {/* HEADER */}
+      <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-300 dark:border-gray-700">
         <div className="p-3 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 shadow-md">
           <FiPlusCircle className="text-white text-2xl" />
         </div>
         <div>
-          <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
+          <h2 className="text-3xl font-bold dark:text-gray-100">
             Tạo lịch họp mới
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
-            Nhập thông tin cuộc họp và lưu vào hệ thống
+          <p className="text-gray-500 dark:text-gray-400">
+            Nhập thông tin để tạo cuộc họp
           </p>
         </div>
       </div>
 
-      {/* Form */}
+      {/* FORM */}
       <div className="max-w-4xl mx-auto">
-        <Card
-          className="shadow-lg bg-white dark:bg-[#1e293b] dark:text-gray-100 border dark:border-gray-700"
-          variant="borderless"
-        >
+        <Card className="shadow-lg bg-white dark:bg-[#1e293b] dark:text-gray-100">
           <Form
-            layout="vertical"
             form={form}
+            layout="vertical"
             onFinish={handleCreateMeeting}
-            onValuesChange={(changedValues) => {
-              if (changedValues.isRecurring !== undefined) {
-                setIsRecurring(changedValues.isRecurring);
-              }
-            }}
+            onValuesChange={(v) =>
+              v.isRecurring !== undefined && setIsRecurring(v.isRecurring)
+            }
           >
+            {/* TÊN */}
             <Form.Item
-              label="Tên cuộc họp"
               name="title"
-              rules={[{ required: true, message: "Vui lòng nhập tên cuộc họp" }]}
+              label="Tên cuộc họp"
+              rules={[
+                { required: true, message: "Vui lòng nhập tên cuộc họp" },
+                { min: 3, message: "Tên cuộc họp quá ngắn" },
+              ]}
             >
               <Input placeholder="Nhập tên cuộc họp..." />
             </Form.Item>
 
-            {/* Thời gian (Đã fix validator) */}
+            {/* THỜI GIAN */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Form.Item
-                label="Ngày họp"
-                name="date"
-                rules={[{ required: true, message: "Vui lòng chọn ngày họp" }]}
-              >
+              {/* NGÀY */}
+              <Form.Item name="date" label="Ngày họp" rules={[{ required: true }]}>
                 <DatePicker
                   className="w-full"
                   format="DD/MM/YYYY"
-                  disabledDate={(current) => current && current < dayjs().startOf("day")}
+                  disabledDate={(d) => d && d < dayjs().startOf("day")}
                 />
               </Form.Item>
 
-              <Form.Item
-                label="Giờ bắt đầu"
-                name="time"
-                dependencies={["date"]}
-                rules={[
-                  { required: true, message: "Vui lòng chọn giờ họp" },
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      const date = getFieldValue("date");
-                      if (!date || !value) return Promise.resolve();
-                      
-                      // Logic validator UTC (Đã sửa)
-                      const selectedUTC = dayjs.utc()
-                        .year(date.year())
-                        .month(date.month())
-                        .date(date.date())
-                        .hour(value.hour())
-                        .minute(value.minute())
-                        .second(0);
-                      
-                      if (selectedUTC.isBefore(dayjs.utc().add(1, "minute"))) {
-                        return Promise.reject("⏰ Thời gian họp phải ở tương lai!");
-                      }
-                      return Promise.resolve();
-                    },
-                  }),
-                ]}
-              >
-                <TimePicker
-                  className="w-full"
-                  use12Hours
-                  format="hh:mm A"
-                  minuteStep={5}
-                />
+              {/* GIỜ — ANALOG CLOCK */}
+              <Form.Item name="time" label="Giờ bắt đầu" rules={[{ required: true }]}>
+                <>
+                  <div className="flex gap-2">
+                    <Input
+                      readOnly
+                      value={clockValue.format("hh:mm A")}
+                      onClick={() => setClockOpen(true)}
+                    />
+                    <Button onClick={() => setClockOpen(true)}>
+                      🕒 Đồng hồ
+                    </Button>
+                  </div>
+
+                  <Modal
+                    title="Chọn giờ họp"
+                    open={clockOpen}
+                    onCancel={() => setClockOpen(false)}
+                    onOk={() => {
+                      form.setFieldsValue({ time: clockValue });
+                      setClockOpen(false);
+                    }}
+                  >
+                    <AnalogClockPicker
+                      value={clockValue}
+                      onChange={(hm) => {
+                        const [h, m] = hm.split(":").map(Number);
+                        setClockValue(
+                          dayjs().hour(h).minute(m).second(0)
+                        );
+                      }}
+                    />
+                  </Modal>
+                </>
               </Form.Item>
 
-              <Form.Item label="Thời lượng" name="duration" initialValue={60} rules={[{ required: true, message: "Vui lòng chọn thời lượng" }]}>
-                <Select styles={getDropdownStyle()}>
+              {/* THỜI LƯỢNG */}
+              <Form.Item name="duration" label="Thời lượng" initialValue={60}>
+                <Select>
                   <Option value={15}>15 phút</Option>
                   <Option value={30}>30 phút</Option>
                   <Option value={45}>45 phút</Option>
@@ -371,143 +326,143 @@ const CreateMeetingPage = () => {
               </Form.Item>
             </div>
 
-            {/* Phòng họp (giữ nguyên) */}
+            {/* PHÒNG HỌP + TRẠNG THÁI */}
             <Form.Item
-              label="Phòng họp"
               name="roomId"
-              rules={[{ required: true, message: "Vui lòng chọn phòng họp" }]}
+              label="Phòng họp"
+              rules={[{ required: true }]}
             >
-              <Select
-                placeholder="-- Chọn phòng họp --"
-                options={rooms.map((r) => ({
-                  label: `${r.name} (${r.location || "Không rõ"})`,
-                  value: r.id,
-                }))}
-                styles={getDropdownStyle()}
-              />
+              <Select placeholder="-- Chọn phòng họp --">
+                {rooms.map((r) => (
+                  <Option
+                    key={r.id}
+                    value={r.id}
+                    disabled={r.status !== "AVAILABLE"} // disable phòng bảo trì
+                  >
+                    <div className="flex justify-between items-center">
+                      <span>
+                        {r.name} ({r.location || "Không rõ"})
+                      </span>
+                      <span
+                        className={`px-2 py-1 rounded text-xs ${
+                          r.status === "AVAILABLE"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-600"
+                        }`}
+                      >
+                        {r.status === "AVAILABLE" ? "Có sẵn" : "Bảo trì"}
+                      </span>
+                    </div>
+                  </Option>
+                ))}
+              </Select>
             </Form.Item>
 
-            {/* === 5. CẬP NHẬT JSX CHO THIẾT BỊ === */}
-            <Form.Item label="Thiết bị sử dụng" name="deviceIds">
+            {/* THIẾT BỊ */}
+            <Form.Item name="deviceIds" label="Thiết bị sử dụng">
               <Select
                 mode="multiple"
+                disabled={!watchedDate || !watchedTime}
+                loading={devicesLoading}
                 placeholder={
-                  !watchedDate || !watchedTime ? "Vui lòng chọn ngày và giờ trước" : "Chọn thiết bị khả dụng"
+                  !watchedDate || !watchedTime
+                    ? "Chọn ngày và giờ trước"
+                    : "Chọn thiết bị khả dụng"
                 }
-                // Vô hiệu hóa nếu chưa chọn thời gian
-                disabled={!watchedDate || !watchedTime || devicesLoading} 
-                loading={devicesLoading} // Hiển thị spinner
-                options={availableDevices.map((d) => ({ // <-- Dùng state mới
-                  label: d.name,
-                  value: d.id,
-                }))}
-                styles={getDropdownStyle()}
-              />
+              >
+                {availableDevices.map((d) => (
+                  <Option key={d.id} value={d.id}>
+                    {d.name}
+                  </Option>
+                ))}
+              </Select>
             </Form.Item>
-            {/* === KẾT THÚC CẬP NHẬT JSX === */}
 
             <Divider />
 
-            {/* Người tham gia (giữ nguyên) */}
-            <Form.Item
-              label={
-                <span>
-                  <FiUsers className="inline mr-2" />
-                  Người tham gia (Nội bộ)
-                </span>
-              }
-              name="participantIds"
-              tooltip="Gõ tên hoặc email để tìm đồng nghiệp. Bạn (người tạo) sẽ tự động được thêm."
-            >
+            {/* NGƯỜI THAM GIA */}
+            <Form.Item name="participantIds" label="Người tham gia (Nội bộ)">
               <Select
-                showSearch
                 mode="multiple"
-                placeholder="-- Gõ tên hoặc email để tìm người tham gia --"
-                options={searchResults.map((u) => ({
-                  label: `${u.fullName} (${u.username})`,
-                  value: u.id,
-                }))}
-                onSearch={handleSearchUsers}
+                showSearch
                 loading={isSearching}
                 filterOption={false}
-                notFoundContent={
-                  isSearching ? <Spin size="small" /> : "Không tìm thấy người dùng"
-                }
-                styles={getDropdownStyle()}
-              />
+                onSearch={handleSearchUsers}
+                placeholder="Tìm người dùng..."
+              >
+                {searchResults.map((u) => (
+                  <Option key={u.id} value={u.id}>
+                    {u.fullName} ({u.username})
+                  </Option>
+                ))}
+              </Select>
             </Form.Item>
 
-            {/* Email khách mời (giữ nguyên) */}
+            {/* EMAIL KHÁCH */}
             <Form.Item
-              label="Email khách mời (Bên ngoài)"
               name="guestEmails"
-              tooltip="Nhập email của khách bên ngoài, nhấn Enter hoặc dấu phẩy (,) để thêm."
+              label="Email khách mời"
               rules={[
                 {
-                  type: "array",
-                  validator: (rule, value) => {
-                    if (!value || value.length === 0) return Promise.resolve();
-                    const invalidEmails = value.filter(
-                      (email) =>
-                        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+                  validator(_, list) {
+                    if (!list || !list.length) return Promise.resolve();
+                    const invalid = list.filter(
+                      (e) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
                     );
-                    if (invalidEmails.length > 0) {
-                      return Promise.reject(
-                        `Email không hợp lệ: ${invalidEmails.join(", ")}`
-                      );
-                    }
-                    return Promise.resolve();
+                    return invalid.length
+                      ? Promise.reject(`Email không hợp lệ: ${invalid.join(", ")}`)
+                      : Promise.resolve();
                   },
                 },
               ]}
             >
-              <Select
-                mode="tags"
-                tokenSeparators={[",", ";", " "]}
-                placeholder="Ví dụ: guest1@email.com, guest2@email.com, ..."
-                styles={getDropdownStyle()}
-              />
+              <Select mode="tags" tokenSeparators={[",", ";", " "]} />
             </Form.Item>
 
             <Divider />
 
-            {/* Lặp lại (giữ nguyên) */}
+            {/* LẶP LẠI */}
             <Form.Item name="isRecurring" valuePropName="checked">
-              <Checkbox>Lặp lại cuộc họp này</Checkbox>
+              <Checkbox>Lặp lại cuộc họp</Checkbox>
             </Form.Item>
 
             {isRecurring && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Form.Item label="Tần suất" name="frequency" initialValue="DAILY">
-                  <Select
-                    options={[
-                      { label: "Hằng ngày", value: "DAILY" },
-                      { label: "Hằng tuần", value: "WEEKLY" },
-                      { label: "Hằng tháng", value: "MONTHLY" },
-                    ]}
-                    styles={getDropdownStyle()}
-                  />
+                <Form.Item name="frequency" label="Tần suất" initialValue="DAILY">
+                  <Select>
+                    <Option value="DAILY">Hằng ngày</Option>
+                    <Option value="WEEKLY">Hằng tuần</Option>
+                    <Option value="MONTHLY">Hằng tháng</Option>
+                  </Select>
                 </Form.Item>
-                <Form.Item label="Lặp lại đến" name="repeatUntil">
-                  <DatePicker 
-                    className="w-full" 
-                    format="DD/MM/YYYY" 
-                    disabledDate={(current) => current && current < dayjs().startOf("day")}
-                  />
+
+                <Form.Item
+                  name="repeatUntil"
+                  label="Lặp lại đến"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Vui lòng chọn ngày kết thúc lặp lại!",
+                    },
+                  ]}
+                >
+                  <DatePicker format="DD/MM/YYYY" className="w-full" />
                 </Form.Item>
               </div>
             )}
 
-            <Form.Item label="Mô tả" name="description">
-              <TextArea rows={4} placeholder="Nhập nội dung mô tả..." />
+            {/* MÔ TẢ */}
+            <Form.Item name="description" label="Mô tả">
+              <TextArea rows={4} placeholder="Nhập mô tả..." />
             </Form.Item>
 
+            {/* SUBMIT */}
             <Form.Item>
               <Button
                 type="primary"
                 htmlType="submit"
                 loading={loading}
-                className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
+                className="w-full sm:w-auto"
               >
                 Tạo cuộc họp
               </Button>
