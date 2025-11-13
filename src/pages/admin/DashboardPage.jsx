@@ -193,11 +193,17 @@ const getRandomColor = () => {
         ]);
 
         // === A. XỬ LÝ LỊCH (Timeline) (Giữ nguyên) ===
-        const resources = (roomsRes.data || []).map(room => ({
-          id: room.id.toString(),
-          title: room.name
-        }));
+        const roomColorMap = {};
+        const resources = (roomsRes.data || []).map(room => {
+        // Nếu phòng chưa có màu, random màu mới
+          roomColorMap[room.id] = roomColors[room.id] || getRandomColor();
+          return {
+            id: room.id.toString(),
+            title: room.name,
+          };
+        });
         setCalendarResources(resources);
+        setRoomColors(roomColorMap);
 
         // (API mới đã thay đổi participants, nhưng logic map này vẫn đúng)
         const meetings = meetingsRes.data?.content || [];
