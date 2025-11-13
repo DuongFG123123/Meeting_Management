@@ -196,14 +196,14 @@ const handleEventMouseLeave = () => {
         // === A. XỬ LÝ LỊCH (Timeline) ===
 const roomColorMap = {};
 const resources = (roomsRes.data || []).map(room => {
-  roomColorMap[room.id] = FIXED_ROOM_COLORS[room.id] || "#94A3B8";
+  roomColorMap[room.id] = stringToColor(room.name); // tự sinh màu từ tên phòng
   return {
     id: room.id.toString(),
     title: room.name,
   };
 });
-setCalendarResources(resources);
-setRoomColors(roomColorMap);
+setCalendarResources(resources); // dùng cho FullCalendar
+setRoomColors(roomColorMap);     // dùng cho PieChart + Calendar
 
 // ✅ Lấy dữ liệu cuộc họp (có thể là mảng hoặc object.content)
 const meetings = Array.isArray(meetingsRes.data)
