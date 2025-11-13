@@ -206,16 +206,20 @@ const getRandomColor = () => {
         setRoomColors(roomColorMap);
 
         // (API mới đã thay đổi participants, nhưng logic map này vẫn đúng)
-        const meetings = meetingsRes.data?.content || [];
-        const events = meetings.map(meeting => ({
-        id: meeting.id.toString(),
-        title: meeting.title,
-        start: meeting.startTime,
-        end: meeting.endTime,
-        resourceId: meeting.room?.id?.toString(),
-        backgroundColor: roomColorMap[meeting.room?.id] || "#94A3B8", // màu của phòng
-        borderColor: roomColorMap[meeting.room?.id] || "#94A3B8",
-      }));
+        if (meetingsRes.data && Array.isArray(meetingsRes.data)) {
+  const meetings = meetingsRes.data;
+  const events = meetings.map(meeting => ({
+    id: meeting.id.toString(),
+    title: `${meeting.title} - ${meeting.room?.name || "Không rõ phòng"}`,
+    start: meeting.startTime,
+    end: meeting.endTime,
+    resourceId: meeting.room?.id?.toString(),
+    backgroundColor: roomColorMap[meeting.room?.id] || "#94A3B8",
+    borderColor: roomColorMap[meeting.room?.id] || "#94A3B8",
+    textColor: "#fff",
+  }));
+  setCalendarEvents(events);
+}
         
         // === B. XỬ LÝ THỐNG KÊ (Cards & Charts) (ĐÃ SỬA) ===
         const now = dayjs();
