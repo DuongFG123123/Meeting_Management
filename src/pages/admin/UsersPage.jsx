@@ -6,7 +6,7 @@ import {
   deleteUser,
 } from "../../services/userService";
 import { toast } from "react-toastify";
-import { FiUsers, FiPlus, FiTrash2, FiEdit2, FiSearch } from "react-icons/fi";
+import { FiUsers, FiPlus, FiTrash2, FiEdit2, FiSearch, FiEye, FiEyeOff } from "react-icons/fi";
 import { motion } from "framer-motion";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -32,6 +32,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showPassword, setShowPassword] = useState(false);
   const pageSize = 5;
 
   // Tìm kiếm / lọc
@@ -597,24 +598,38 @@ export default function UsersPage() {
                   />
                 </div>
                 {/* Mật khẩu */}
-                <div>
-                  <label className="block text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Mật khẩu <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    value={newUser.password}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, password: e.target.value })
-                    }
-                    placeholder="Mật khẩu ≥ 6 ký tự"
-                    disabled={creating}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-900
-                      placeholder-gray-400 dark:placeholder-gray-500
-                      focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-400 focus:border-transparent
-                      transition-all duration-200 text-base"
-                  />
-                </div>
+<div>
+  <label className="block text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
+    Mật khẩu <span className="text-red-500">*</span>
+  </label>
+  <div className="relative">
+    <input
+      type={showPassword ? "text" : "password"}
+      value={newUser.password}
+      onChange={(e) =>
+        setNewUser({ ...newUser, password: e.target.value })
+      }
+      placeholder="Mật khẩu ≥ 6 ký tự"
+      disabled={creating}
+      className="
+    w-full pr-10 px-4 py-2.5 rounded-lg 
+    border border-gray-300 dark:border-gray-600
+    bg-white dark:bg-gray-700
+    text-gray-900 dark:text-white
+    placeholder-gray-400 dark:placeholder-gray-400
+    focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-400 focus:border-transparent
+    transition-all duration-200 text-base
+  "
+/>
+    <button
+      type="button"
+      onClick={() => setShowPassword((prev) => !prev)}
+      className="absolute right-3 top-1/2 -translate-y-1/2 ..."
+    >
+      {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+    </button>
+  </div>
+</div> 
                 {/* Vai trò */}
                 <div>
                   <label className="block text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
