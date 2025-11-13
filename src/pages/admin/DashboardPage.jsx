@@ -244,8 +244,8 @@ setCalendarEvents(events);
           const end = dayjs(m.endTime);
           return acc + end.diff(start, 'minute');
         }, 0);
-        const avgDuration = activeMeetings.length > 0 ? (totalDuration / activeMeetings.length) : 0;
-        
+        const avgDurationMinutes = activeMeetings.length > 0 ? (totalDuration / activeMeetings.length) : 0;
+        const avgDuration = (avgDurationMinutes / 60).toFixed(2); // giờ, 2 chữ số thập phân        
         const upcomingMeetings = activeMeetings.filter(m => dayjs(m.startTime).isSameOrAfter(now)).length;
 
         setStats([
