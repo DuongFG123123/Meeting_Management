@@ -32,6 +32,15 @@ import isoWeek from 'dayjs/plugin/isoWeek';
 import duration from 'dayjs/plugin/duration';
 import isBetween from 'dayjs/plugin/isBetween';
 
+// Chuyển tên phòng thành màu HSL cố định
+function stringToColor(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const h = Math.abs(hash) % 360; // Hue từ 0 - 360
+  return `hsl(${h}, 60%, 60%)`; // màu sáng dễ nhìn
+}
 // Cài đặt Day.js
 dayjs.extend(isToday);
 dayjs.extend(isSameOrAfter);
@@ -174,14 +183,6 @@ const handleEventMouseLeave = () => {
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
-// Hàm random màu sáng dễ nhìn
-const getRandomColor = () => {
-  const colors = [
-    "#60A5FA", "#A78BFA", "#F472B6", "#34D399", "#FBBF24",
-    "#F87171", "#4ADE80", "#38BDF8", "#C084FC", "#FCD34D"
-  ];
-  return colors[Math.floor(Math.random() * colors.length)];
-};
   // === 3. useEffect TẢI VÀ XỬ LÝ TẤT CẢ DỮ LIỆU (ĐÃ SỬA) ===
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -195,14 +196,14 @@ const getRandomColor = () => {
         // === A. XỬ LÝ LỊCH (Timeline) ===
 const roomColorMap = {};
 const resources = (roomsRes.data || []).map(room => {
-  roomColorMap[room.id] = roomColors[room.id] || getRandomColor();
+  roomColorMap[room.id] = stringToColor(room.name); // tự sinh màu từ tên phòng
   return {
     id: room.id.toString(),
     title: room.name,
   };
 });
-setCalendarResources(resources);
-setRoomColors(roomColorMap);
+setCalendarResources(resources); // dùng cho FullCalendar
+setRoomColors(roomColorMap);     // dùng cho PieChart + Calendar
 
 // ✅ Lấy dữ liệu cuộc họp (có thể là mảng hoặc object.content)
 const meetings = Array.isArray(meetingsRes.data)
@@ -381,13 +382,13 @@ setCalendarEvents(events);
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
                   <Pie data={roomUsageData} cx="50%" cy="50%" outerRadius={80} dataKey="value">
-  {roomUsageData.map((entry, index) => (
-    <Cell 
-      key={`cell-${index}`} 
-      fill={roomColors[entry.roomId] || COLORS[index % COLORS.length]} 
-    />
-  ))}
-</Pie>
+                    {roomUsageData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={roomColors[entry.roomId]} 
+                    />
+                  ))}
+                  </Pie>
                   <Tooltip
                     contentStyle={{
                       backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
