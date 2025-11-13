@@ -38,8 +38,10 @@ function stringToColor(str) {
   for (let i = 0; i < str.length; i++) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
-  const h = Math.abs(hash) % 360; // Hue từ 0 - 360
-  return `hsl(${h}, 60%, 60%)`; // màu sáng dễ nhìn
+  const hue = hash % 240; // Chọn màu theo hue
+  const saturation = 100;   // 0-100%, 60% là tươi vừa phải
+  const lightness = 70;    // 0-100%, 65% là sáng đẹp
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 // Cài đặt Day.js
 dayjs.extend(isToday);
