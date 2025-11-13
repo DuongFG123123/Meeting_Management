@@ -22,7 +22,7 @@ export default function ChangePasswordPage() {
     setError(null);
     setSuccess(null);
 
-    // ⚙️ Logic giữ nguyên
+    // Logic giữ nguyên
     if (newPassword !== confirmPassword) {
       setError("Mật khẩu mới và mật khẩu xác nhận không khớp.");
       return;
