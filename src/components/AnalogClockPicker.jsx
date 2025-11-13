@@ -15,7 +15,7 @@ export default function AnalogClockPicker({ value, onChange, disabledTime }) {
   const dragging = useRef(false);
   const dragType = useRef(null);
 
-  /** ⏳ Get real 24h */
+  /** Get real 24h */
   const getRealHour = () => {
     let h = hour % 12;
     if (period === "PM") h += 12;
