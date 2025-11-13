@@ -1,3 +1,4 @@
+
 // src/pages/user/MyMeetingsPage.jsx
 import React, { useEffect, useState, useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
@@ -42,6 +43,10 @@ import DeleteMeetingModal from "../../components/user/DeleteMeetingModal";
 
 dayjs.locale("vi");
 dayjs.extend(utc);
+
+// ---- GIỜ HÀNH CHÍNH ----
+const WORK_HOUR_START = 8; // 8h sáng
+const WORK_HOUR_END = 18;  // 18h chiều (6PM), kết thúc lúc 18:00
 
 // Helper functions để xử lý error messages
 const parseErrorMessage = (error) => {
@@ -142,6 +147,67 @@ function getEventTooltipContent(event) {
     </div>
   `;
 }
+// Helper để xác định slot có hợp lệ để đặt lịch không (không ở quá khứ, trong giờ hành chính và KHÔNG phải thứ 7, CN)
+function isBusinessTime(date) {
+  // date là JS Date hoặc dayjs object theo local time của lịch FullCalendar
+  const d = dayjs(date);
+  // Quá khứ
+  if (d.isBefore(dayjs(), "minute")) return false;
+  // Ngày trong tuần: 0 (CN), 6 (T7)
+  const day = d.day();
+  if (day === 0 || day === 6) return false;
+  // Giờ hành chính: >= 08:00 và < 18:00
+  const hour = d.hour();
+  return hour >= WORK_HOUR_START && hour < WORK_HOUR_END;
+}
+
+// CSS cho các slot không hợp lệ (không dùng được)
+function injectNoBusinessTimeStyle() {
+  const styleId = 'no-business-time-slot-style';
+  if (document.getElementById(styleId)) return;
+  const style = document.createElement('style');
+  style.id = styleId;
+  style.innerHTML = `
+    /* Slot không hợp lệ (không đặt được): màu #f1f5f9, chéo "not allowed" khi hover */
+    .fc-nonbusiness, .fc-business-blocked {
+      background: #f1f5f9 !important;
+      cursor: not-allowed !important;
+      opacity: 0.65 !important;
+      border-color: #f3f4f6 !important;
+    }
+    .dark .fc-nonbusiness, .dark .fc-business-blocked {
+      background: #334155 !important;
+      cursor: not-allowed !important;
+      opacity: 0.7 !important;
+      border-color: #475569 !important;
+    }
+    /* Tooltip cấm chọn */
+    .fc-nonbusiness:not(.fc-event):hover::after,
+    .fc-business-blocked:not(.fc-event):hover::after {
+      content: "Không được phép đặt ngoài giờ hành chính!";
+      position: absolute;
+      background: #fff;
+      color: #dc2626;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 1px 8px;
+      font-size: 12px;
+      left: 60%;
+      top: 5px;
+      z-index: 10000;
+      pointer-events: none;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px #0002;
+    }
+    .dark .fc-nonbusiness:not(.fc-event):hover::after,
+    .dark .fc-business-blocked:not(.fc-event):hover::after {
+      background: #18181b;
+      color: #ef4444;
+      border-color: #475569;
+    }
+  `;
+  document.head.appendChild(style);
+}
 
 const MyMeetingPage = () => {
   // State quản lý lịch họp
@@ -172,6 +238,11 @@ const MyMeetingPage = () => {
   const { user } = useAuth();
 
   const tooltipRef = useRef();
+
+  // Inject style khi component render
+  useEffect(() => {
+    injectNoBusinessTimeStyle();
+  }, []);
 
   // Tải danh sách phòng và thiết bị khi mở form đặt lịch
   useEffect(() => {
@@ -208,7 +279,6 @@ const MyMeetingPage = () => {
         // 3. Tìm trạng thái của user (nếu là người tham gia)
         const userParticipant = m.participants?.find(p => p.id === user.id);
         // 4. LOGIC QUYẾT ĐỊNH:
-
         // NẾU TÔI LÀ NGƯỜI TỔ CHỨC:
         if (isOrganizer) {
           return true; // Luôn hiển thị
@@ -307,12 +377,77 @@ const MyMeetingPage = () => {
     }
   };
 
+  // ---- GENERATE NON-BUSINESS HOURS SLOTS (for day/week view vertical grid coloring) ----
+  function getNonBusinessHourBackgroundEvents(viewStart, viewEnd) {
+    // viewStart, viewEnd: JS Date
+    // Output: [{start, end, display: 'background', classNames: ...}, ...]
+    const slots = [];
+    let d = dayjs(viewStart).startOf("day");
+    const until = dayjs(viewEnd).startOf("day");
+
+    while (d.isBefore(until)) {
+      const dayIdx = d.day();
+      // Nếu là thứ 7 (6), CN (0) -> disable TẤT CẢ GIỜ trong ngày (0h-24h)
+      if (dayIdx === 0 || dayIdx === 6) {
+        slots.push({
+          start: d.hour(0).minute(0).second(0).format("YYYY-MM-DDTHH:mm:ss"),
+          end: d.hour(23).minute(59).second(59).format("YYYY-MM-DDTHH:mm:ss"),
+          display: "background",
+          classNames: ["fc-business-blocked"],
+        });
+      } else {
+        // Slot trước giờ hành chính (0h -> 8h)
+        if (WORK_HOUR_START > 0) {
+          slots.push({
+            start: d.hour(0).minute(0).second(0).format("YYYY-MM-DDTHH:mm:ss"),
+            end: d.hour(WORK_HOUR_START).minute(0).second(0).format("YYYY-MM-DDTHH:mm:ss"),
+            display: "background",
+            classNames: ["fc-business-blocked"],
+          });
+        }
+        // Slot sau giờ hành chính (18h -> 24h)
+        if (WORK_HOUR_END < 24) {
+          slots.push({
+            start: d.hour(WORK_HOUR_END).minute(0).second(0).format("YYYY-MM-DDTHH:mm:ss"),
+            end: d.hour(23).minute(59).second(59).format("YYYY-MM-DDTHH:mm:ss"),
+            display: "background",
+            classNames: ["fc-business-blocked"],
+          });
+        }
+      }
+      d = d.add(1, "day");
+    }
+    // Thêm các slot ở quá khứ đến thời điểm hiện tại (lí do: disable background cho quá khứ)
+    const now = dayjs();
+    let dPast = dayjs(viewStart).startOf("day");
+    while (dPast.isSameOrBefore(now, "day")) {
+      let endOfPast =
+        dPast.isSame(now, "day")
+          ? now.format("YYYY-MM-DDTHH:mm:ss")
+          : dPast.hour(23).minute(59).second(59).format("YYYY-MM-DDTHH:mm:ss");
+      slots.push({
+        start: dPast.hour(0).minute(0).second(0).format("YYYY-MM-DDTHH:mm:ss"),
+        end: endOfPast,
+        display: "background",
+        classNames: ["fc-nonbusiness"],
+      });
+      dPast = dPast.add(1, "day");
+    }
+    return slots;
+  }
+
   // Xử lý click vào khoảng trống trên calendar để đặt lịch nhanh
   const handleDateSelect = (selection) => {
     let start = selection?.startStr ? dayjs(selection.startStr) : null;
     let end = selection?.endStr ? dayjs(selection.endStr) : null;
     if (!start || !end) return;
 
+    // Kiểm tra chọn toàn bộ trong business time (giờ hành chính, không quá khứ, KHÔNG phải T7/CN)
+    if (!isBusinessTime(start) || !isBusinessTime(end.subtract(1, "minute"))) {
+      toast.warn("Chỉ được tạo lịch trong giờ hành chính từ thứ 2 đến thứ 6 và không chọn quá khứ!");
+      return;
+    }
+    
     let duration = end.diff(start, "minute");
     if (duration <= 0) duration = 60;
 
@@ -321,7 +456,7 @@ const MyMeetingPage = () => {
       start: start,
       end: start.add(duration, "minute"),
     });
-
+    
     setIsRecurring(false);
     setTimeout(() => {
       form.setFieldsValue({
@@ -389,6 +524,17 @@ const MyMeetingPage = () => {
       const startTime = startTimeUTC.toISOString();
       const duration = values.duration || 60;
       const endTime = startTimeUTC.add(duration, 'minute').toISOString();
+      // Đảm bảo tạo cuộc họp đúng giờ hành chính thứ 2-6
+      const localStart = dayjs(startTime).local();
+      const localEnd = dayjs(endTime).local();
+      if (!isBusinessTime(localStart) || !isBusinessTime(localEnd.subtract(1, "minute"))) {
+        toast.error("Bạn chỉ có thể tạo họp trong giờ hành chính (08:00-18:00, từ thứ 2 đến thứ 6).");
+        return;
+      }
+      if (localStart.isBefore(dayjs())) {
+        toast.error("Không được tạo cuộc họp ở thời gian đã qua!");
+        return;
+      }
 
       const participantIds = Array.from(new Set([user.id, ...(values.participantIds || [])]));
 
@@ -511,6 +657,7 @@ const MyMeetingPage = () => {
     return () => document.head.removeChild(style);
   }, []);
 
+  // ---------- RENDER ----------
   return (
     <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-500">
       <ToastContainer position="top-right" autoClose={2500} />
@@ -549,6 +696,7 @@ const MyMeetingPage = () => {
             slotMinTime="00:00:00"
             slotMaxTime="24:00:00"
             events={events}
+
             eventClick={handleEventClick}
             eventMouseEnter={handleEventMouseEnter}
             eventMouseLeave={handleEventMouseLeave}
@@ -556,7 +704,40 @@ const MyMeetingPage = () => {
             locale="vi"
             selectable={true}
             selectMirror={true}
+            // ---------
             select={handleDateSelect}
+            // Giới hạn chọn khung giờ hành chính & disable quá khứ khi kéo rê hoặc click chọn slot
+            // ĐÃ BỔ SUNG: loại trừ luôn thứ 7 (6), chủ nhật (0)
+            selectAllow={function(selectInfo) {
+              const start = dayjs(selectInfo.start);
+              const end = dayjs(selectInfo.end).subtract(1, "minute");
+              // Chặn thứ 7 (6) & chủ nhật (0) cho cả start & end
+              const validStart = isBusinessTime(start);
+              const validEnd = isBusinessTime(end);
+              return validStart && validEnd;
+            }}
+
+            // -- Chặn drag, resize event ra ngoài giờ hành chính (nếu cần, cho UX tốt hơn)
+            eventAllow={function(dropInfo, draggedEvent) {
+              const start = dayjs(dropInfo.start);
+              const end = dayjs(dropInfo.end).subtract(1, "minute");
+              // Chặn thứ 7 (6) & chủ nhật (0) cho cả start & end
+              const validStart = isBusinessTime(start);
+              const validEnd = isBusinessTime(end);
+              return validStart && validEnd;
+            }}
+
+            // highlight non-business bằng backgroundEvents
+            // Sử dụng key để trigger rerender background khi chuyển week hoặc month
+            businessHours={{
+              // Chỉ cho phép từ 08:00 đến 18:00 các ngày trong tuần
+              daysOfWeek: [1, 2, 3, 4, 5], // thứ 2-6
+              startTime: '08:00',
+              endTime: '18:00',
+            }}
+            // Sử dụng backgroundEvents để làm mờ vùng không business hour và quá khứ, ĐÃ BỔ SUNG BLOCK T7, CN
+            backgroundEvents={(arg) => getNonBusinessHourBackgroundEvents(arg.start, arg.end)}
+            // end ----------
           />
         </div>
       )}
@@ -673,7 +854,7 @@ const MyMeetingPage = () => {
                 <DatePicker
                   className="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600"
                   format="DD/MM/YYYY"
-                  disabledDate={(current) => current && current < dayjs().startOf("day")}
+                  disabledDate={current => current && (current < dayjs().startOf("day") || current.day() === 0 || current.day() === 6)}
                 />
               </Form.Item>
 
@@ -687,6 +868,9 @@ const MyMeetingPage = () => {
                     validator(_, value) {
                       const date = getFieldValue("date");
                       if (!date || !value) return Promise.resolve();
+                      // Không cho chọn nếu là thứ 7, CN ở bước này (bổ sung cho chắc)
+                      if (date.day() === 0 || date.day() === 6)
+                        return Promise.reject("Không đặt lịch vào Thứ 7, Chủ nhật");
                       const selectedUTC = dayjs.utc()
                         .year(date.year())
                         .month(date.month())
@@ -696,6 +880,11 @@ const MyMeetingPage = () => {
                         .second(0);
                       if (selectedUTC.isBefore(dayjs.utc().add(1, "minute"))) {
                         return Promise.reject("Thời gian họp phải ở tương lai!");
+                      }
+                      // Chỉ cho phép chọn trong giờ hành chính
+                      const h = value.hour();
+                      if (h < WORK_HOUR_START || h >= WORK_HOUR_END) {
+                        return Promise.reject("Chỉ đặt trong giờ hành chính (08:00-18:00)");
                       }
                       return Promise.resolve();
                     },
@@ -713,6 +902,12 @@ const MyMeetingPage = () => {
                   onOpenChange={(openStatus) => {
                     const value = form.getFieldValue("time");
                     if (value) form.setFieldValue("time", value);
+                  }}
+                  disabledHours={() => {
+                    let hours = [];
+                    for (let i = 0; i < WORK_HOUR_START; i++) hours.push(i);
+                    for (let i = WORK_HOUR_END; i < 24; i++) hours.push(i);
+                    return hours;
                   }}
                 />
               </Form.Item>
@@ -856,7 +1051,7 @@ const MyMeetingPage = () => {
                   <DatePicker
                     className="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600"
                     format="DD/MM/YYYY"
-                    disabledDate={(current) => current && current < dayjs().startOf("day")}
+                    disabledDate={(current) => current && (current < dayjs().startOf("day") || current.day() === 0 || current.day() === 6)}
                   />
                 </Form.Item>
               </div>
