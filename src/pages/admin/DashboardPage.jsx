@@ -183,7 +183,14 @@ const handleEventMouseLeave = () => {
           getAllRooms(),
           getAllMeetings() // Lấy 1000 cuộc họp
         ]);
-
+// Màu cố định cho từng phòng (cậu chỉnh theo ID hoặc tên)
+const FIXED_ROOM_COLORS = {
+  1: "#60A5FA", // Phòng 1 - Xanh dương
+  2: "#A78BFA", // Phòng 2 - Tím
+  3: "#F472B6", // Phòng 3 - Hồng
+  4: "#34D399", // Phòng 4 - Xanh lá
+  5: "#FBBF24", // Phòng 5 - Vàng
+};
         // === A. XỬ LÝ LỊCH (Timeline) ===
 const roomColorMap = {};
 const resources = (roomsRes.data || []).map(room => {
