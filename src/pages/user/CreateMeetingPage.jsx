@@ -10,10 +10,9 @@ import {
   Card,
   Divider,
   Checkbox,
-  Spin,
   Modal,
 } from "antd";
-import { FiPlusCircle, FiUsers } from "react-icons/fi";
+import { FiPlusCircle } from "react-icons/fi";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import utc from "dayjs/plugin/utc";
@@ -57,13 +56,15 @@ const CreateMeetingPage = () => {
   const [clockValue, setClockValue] = useState(dayjs());
 
   /* ===================================================
-                DARK MODE FIX
+                  DARK MODE FIX
   ==================================================== */
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
       html.dark .ant-form-item-label > label { color: #f1f5f9 !important; }
-      html.dark .ant-input, html.dark .ant-picker, html.dark .ant-select-selector {
+      html.dark .ant-input, 
+      html.dark .ant-picker, 
+      html.dark .ant-select-selector {
         background-color: #1e293b !important;
         color: #f8fafc !important;
         border-color: #334155 !important;
@@ -78,7 +79,7 @@ const CreateMeetingPage = () => {
   }, []);
 
   /* ===================================================
-                LOAD ROOMS
+                  LOAD ROOMS
   ==================================================== */
   useEffect(() => {
     const loadRooms = async () => {
@@ -93,7 +94,7 @@ const CreateMeetingPage = () => {
   }, []);
 
   /* ===================================================
-                LOAD DEVICES WHEN TIME CHANGES
+                  LOAD DEVICES WHEN TIME CHANGES
   ==================================================== */
   useEffect(() => {
     const fetchDevices = async () => {
@@ -112,10 +113,13 @@ const CreateMeetingPage = () => {
           .date(watchedDate.date())
           .hour(watchedTime.hour())
           .minute(watchedTime.minute())
-          .second(0);
+          .second(0)
+          .millisecond(0);
 
         const startTime = startTimeUTC.toISOString();
-        const endTime = startTimeUTC.add(watchedDuration, "minute").toISOString();
+        const endTime = startTimeUTC
+          .add(watchedDuration, "minute")
+          .toISOString();
 
         const res = await getAvailableDevices(startTime, endTime);
         setAvailableDevices(res.data || []);
@@ -132,7 +136,7 @@ const CreateMeetingPage = () => {
   }, [watchedDate, watchedTime, watchedDuration]);
 
   /* ===================================================
-                SEARCH INTERNAL USERS
+                  SEARCH INTERNAL USERS
   ==================================================== */
   const handleSearchUsers = (query) => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -157,14 +161,14 @@ const CreateMeetingPage = () => {
   };
 
   /* ===================================================
-                SUBMIT MEETING
+                    SUBMIT MEETING
   ==================================================== */
   const handleCreateMeeting = async (values) => {
     try {
       setLoading(true);
 
       const date = values.date;
-      const time = values.time;
+      const time = dayjs(values.time);
 
       const startUTC = dayjs
         .utc()
@@ -183,6 +187,15 @@ const CreateMeetingPage = () => {
         new Set([user.id, ...(values.participantIds || [])])
       );
 
+      const recurrenceRule =
+        values.isRecurring === true
+          ? {
+              frequency: values.frequency,
+              interval: 1,
+              repeatUntil: dayjs(values.repeatUntil).format("YYYY-MM-DD"),
+            }
+          : null;
+
       const payload = {
         title: values.title.trim(),
         description: values.description || "",
@@ -192,13 +205,7 @@ const CreateMeetingPage = () => {
         participantIds,
         deviceIds: values.deviceIds || [],
         guestEmails: values.guestEmails || [],
-        recurrenceRule: values.isRecurring
-          ? {
-              frequency: values.frequency,
-              interval: 1,
-              repeatUntil: dayjs(values.repeatUntil).format("YYYY-MM-DD"),
-            }
-          : null,
+        recurrenceRule,
         onBehalfOfUserId: null,
       };
 
@@ -207,7 +214,10 @@ const CreateMeetingPage = () => {
       toast.success("🎉 Tạo cuộc họp thành công!");
       form.resetFields();
       setAvailableDevices([]);
+      setIsRecurring(false);
+      setClockValue(dayjs());
     } catch (err) {
+      console.log(err);
       const msg = err?.response?.data?.message || "Không thể tạo cuộc họp!";
       if (msg.includes("bảo trì") && msg.includes("phòng"))
         toast.error("🚫 Phòng họp đang bảo trì!");
@@ -222,10 +232,10 @@ const CreateMeetingPage = () => {
   };
 
   /* ===================================================
-                      UI
+                        UI
   ==================================================== */
   return (
-    <div className="p-6 min-h-screen bg-gray-100 dark:bg-[#0f172a]">
+    <div className="p-6 min-h-screen bg-white dark:bg-[#0f172a]">
       <ToastContainer position="top-right" autoClose={2000} />
 
       {/* HEADER */}
@@ -250,9 +260,17 @@ const CreateMeetingPage = () => {
             form={form}
             layout="vertical"
             onFinish={handleCreateMeeting}
-            onValuesChange={(v) =>
-              v.isRecurring !== undefined && setIsRecurring(v.isRecurring)
-            }
+            onValuesChange={(changed, all) => {
+              if (changed.isRecurring === false) {
+                form.setFieldsValue({
+                  frequency: undefined,
+                  repeatUntil: undefined,
+                });
+              }
+              if (changed.isRecurring !== undefined) {
+                setIsRecurring(changed.isRecurring);
+              }
+            }}
           >
             {/* TÊN */}
             <Form.Item
@@ -269,7 +287,11 @@ const CreateMeetingPage = () => {
             {/* THỜI GIAN */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* NGÀY */}
-              <Form.Item name="date" label="Ngày họp" rules={[{ required: true }]}>
+              <Form.Item
+                name="date"
+                label="Ngày họp"
+                rules={[{ required: true, message: "Chọn ngày họp" }]}
+              >
                 <DatePicker
                   className="w-full"
                   format="DD/MM/YYYY"
@@ -278,12 +300,16 @@ const CreateMeetingPage = () => {
               </Form.Item>
 
               {/* GIỜ — ANALOG CLOCK */}
-              <Form.Item name="time" label="Giờ bắt đầu" rules={[{ required: true }]}>
+              <Form.Item
+                name="time"
+                label="Giờ bắt đầu"
+                rules={[{ required: true, message: "Chọn giờ bắt đầu" }]}
+              >
                 <>
                   <div className="flex gap-2">
                     <Input
                       readOnly
-                      value={clockValue.format("hh:mm A")}
+                      value={clockValue.format("HH:mm")}
                       onClick={() => setClockOpen(true)}
                     />
                     <Button onClick={() => setClockOpen(true)}>
@@ -305,7 +331,7 @@ const CreateMeetingPage = () => {
                       onChange={(hm) => {
                         const [h, m] = hm.split(":").map(Number);
                         setClockValue(
-                          dayjs().hour(h).minute(m).second(0)
+                          dayjs().hour(h).minute(m).second(0).millisecond(0)
                         );
                       }}
                     />
@@ -314,7 +340,12 @@ const CreateMeetingPage = () => {
               </Form.Item>
 
               {/* THỜI LƯỢNG */}
-              <Form.Item name="duration" label="Thời lượng" initialValue={60}>
+              <Form.Item
+                name="duration"
+                label="Thời lượng"
+                initialValue={60}
+                rules={[{ required: true, message: "Chọn thời lượng" }]}
+              >
                 <Select>
                   <Option value={15}>15 phút</Option>
                   <Option value={30}>30 phút</Option>
@@ -326,18 +357,18 @@ const CreateMeetingPage = () => {
               </Form.Item>
             </div>
 
-            {/* PHÒNG HỌP + TRẠNG THÁI */}
+            {/* PHÒNG HỌP */}
             <Form.Item
               name="roomId"
               label="Phòng họp"
-              rules={[{ required: true }]}
+              rules={[{ required: true, message: "Chọn phòng họp" }]}
             >
               <Select placeholder="-- Chọn phòng họp --">
                 {rooms.map((r) => (
                   <Option
                     key={r.id}
                     value={r.id}
-                    disabled={r.status !== "AVAILABLE"} // disable phòng bảo trì
+                    disabled={r.status !== "AVAILABLE"}
                   >
                     <div className="flex justify-between items-center">
                       <span>
@@ -370,9 +401,28 @@ const CreateMeetingPage = () => {
                     : "Chọn thiết bị khả dụng"
                 }
               >
+                {availableDevices.length === 0 &&
+                  watchedDate &&
+                  watchedTime && (
+                    <Option disabled>Không có thiết bị nào khả dụng</Option>
+                  )}
+
                 {availableDevices.map((d) => (
-                  <Option key={d.id} value={d.id}>
-                    {d.name}
+                  <Option key={d.id} value={d.id} disabled={d.status !== "AVAILABLE"}>
+                    <div className="flex justify-between items-center">
+                      <span>{d.name}</span>
+
+                      {/* Status label */}
+                      <span
+                        className={`px-2 py-1 rounded text-xs ${
+                          d.status === "AVAILABLE"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-600"
+                        }`}
+                      >
+                        {d.status === "AVAILABLE" ? "Có sẵn" : "Bảo trì"}
+                      </span>
+                    </div>
                   </Option>
                 ))}
               </Select>
@@ -410,7 +460,9 @@ const CreateMeetingPage = () => {
                       (e) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
                     );
                     return invalid.length
-                      ? Promise.reject(`Email không hợp lệ: ${invalid.join(", ")}`)
+                      ? Promise.reject(
+                          `Email không hợp lệ: ${invalid.join(", ")}`
+                        )
                       : Promise.resolve();
                   },
                 },
@@ -422,13 +474,22 @@ const CreateMeetingPage = () => {
             <Divider />
 
             {/* LẶP LẠI */}
-            <Form.Item name="isRecurring" valuePropName="checked">
+            <Form.Item
+              name="isRecurring"
+              valuePropName="checked"
+              initialValue={false}
+            >
               <Checkbox>Lặp lại cuộc họp</Checkbox>
             </Form.Item>
 
             {isRecurring && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Form.Item name="frequency" label="Tần suất" initialValue="DAILY">
+                <Form.Item
+                  name="frequency"
+                  label="Tần suất"
+                  initialValue="DAILY"
+                  rules={[{ required: true, message: "Chọn tần suất lặp" }]}
+                >
                   <Select>
                     <Option value="DAILY">Hằng ngày</Option>
                     <Option value="WEEKLY">Hằng tuần</Option>
@@ -446,7 +507,13 @@ const CreateMeetingPage = () => {
                     },
                   ]}
                 >
-                  <DatePicker format="DD/MM/YYYY" className="w-full" />
+                  <DatePicker
+                    format="DD/MM/YYYY"
+                    className="w-full"
+                    disabledDate={(current) =>
+                      current && current <= dayjs().startOf("day")
+                    }
+                  />
                 </Form.Item>
               </div>
             )}
