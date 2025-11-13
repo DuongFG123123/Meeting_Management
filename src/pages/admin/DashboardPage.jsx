@@ -382,13 +382,13 @@ setCalendarEvents(events);
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
                   <Pie data={roomUsageData} cx="50%" cy="50%" outerRadius={80} dataKey="value">
-  {roomUsageData.map((entry, index) => (
-    <Cell 
-      key={`cell-${index}`} 
-      fill={roomColors[entry.roomId] || COLORS[index % COLORS.length]} 
-    />
-  ))}
-</Pie>
+                    {roomUsageData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={roomColors[entry.roomId]} 
+                    />
+                  ))}
+                  </Pie>
                   <Tooltip
                     contentStyle={{
                       backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
