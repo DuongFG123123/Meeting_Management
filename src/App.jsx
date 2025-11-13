@@ -27,6 +27,7 @@ import UserRoomsPage from "./pages/user/UserRoomsPage";
 import HistoryPage from "./pages/user/HistoryPage";
 import ProfilePage from "./pages/user/ProfilePage";
 import ChangePasswordPageUser from './pages/user/ChangePasswordPage';
+import DevicePage from "./pages/user/DevicePage";
 
 // ===== Guards =====
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -102,6 +103,7 @@ export default function App() {
         <Route path="my-meetings" element={<MyMeetingsPage />} />
         <Route path="create-meeting" element={<CreateMeetingPage />} />
         <Route path="rooms" element={<UserRoomsPage />} />
+        <Route path="devices" element={<DevicePage />} />
         <Route path="history" element={<HistoryPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="change-password" element={<ChangePasswordPageUser />} />
