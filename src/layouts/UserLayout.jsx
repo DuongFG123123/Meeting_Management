@@ -9,7 +9,7 @@ import * as meetingService from '../services/meetingService'; // <-- THÊM MỚI
 
 import {
   FiHome, FiCalendar, FiPlusCircle, FiBriefcase, FiClock, FiUser, FiMenu,
-  FiBell, FiSettings, FiLock, FiLogOut, FiLoader, FiInbox,
+  FiBell, FiSettings, FiLock, FiLogOut, FiLoader, FiInbox, FiMonitor,
   FiCheck, // <-- Icon Chấp nhận
   FiX,     // <-- Icon Từ chối
 } from "react-icons/fi";
@@ -21,6 +21,7 @@ const userMenu = [
   { to: "/user/create-meeting", label: "Tạo cuộc họp", icon: <FiPlusCircle size={18} /> },
   { to: "/user/rooms", label: "Phòng họp", icon: <FiBriefcase size={18} /> },
   { to: "/user/history", label: "Lịch sử họp", icon: <FiClock size={18} /> },
+  { to: "/user/devices", label: "Thiết bị", icon: <FiMonitor size={18} /> },
   // { to: "/user/profile", label: "Thông tin cá nhân", icon: <FiUser size={18} /> },
 ];
 
