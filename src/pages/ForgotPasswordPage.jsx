@@ -45,9 +45,9 @@ export default function ForgotPasswordPage() {
               </label>
               <input
                 type="email"
-                value={email}
+                value={email}   
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
+                placeholder="Nhập email của bạn..."
                 required
                 className="w-full rounded-xl border border-gray-300 px-3 py-2"
               />
