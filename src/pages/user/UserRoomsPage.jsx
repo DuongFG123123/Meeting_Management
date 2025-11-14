@@ -171,7 +171,7 @@ const UserRoomsPage = () => {
                       onClick={() => handleBookRoom(room)}
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                         isAvailable
-                          ? "bg-blue-600 hover:bg-blue-700 text-white"
+                          ? "bg-green-600 hover:bg-green-700 text-white"
                           : "bg-gray-400 text-gray-700 cursor-not-allowed"
                       }`}
                     >
