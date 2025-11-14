@@ -121,7 +121,6 @@ const NotificationItem = ({ notification, onMarkRead }) => {
   );
 }
 
-
 // === COMPONENT LAYOUT CHÍNH (Giữ nguyên logic tải thông báo) ===
 export default function UserLayout() {
   const { logout, user } = useAuth();
