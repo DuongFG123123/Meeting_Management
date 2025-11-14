@@ -34,7 +34,7 @@ import duration from "dayjs/plugin/duration";
 import isBetween from "dayjs/plugin/isBetween";
 
 // ===============================================
-// 🎨 BẢNG MÀU CỐ ĐỊNH THEO ROOM.ID
+// BẢNG MÀU CỐ ĐỊNH THEO ROOM.ID
 // ===============================================
 const FIXED_ROOM_COLORS = [
   "#6366F1", // Indigo 500
