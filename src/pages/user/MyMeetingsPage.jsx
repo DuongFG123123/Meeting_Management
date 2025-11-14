@@ -737,7 +737,7 @@ const MyMeetingPage = () => {
             headerToolbar={{
               left: "prev,next today",
               center: "title",
-              right: "dayGridMonth,timeGridWeek,timeGridDay",
+              right: "timeGridDay,timeGridWeek,dayGridMonth",
             }}
             allDaySlot={false}
             slotMinTime="00:00:00"
