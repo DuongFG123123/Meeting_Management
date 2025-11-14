@@ -291,6 +291,11 @@ export default function UsersPage() {
     startIndex,
     startIndex + pageSize
   );
+  
+useEffect(() => {
+  setCurrentPage(1);
+}, [searchTerm, statusFilter]);
+
 
   return (
     <div className="p-8 min-h-screen transition-colors bg-gray-50 dark:bg-gray-900">
