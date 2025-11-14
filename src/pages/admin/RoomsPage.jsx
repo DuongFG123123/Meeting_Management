@@ -21,8 +21,8 @@ setToastTheme();
 // Ap dung ma
 export default function RoomsPage() {
   // === States ===
+  const [filteredRooms,setFilteredRooms]=useState([]);
   const [rooms, setRooms] = useState([]);
-  const [filteredRooms, setFilteredRooms] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,6 +30,7 @@ export default function RoomsPage() {
   const [roomToDelete, setRoomToDelete] = useState(null);
   const [editingRoom, setEditingRoom] = useState(null);
   const [formData, setFormData] = useState({
+  
     name: "",
     capacity: 0,
     location: "",
@@ -39,7 +40,6 @@ export default function RoomsPage() {
   const ITEMS_PER_PAGE = 5;
   const [notification, setNotification] = useState(null);
   const [loading, setLoading] = useState(false);
-
   // === Effects ===
   // 1. Tải danh sách phòng khi mount
   useEffect(() => {
@@ -47,24 +47,36 @@ export default function RoomsPage() {
   }, []);
 
   // 2. Lọc danh sách khi rooms, searchTerm, hoặc statusFilter thay đổi
-  useEffect(() => {
-    let filtered = rooms;
+  
+useEffect(() => {
+  setCurrentPage(1);
+}, [searchTerm, statusFilter]);
 
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (r) =>
-          r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (r.location &&
-            r.location.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
+useEffect(() => {
+  const term = searchTerm.toLowerCase();
 
-    if (statusFilter !== "ALL") {
-      filtered = filtered.filter((r) => r.status === statusFilter);
-    }
+  const filtered = rooms.filter(item => {
+    const matchSearch =
+      !term ||
+      item.name?.toLowerCase().includes(term) ||
+      item.location?.toLowerCase().includes(term);
 
-    setFilteredRooms(filtered);
-  }, [rooms, searchTerm, statusFilter]);
+    const matchStatus =
+      statusFilter === "ALL" ? true : item.status === statusFilter;
+
+    return matchSearch && matchStatus;
+  });
+
+  setFilteredRooms(filtered);
+  setCurrentPage(1);
+}, [searchTerm, statusFilter, rooms]);
+
+const totalPages = Math.ceil(filteredRooms.length/ITEMS_PER_PAGE);
+  // Lấy danh sách phòng cho trang hiện tại
+  const paginatedRooms = filteredRooms.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   // === API Calls & Handlers ===
 
@@ -205,15 +217,6 @@ export default function RoomsPage() {
       </span>
     );
   };
-  // === THÊM LOGIC PHÂN TRANG (TRƯỚC KHI RETURN) ===
-  // Tính toán tổng số trang
-  const totalPages = Math.ceil(filteredRooms.length / ITEMS_PER_PAGE);
-
-  // Lấy danh sách phòng cho trang hiện tại
-  const paginatedRooms = filteredRooms.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
   // Hàm lấy thống kê theo trạng thái
   const getStatsByStatus = (status) => {
     return rooms.filter((r) => r.status === status).length;
