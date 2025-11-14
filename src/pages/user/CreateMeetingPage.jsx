@@ -25,7 +25,10 @@ import { getAvailableDevices } from "../../services/deviceService";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import AnalogClockPicker from "../../components/AnalogClockPicker";
+// MUI STATIC TIME PICKER
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { StaticTimePicker } from "@mui/x-date-pickers/StaticTimePicker";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
 dayjs.locale("vi");
 dayjs.extend(utc);
@@ -42,21 +45,23 @@ const CreateMeetingPage = () => {
 
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const debounceTimer = useRef(null);
 
+  const debounceTimer = useRef(null);
   const [form] = Form.useForm();
   const { user } = useAuth();
+
   const [isRecurring, setIsRecurring] = useState(false);
 
   const watchedDate = Form.useWatch("date", form);
   const watchedTime = Form.useWatch("time", form);
   const watchedDuration = Form.useWatch("duration", form);
 
+  // TIME PICKER STATE
   const [clockOpen, setClockOpen] = useState(false);
   const [clockValue, setClockValue] = useState(dayjs());
 
   /* ===================================================
-                  DARK MODE FIX
+                    DARK MODE FIX
   ==================================================== */
   useEffect(() => {
     const style = document.createElement("style");
@@ -79,7 +84,7 @@ const CreateMeetingPage = () => {
   }, []);
 
   /* ===================================================
-                  LOAD ROOMS
+                    LOAD ROOMS
   ==================================================== */
   useEffect(() => {
     const loadRooms = async () => {
@@ -94,7 +99,7 @@ const CreateMeetingPage = () => {
   }, []);
 
   /* ===================================================
-                  LOAD DEVICES WHEN TIME CHANGES
+                LOAD DEVICES WHEN TIME CHANGES
   ==================================================== */
   useEffect(() => {
     const fetchDevices = async () => {
@@ -112,9 +117,7 @@ const CreateMeetingPage = () => {
           .month(watchedDate.month())
           .date(watchedDate.date())
           .hour(watchedTime.hour())
-          .minute(watchedTime.minute())
-          .second(0)
-          .millisecond(0);
+          .minute(watchedTime.minute());
 
         const startTime = startTimeUTC.toISOString();
         const endTime = startTimeUTC
@@ -136,7 +139,7 @@ const CreateMeetingPage = () => {
   }, [watchedDate, watchedTime, watchedDuration]);
 
   /* ===================================================
-                  SEARCH INTERNAL USERS
+                SEARCH INTERNAL USERS
   ==================================================== */
   const handleSearchUsers = (query) => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
@@ -161,6 +164,15 @@ const CreateMeetingPage = () => {
   };
 
   /* ===================================================
+                  VALIDATE BUSINESS TIME
+  ==================================================== */
+  const validateBusinessTime = (value) => {
+    if (!value) return false;
+    const totalMin = value.hour() * 60 + value.minute();
+    return totalMin >= 480 && totalMin <= 1080; // 08:00 - 18:00
+  };
+
+  /* ===================================================
                     SUBMIT MEETING
   ==================================================== */
   const handleCreateMeeting = async (values) => {
@@ -170,42 +182,41 @@ const CreateMeetingPage = () => {
       const date = values.date;
       const time = dayjs(values.time);
 
+      if (!validateBusinessTime(time)) {
+        toast.error("⏰ Chỉ được đặt lịch từ 08:00 đến 18:00!");
+        return;
+      }
+
       const startUTC = dayjs
         .utc()
         .year(date.year())
         .month(date.month())
         .date(date.date())
         .hour(time.hour())
-        .minute(time.minute())
-        .second(0)
-        .millisecond(0);
-
-      const startTime = startUTC.toISOString();
-      const endTime = startUTC.add(values.duration, "minute").toISOString();
-
-      const participantIds = Array.from(
-        new Set([user.id, ...(values.participantIds || [])])
-      );
-
-      const recurrenceRule =
-        values.isRecurring === true
-          ? {
-              frequency: values.frequency,
-              interval: 1,
-              repeatUntil: dayjs(values.repeatUntil).format("YYYY-MM-DD"),
-            }
-          : null;
+        .minute(time.minute());
 
       const payload = {
         title: values.title.trim(),
         description: values.description || "",
-        startTime,
-        endTime,
+        startTime: startUTC.toISOString(),
+        endTime: startUTC.add(values.duration, "minute").toISOString(),
         roomId: values.roomId,
-        participantIds,
+        participantIds: Array.from(
+          new Set([user.id, ...(values.participantIds || [])])
+        ),
         deviceIds: values.deviceIds || [],
         guestEmails: values.guestEmails || [],
-        recurrenceRule,
+
+        // ⭐⭐⭐ RECURRING RULE ⭐⭐⭐
+        recurrenceRule:
+          values.isRecurring === true
+            ? {
+                frequency: values.frequency,
+                interval: 1,
+                repeatUntil: dayjs(values.repeatUntil).format("YYYY-MM-DD"),
+              }
+            : null,
+
         onBehalfOfUserId: null,
       };
 
@@ -213,19 +224,11 @@ const CreateMeetingPage = () => {
 
       toast.success("🎉 Tạo cuộc họp thành công!");
       form.resetFields();
+      setClockValue(dayjs());
       setAvailableDevices([]);
       setIsRecurring(false);
-      setClockValue(dayjs());
     } catch (err) {
-      console.log(err);
-      const msg = err?.response?.data?.message || "Không thể tạo cuộc họp!";
-      if (msg.includes("bảo trì") && msg.includes("phòng"))
-        toast.error("🚫 Phòng họp đang bảo trì!");
-      else if (msg.includes("bảo trì") && msg.includes("thiết bị"))
-        toast.error("⚙️ Thiết bị đang bảo trì!");
-      else if (err.response?.status === 409)
-        toast.error("🚫 Xung đột: " + msg);
-      else toast.error(msg);
+      toast.error(err?.response?.data?.message || "Không thể tạo cuộc họp!");
     } finally {
       setLoading(false);
     }
@@ -238,7 +241,7 @@ const CreateMeetingPage = () => {
     <div className="p-6 min-h-screen bg-white dark:bg-[#0f172a]">
       <ToastContainer position="top-right" autoClose={2000} />
 
-      {/* HEADER */}
+      {/* Header */}
       <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-300 dark:border-gray-700">
         <div className="p-3 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 shadow-md">
           <FiPlusCircle className="text-white text-2xl" />
@@ -256,23 +259,8 @@ const CreateMeetingPage = () => {
       {/* FORM */}
       <div className="max-w-4xl mx-auto">
         <Card className="shadow-lg bg-white dark:bg-[#1e293b] dark:text-gray-100">
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleCreateMeeting}
-            onValuesChange={(changed, all) => {
-              if (changed.isRecurring === false) {
-                form.setFieldsValue({
-                  frequency: undefined,
-                  repeatUntil: undefined,
-                });
-              }
-              if (changed.isRecurring !== undefined) {
-                setIsRecurring(changed.isRecurring);
-              }
-            }}
-          >
-            {/* TÊN */}
+          <Form form={form} layout="vertical" onFinish={handleCreateMeeting}>
+            {/* TITLE */}
             <Form.Item
               name="title"
               label="Tên cuộc họp"
@@ -284,9 +272,9 @@ const CreateMeetingPage = () => {
               <Input placeholder="Nhập tên cuộc họp..." />
             </Form.Item>
 
-            {/* THỜI GIAN */}
+            {/* TIME */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* NGÀY */}
+              {/* DATE */}
               <Form.Item
                 name="date"
                 label="Ngày họp"
@@ -299,7 +287,7 @@ const CreateMeetingPage = () => {
                 />
               </Form.Item>
 
-              {/* GIỜ — ANALOG CLOCK */}
+              {/* TIME PICKER */}
               <Form.Item
                 name="time"
                 label="Giờ bắt đầu"
@@ -318,28 +306,47 @@ const CreateMeetingPage = () => {
                   </div>
 
                   <Modal
-                    title="Chọn giờ họp"
+                    title="Chọn giờ họp (08:00 - 18:00)"
                     open={clockOpen}
                     onCancel={() => setClockOpen(false)}
                     onOk={() => {
+                      if (!validateBusinessTime(clockValue)) {
+                        toast.error("⏰ Chỉ được đặt 08:00 - 18:00!");
+                        return;
+                      }
                       form.setFieldsValue({ time: clockValue });
                       setClockOpen(false);
                     }}
+                    width={520}
+                    style={{ overflow: "visible" }}
+                    bodyStyle={{ overflow: "visible", paddingTop: 8 }}
                   >
-                    <AnalogClockPicker
-                      value={clockValue}
-                      onChange={(hm) => {
-                        const [h, m] = hm.split(":").map(Number);
-                        setClockValue(
-                          dayjs().hour(h).minute(m).second(0).millisecond(0)
-                        );
-                      }}
-                    />
+                    <div className="text-center text-gray-500 dark:text-gray-300 mb-2 text-sm">
+                      <span className="font-medium text-indigo-600 dark:text-indigo-400">
+                        Giờ (HH)
+                      </span>{" "}
+                      :{" "}
+                      <span className="font-medium text-indigo-600 dark:text-indigo-400">
+                        Phút (MM)
+                      </span>
+                    </div>
+
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                      <StaticTimePicker
+                        orientation="landscape"
+                        ampm={false}
+                        value={clockValue}
+                        onChange={(v) => setClockValue(v)}
+                        slotProps={{
+                          actionBar: { actions: [] },
+                        }}
+                      />
+                    </LocalizationProvider>
                   </Modal>
                 </>
               </Form.Item>
 
-              {/* THỜI LƯỢNG */}
+              {/* DURATION */}
               <Form.Item
                 name="duration"
                 label="Thời lượng"
@@ -357,7 +364,7 @@ const CreateMeetingPage = () => {
               </Form.Item>
             </div>
 
-            {/* PHÒNG HỌP */}
+            {/* ROOM */}
             <Form.Item
               name="roomId"
               label="Phòng họp"
@@ -389,7 +396,7 @@ const CreateMeetingPage = () => {
               </Select>
             </Form.Item>
 
-            {/* THIẾT BỊ */}
+            {/* DEVICES */}
             <Form.Item name="deviceIds" label="Thiết bị sử dụng">
               <Select
                 mode="multiple"
@@ -401,18 +408,14 @@ const CreateMeetingPage = () => {
                     : "Chọn thiết bị khả dụng"
                 }
               >
-                {availableDevices.length === 0 &&
-                  watchedDate &&
-                  watchedTime && (
-                    <Option disabled>Không có thiết bị nào khả dụng</Option>
-                  )}
-
                 {availableDevices.map((d) => (
-                  <Option key={d.id} value={d.id} disabled={d.status !== "AVAILABLE"}>
+                  <Option
+                    key={d.id}
+                    value={d.id}
+                    disabled={d.status !== "AVAILABLE"}
+                  >
                     <div className="flex justify-between items-center">
                       <span>{d.name}</span>
-
-                      {/* Status label */}
                       <span
                         className={`px-2 py-1 rounded text-xs ${
                           d.status === "AVAILABLE"
@@ -430,7 +433,7 @@ const CreateMeetingPage = () => {
 
             <Divider />
 
-            {/* NGƯỜI THAM GIA */}
+            {/* PARTICIPANTS */}
             <Form.Item name="participantIds" label="Người tham gia (Nội bộ)">
               <Select
                 mode="multiple"
@@ -438,7 +441,6 @@ const CreateMeetingPage = () => {
                 loading={isSearching}
                 filterOption={false}
                 onSearch={handleSearchUsers}
-                placeholder="Tìm người dùng..."
               >
                 {searchResults.map((u) => (
                   <Option key={u.id} value={u.id}>
@@ -448,7 +450,7 @@ const CreateMeetingPage = () => {
               </Select>
             </Form.Item>
 
-            {/* EMAIL KHÁCH */}
+            {/* GUEST EMAIL */}
             <Form.Item
               name="guestEmails"
               label="Email khách mời"
@@ -473,13 +475,17 @@ const CreateMeetingPage = () => {
 
             <Divider />
 
-            {/* LẶP LẠI */}
+            {/* ===================================================
+                        RECURRING MEETING
+            =================================================== */}
             <Form.Item
               name="isRecurring"
               valuePropName="checked"
               initialValue={false}
             >
-              <Checkbox>Lặp lại cuộc họp</Checkbox>
+              <Checkbox onChange={(e) => setIsRecurring(e.target.checked)}>
+                Lặp lại cuộc họp
+              </Checkbox>
             </Form.Item>
 
             {isRecurring && (
@@ -487,7 +493,6 @@ const CreateMeetingPage = () => {
                 <Form.Item
                   name="frequency"
                   label="Tần suất"
-                  initialValue="DAILY"
                   rules={[{ required: true, message: "Chọn tần suất lặp" }]}
                 >
                   <Select>
@@ -499,13 +504,8 @@ const CreateMeetingPage = () => {
 
                 <Form.Item
                   name="repeatUntil"
-                  label="Lặp lại đến"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Vui lòng chọn ngày kết thúc lặp lại!",
-                    },
-                  ]}
+                  label="Lặp đến ngày"
+                  rules={[{ required: true, message: "Chọn ngày kết thúc" }]}
                 >
                   <DatePicker
                     format="DD/MM/YYYY"
@@ -518,7 +518,7 @@ const CreateMeetingPage = () => {
               </div>
             )}
 
-            {/* MÔ TẢ */}
+            {/* DESCRIPTION */}
             <Form.Item name="description" label="Mô tả">
               <TextArea rows={4} placeholder="Nhập mô tả..." />
             </Form.Item>
