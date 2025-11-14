@@ -1,4 +1,4 @@
-// src/pages/user/UserRoomsPage.jsx
+// src/pages/user/RoomsPage.jsx
 import React, { useEffect, useState } from "react";
 import { FiSearch, FiTool, FiMonitor, FiUsers } from "react-icons/fi";
 import { Spin, message } from "antd";
@@ -6,7 +6,7 @@ import { getAllRooms } from "../../services/roomService";
 import { useNavigate } from "react-router-dom";
 import { HiBuildingOffice } from "react-icons/hi2";
 
-const UserRoomsPage = () => {
+const RoomsPage = () => {
   const [rooms, setRooms] = useState([]);
   const [processedRooms, setProcessedRooms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -192,4 +192,4 @@ const UserRoomsPage = () => {
   );
 };
 
-export default UserRoomsPage;
+export default RoomsPage;

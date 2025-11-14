@@ -20,10 +20,10 @@ import Reports from "./pages/admin/ReportsPage";
 import ChangePasswordPageAdmin from './pages/admin/ChangePasswordPage';
 
 // ===== User Pages =====
-import UserDashboard from "./pages/user/UserDashboard";
+import UserDashboard from "./pages/user/DashboardPage";
 import MyMeetingsPage from "./pages/user/MyMeetingsPage";
 import CreateMeetingPage from "./pages/user/CreateMeetingPage";
-import UserRoomsPage from "./pages/user/UserRoomsPage";
+import UserRoomsPage from "./pages/user/RoomsPage";
 import HistoryPage from "./pages/user/HistoryPage";
 import ProfilePage from "./pages/user/ProfilePage";
 import ChangePasswordPageUser from './pages/user/ChangePasswordPage';

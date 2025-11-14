@@ -1,4 +1,4 @@
-// src/pages/user/UserDashboard.jsx
+// src/pages/user/DashboardPage
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { FiCalendar, FiClock, FiUsers, FiCheckSquare } from "react-icons/fi";
@@ -52,7 +52,7 @@ const statTemplates = [
 ];
 
 
-export default function UserDashboard() {
+export default function DashboardPage(){
   const { user } = useAuth(); // <-- Cần user.id để lọc
   const navigate = useNavigate();
   
