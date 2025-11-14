@@ -42,7 +42,7 @@ const UserRoomsPage = () => {
     if (apiStatus === "UNDER_MAINTENANCE") {
       return {
         text: "Đang bảo trì",
-        color: "text-gray-600 dark:text-gray-300 font-semibold",
+        color: "text-orange-500 dark:text-orange-400 font-semibold",
       };
     }
     return { text: apiStatus, color: "text-gray-500" };
@@ -141,7 +141,7 @@ const UserRoomsPage = () => {
                     </h2>
 
                     {room.status === "UNDER_MAINTENANCE" && (
-                      <span className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300 font-medium">
+                      <span className="flex items-center gap-1 text-xs text-orange-500 dark:text-orange-400 font-medium">
                         <FiTool size={12} /> Bảo trì
                       </span>
                     )}
