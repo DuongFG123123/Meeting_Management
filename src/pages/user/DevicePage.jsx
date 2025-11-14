@@ -1,8 +1,9 @@
 // src/pages/user/DevicePage.jsx
 import React, { useEffect, useState } from "react";
-import { FiSearch, FiCpu, FiTool } from "react-icons/fi";
+import { FiSearch, FiTool, FiLock } from "react-icons/fi";
 import { HiComputerDesktop } from "react-icons/hi2";
 import { Spin } from "antd";
+import { getDevices } from "../../services/deviceService";
 
 export default function DevicePage() {
   const [devices, setDevices] = useState([]);
@@ -10,45 +11,41 @@ export default function DevicePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("Tất cả");
 
-  // Fake API (sau này thay API thật)
+  // ===== LOAD DEVICE API =====
   useEffect(() => {
-    setTimeout(() => {
-      setDevices([
-        {
-          id: 1,
-          name: "Máy chiếu Epson X200",
-          type: "Máy chiếu",
-          status: "AVAILABLE",
-          room: "A1",
-        },
-        {
-          id: 2,
-          name: "Loa hội nghị JBL 500",
-          type: "Loa hội nghị",
-          status: "UNDER_MAINTENANCE",
-          room: "B2",
-        },
-      ]);
-      setLoading(false);
-    }, 800);
+    const fetchDevices = async () => {
+      try {
+        const res = await getDevices();
+        setDevices(res.data || []);
+      } catch (err) {
+        console.error("Lỗi tải thiết bị:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDevices();
   }, []);
 
+  // ===== TRẠNG THÁI =====
   const getStatusDisplay = (status) => {
-    if (status === "AVAILABLE") {
-      return {
-        text: "Sẵn sàng",
-        color: "text-green-700 dark:text-green-400 font-semibold",
-      };
+    switch (status) {
+      case "AVAILABLE":
+        return {
+          text: "Sẵn sàng",
+          color: "text-green-600 dark:text-green-400 font-semibold",
+        };
+      case "UNDER_MAINTENANCE":
+        return {
+          text: "Bảo trì",
+          color: "text-amber-600 dark:text-amber-400 font-semibold",
+        };
+      default:
+        return { text: status, color: "text-gray-500" };
     }
-    if (status === "UNDER_MAINTENANCE") {
-      return {
-        text: "Bảo trì",
-        color: "text-gray-600 dark:text-gray-300 font-semibold",
-      };
-    }
-    return { text: status, color: "text-gray-500" };
   };
 
+  // ===== LỌC THIẾT BỊ =====
   const filteredDevices = devices.filter((d) => {
     const matchSearch = d.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchStatus = filterStatus === "Tất cả" || d.status === filterStatus;
@@ -56,11 +53,11 @@ export default function DevicePage() {
   });
 
   return (
-    <div className="p-6 min-h-screen bg-gray-50 dark:bg-slate-900 transition-colors duration-300">
+    <div className="p-6 min-h-screen bg-gray-50 dark:bg-slate-900 transition-all duration-300">
 
-      {/* HEADER — giống Phòng họp */}
+      {/* ===== HEADER ===== */}
       <div className="flex items-center gap-4 mb-6 pb-3 border-b border-gray-300 dark:border-gray-700">
-        <div className="p-3 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-500 shadow-md">
+        <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg">
           <HiComputerDesktop className="text-white text-2xl" />
         </div>
 
@@ -74,7 +71,7 @@ export default function DevicePage() {
         </div>
       </div>
 
-      {/* SEARCH + FILTER */}
+      {/* ===== SEARCH + FILTER ===== */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
         <div className="relative w-full md:w-1/2">
           <FiSearch className="absolute top-3 left-3 text-gray-500 dark:text-gray-400" />
@@ -101,13 +98,13 @@ export default function DevicePage() {
         </select>
       </div>
 
-      {/* DEVICE LIST */}
+      {/* ===== DEVICE LIST ===== */}
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <Spin size="large" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredDevices.length > 0 ? (
             filteredDevices.map((dv) => {
               const statusDisplay = getStatusDisplay(dv.status);
@@ -115,53 +112,69 @@ export default function DevicePage() {
 
               return (
                 <div
-                  key={dv.id}
-                  className={`
-                    rounded-xl p-5 border shadow-md transition-all duration-200
-                    ${
-                      isAvailable
-                        ? "bg-purple-50 border-purple-200 hover:shadow-purple-300 hover:scale-[1.02] dark:bg-purple-900/20 dark:border-purple-700"
-                        : "bg-gray-200/60 border-gray-300 dark:bg-slate-700/40 dark:border-slate-600"
-                    }
-                  `}
-                >
-                  <div className="flex justify-between items-start">
-                    <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                      {dv.name}
-                    </h2>
+  key={dv.id}
+  className={`
+    rounded-2xl p-6 border shadow-md relative
+    transition-all duration-300
+    ${
+      isAvailable
+        ? `
+          bg-gradient-to-br from-purple-50 to-indigo-50
+          dark:from-purple-900/20 dark:to-indigo-900/20
+          border-purple-300 dark:border-purple-600
+          hover:shadow-purple-300 hover:-translate-y-1 hover:border-purple-500
+        `
+        : `
+          bg-gray-100 dark:bg-slate-700/40
+          border-gray-300 dark:border-slate-600
+          opacity-80 cursor-not-allowed
+        `
+    }
+  `}
+>
+  {/* ICON BẢO TRÌ */}
+  {!isAvailable && (
+    <div className="absolute top-4 right-4 flex items-center gap-1 text-sm text-amber-600 dark:text-amber-400">
+      <FiTool size={14} /> Bảo trì
+    </div>
+  )}
 
-                    {dv.status === "UNDER_MAINTENANCE" && (
-                      <span className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300 font-medium">
-                        <FiTool size={12} /> Bảo trì
-                      </span>
-                    )}
-                  </div>
+  {/* TÊN THIẾT BỊ */}
+  <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">
+    {dv.name}
+  </h2>
 
-                  <p className="text-gray-700 dark:text-gray-300 mt-2">
-                    Loại thiết bị: <span className="font-medium">{dv.type}</span>
-                  </p>
+  {/* MÔ TẢ */}
+  <p className="text-gray-700 dark:text-gray-300">
+    <span className="font-semibold">Loại thiết bị: </span>
+    {dv.description}
+  </p>
 
-                  <p className="text-gray-700 dark:text-gray-300 mt-1">
-                    Thuộc phòng:{" "}
-                    <span className="font-medium text-blue-600 dark:text-blue-400">
-                      {dv.room}
-                    </span>
-                  </p>
+  {/* TRẠNG THÁI */}
+  <p className="mt-2 text-gray-700 dark:text-gray-300">
+    <span className="font-semibold">Trạng thái: </span>
+    <span className={statusDisplay.color}>{statusDisplay.text}</span>
+  </p>
 
-                  <p className="mt-2 text-gray-700 dark:text-gray-300">
-                    Trạng thái:{" "}
-                    <span className={statusDisplay.color}>{statusDisplay.text}</span>
-                  </p>
-
-                  <div className="mt-4 flex justify-end">
-                    <button
-                      className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-                      onClick={() => alert("Xem chi tiết thiết bị (popup)")}
-                    >
-                      Chi tiết
-                    </button>
-                  </div>
-                </div>
+  {/* BUTTON */}
+  <div className="mt-5 flex justify-end">
+    <button
+      disabled={!isAvailable}
+      className={`
+        px-5 py-2 rounded-lg text-sm font-medium shadow
+        transition-all duration-200
+        ${
+          isAvailable
+            ? "bg-purple-600 hover:bg-purple-700 text-white"
+            : "bg-gray-300 text-gray-600 dark:bg-slate-600 dark:text-gray-300 cursor-not-allowed"
+        }
+      `}
+      onClick={() => isAvailable && alert("Chọn thiết bị để đặt phòng")}
+    >
+      {isAvailable ? "Đặt phòng" : "Bảo trì"}
+    </button>
+  </div>
+</div>
               );
             })
           ) : (
