@@ -134,7 +134,8 @@ export default function DevicePage() {
 >
   {/* ICON BẢO TRÌ */}
   {!isAvailable && (
-    <div className="absolute top-4 right-4 flex items-center gap-1 text-sm text-amber-600 dark:text-amber-400">
+    <div className="absolute top-4 right-4 flex items-center gap-1 text-sm 
+      text-amber-600 dark:text-amber-400 font-semibold">
       <FiTool size={14} /> Bảo trì
     </div>
   )}
