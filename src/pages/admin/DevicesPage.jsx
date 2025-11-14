@@ -24,9 +24,7 @@ setToastTheme();
 
 export default function DevicesPage() {
   // Danh sách thiết bị
-  const [devices, setDevices] = useState([]);
-  const [filteredDevices, setFilteredDevices] = useState([]);
-  
+  const [devices, setDevices] = useState([]);  
   // Tìm kiếm & lọc
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -49,40 +47,34 @@ export default function DevicesPage() {
   // ==================== PHÂN TRANG ==================== //
   const ITEMS_PER_PAGE = 5; // số thiết bị mỗi trang
   const [currentPage, setCurrentPage] = useState(1);
-
-  // Tính tổng số trang
-  const totalPages = Math.ceil(filteredDevices.length / ITEMS_PER_PAGE);
-
-  // Cắt dữ liệu thiết bị theo trang hiện tại
-  const paginatedDevices = filteredDevices.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
-
   // Fetch danh sách thiết bị khi component mount
   useEffect(() => {
     fetchDevices();
   }, []);
 
   // Lọc thiết bị theo search term và status filter
-  useEffect(() => {
-    let filtered = devices;
+  
 
-    // Lọc theo từ khóa tìm kiếm
-    if (searchTerm) {
-      filtered = filtered.filter(d =>
-        d.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        d.description?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
+useEffect(() => {
+  setCurrentPage(1);
+}, [searchTerm, statusFilter]);
 
-    // Lọc theo trạng thái
-    if (statusFilter !== "ALL") {
-      filtered = filtered.filter(d => d.status === statusFilter);
-    }
+const filteredDevices = devices.filter(d => {
+  const term = searchTerm.toLowerCase();
+  const matchSearch =
+    !term ||
+    d.name?.toLowerCase().includes(term) ||
+    d.description?.toLowerCase().includes(term);
 
-    setFilteredDevices(filtered);
-  }, [devices, searchTerm, statusFilter]);
+  const matchStatus = statusFilter === "ALL" ? true : d.status === statusFilter;
+
+  return matchSearch && matchStatus;
+});
+const paginatedDevices = filteredDevices.slice(
+  (currentPage - 1) * ITEMS_PER_PAGE,
+  currentPage * ITEMS_PER_PAGE
+);
+
 
   /**
    * Lấy danh sách tất cả thiết bị từ API
@@ -95,7 +87,6 @@ export default function DevicesPage() {
       // Sort giảm dần theo id
       data = [...data].sort((a, b) => (b.id || 0) - (a.id || 0));
       setDevices(data);
-      setFilteredDevices(data);
     } catch (error) {
       toast.error("❌ Không thể tải danh sách thiết bị!");
       console.error("Fetch devices error:", error);
@@ -182,7 +173,6 @@ export default function DevicesPage() {
           const newDevices = [{ ...createdDevice }, ...prev];
           return newDevices.sort((a, b) => (b.id || 0) - (a.id || 0));
         });
-        handleCloseModal();
       }
     } catch (error) {
       const errorMsg = error?.response?.data?.message || error?.message || "Có lỗi xảy ra";
