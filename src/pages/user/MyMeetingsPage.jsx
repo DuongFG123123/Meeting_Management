@@ -575,8 +575,8 @@ const [quickBooking, setQuickBooking] = useState({ open: false, start: null, end
               right: "timeGridDay,timeGridWeek,dayGridMonth",
             }}
             allDaySlot={false}
-            slotMinTime="00:00:00"
-            slotMaxTime="24:00:00"
+            slotMinTime="06:00:00"
+            slotMaxTime="19:30:00"
             events={events}
 
             eventClick={handleEventClick}
