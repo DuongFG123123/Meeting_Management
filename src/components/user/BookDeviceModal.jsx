@@ -252,9 +252,7 @@ const BookDeviceModal = ({ open, onCancel, prefilledDevice, onSuccess }) => {
     onCancel();
   };
 
-  /* ===================================================
-                      UI
-  ==================================================== */
+  /* ===== UI ====== */
   return (
     <Modal
       open={open}
