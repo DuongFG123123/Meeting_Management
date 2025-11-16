@@ -120,9 +120,7 @@ const BookDeviceModal = ({ open, onCancel, prefilledDevice, onSuccess }) => {
     loadRooms();
   }, [open]);
 
-  /* ===================================================
-      SET INITIAL FORM VALUES WITH PREFILLED DEVICE
-  ==================================================== */
+  /* ====== SET INITIAL FORM VALUES WITH PREFILLED DEVICE ====== */
   useEffect(() => {
     if (open && prefilledDevice) {
       setIsRecurring(false);
@@ -174,18 +172,14 @@ const BookDeviceModal = ({ open, onCancel, prefilledDevice, onSuccess }) => {
     }, 500);
   };
 
-  /* ===================================================
-              VALIDATE BUSINESS TIME
-  ==================================================== */
+  /* ====== VALIDATE BUSINESS TIME ====== */
   const validateBusinessTime = (value) => {
     if (!value) return false;
     const totalMin = value.hour() * 60 + value.minute();
     return totalMin >= 480 && totalMin <= 1080; // 08:00 - 18:00
   };
 
-  /* ===================================================
-                SUBMIT MEETING
-  ==================================================== */
+  /* ====== SUBMIT MEETING ====== */
   const handleCreateMeeting = async (values) => {
     try {
       setLoading(true);
