@@ -20,6 +20,7 @@ import { toast } from "react-toastify";
 
 import { createMeeting, getRooms } from "../../services/meetingService";
 import { searchUsers } from "../../services/userService";
+import { getAvailableDevices } from "../../services/deviceService";
 import { useAuth } from "../../context/AuthContext";
 
 // MUI STATIC TIME PICKER
@@ -40,6 +41,9 @@ const BookDeviceModal = ({ open, onCancel, prefilledDevice, onSuccess }) => {
   
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  
+  const [availableDevices, setAvailableDevices] = useState([]);
+  const [devicesLoading, setDevicesLoading] = useState(false);
 
   // TIME PICKER STATE
   const [clockOpen, setClockOpen] = useState(false);
@@ -49,9 +53,59 @@ const BookDeviceModal = ({ open, onCancel, prefilledDevice, onSuccess }) => {
   const [form] = Form.useForm();
   const { user } = useAuth();
 
+  // Watch form values để tải devices tự động
+  const watchedDate = Form.useWatch("date", form);
+  const watchedTime = Form.useWatch("time", form);
+  const watchedDuration = Form.useWatch("duration", form);
+
   /* ===================================================
-                    LOAD ROOMS
+          LOAD DEVICES WHEN TIME CHANGES
   ==================================================== */
+  useEffect(() => {
+    const fetchDevices = async () => {
+      if (!watchedDate || !watchedTime || !watchedDuration) {
+        setAvailableDevices([]);
+        return;
+      }
+
+      setDevicesLoading(true);
+
+      try {
+        const startTimeUTC = dayjs
+          .utc()
+          .year(watchedDate.year())
+          .month(watchedDate.month())
+          .date(watchedDate.date())
+          .hour(watchedTime.hour())
+          .minute(watchedTime.minute());
+
+        const startTime = startTimeUTC.toISOString();
+        const endTime = startTimeUTC
+          .add(watchedDuration, "minute")
+          .toISOString();
+
+        const res = await getAvailableDevices(startTime, endTime);
+        const availableList = res.data || [];
+        
+        // Đảm bảo thiết bị đã chọn luôn có trong danh sách (ngay cả khi đang được sử dụng)
+        const prefilledInList = availableList.find(d => d.id === prefilledDevice?.id);
+        if (!prefilledInList && prefilledDevice) {
+          // Thêm thiết bị đã chọn vào đầu danh sách
+          availableList.unshift(prefilledDevice);
+        }
+        
+        setAvailableDevices(availableList);
+      } catch (err) {
+        console.error(err);
+        toast.error("Không thể tải thiết bị khả dụng!");
+      } finally {
+        setDevicesLoading(false);
+      }
+    };
+
+    const t = setTimeout(fetchDevices, 500);
+    return () => clearTimeout(t);
+  }, [watchedDate, watchedTime, watchedDuration, prefilledDevice]);
   useEffect(() => {
     if (!open) return;
 
@@ -382,16 +436,73 @@ const BookDeviceModal = ({ open, onCancel, prefilledDevice, onSuccess }) => {
             </Select>
           </Form.Item>
 
-          {/* DEVICES (Hidden - prefilled) */}
-          <Form.Item name="deviceIds" hidden>
-            <Select mode="multiple" />
+          {/* DEVICES - Cho phép chọn thêm nhưng không xóa được thiết bị ban đầu */}
+          <Form.Item 
+            name="deviceIds" 
+            label="Thiết bị sử dụng"
+            tooltip="Thiết bị được chọn ban đầu không thể bỏ chọn. Bạn có thể thêm các thiết bị khác."
+          >
+            <Select
+              mode="multiple"
+              disabled={!watchedDate || !watchedTime}
+              loading={devicesLoading}
+              placeholder={
+                !watchedDate || !watchedTime
+                  ? "Chọn ngày và giờ trước"
+                  : "Chọn thêm thiết bị khả dụng"
+              }
+              className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+              popupClassName="dark:bg-gray-700 dark:text-gray-100"
+              onChange={(selectedIds) => {
+                // Đảm bảo thiết bị ban đầu luôn được chọn
+                if (!selectedIds.includes(prefilledDevice?.id)) {
+                  form.setFieldsValue({ 
+                    deviceIds: [...selectedIds, prefilledDevice?.id] 
+                  });
+                }
+              }}
+            >
+              {availableDevices.map((d) => {
+                const isPrefilled = d.id === prefilledDevice?.id;
+                return (
+                  <Option
+                    key={d.id}
+                    value={d.id}
+                    disabled={d.status !== "AVAILABLE" && !isPrefilled}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span>
+                        {d.name}
+                        {isPrefilled && (
+                          <span className="ml-2 text-xs text-purple-600 dark:text-purple-400 font-semibold">
+                            (Đã chọn - Bắt buộc)
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        className={`px-2 py-1 rounded text-xs ${
+                          d.status === "AVAILABLE"
+                            ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                            : "bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300"
+                        }`}
+                      >
+                        {d.status === "AVAILABLE" ? "Có sẵn" : "Bảo trì"}
+                      </span>
+                    </div>
+                  </Option>
+                );
+              })}
+            </Select>
           </Form.Item>
 
-          {/* Device Info Display */}
+          {/* Device Info Display - Hiển thị thiết bị bắt buộc */}
           <div className="mb-4 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg">
             <p className="text-sm text-purple-800 dark:text-purple-300">
-              <span className="font-semibold">🖥️ Thiết bị:</span> {prefilledDevice?.name}
+              <span className="font-semibold">🖥️ Thiết bị bắt buộc:</span> {prefilledDevice?.name}
               {prefilledDevice?.description && ` - ${prefilledDevice.description}`}
+            </p>
+            <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+              💡 Bạn có thể chọn thêm thiết bị khác, nhưng không thể bỏ chọn thiết bị này.
             </p>
           </div>
 
