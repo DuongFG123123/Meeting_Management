@@ -3,8 +3,10 @@ import React, { useEffect, useState } from "react";
 import { FiSearch, FiTool, FiMonitor, FiUsers } from "react-icons/fi";
 import { Spin, message } from "antd";
 import { getAllRooms } from "../../services/roomService";
-import { useNavigate } from "react-router-dom";
 import { HiBuildingOffice } from "react-icons/hi2";
+import BookRoomModal from "../../components/user/BookRoomModal";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const RoomsPage = () => {
   const [rooms, setRooms] = useState([]);
@@ -12,7 +14,7 @@ const RoomsPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("Tất cả");
-  const navigate = useNavigate();
+  const [bookingModal, setBookingModal] = useState({ open: false, room: null });
 
   // Load rooms
   useEffect(() => {
@@ -59,27 +61,28 @@ const RoomsPage = () => {
   }, [searchTerm, filterStatus, rooms]);
 
   const handleBookRoom = (room) => {
-    navigate("/user/create-meeting", { state: { prefilledRoom: room } });
-    message.info(`Chuyển đến trang tạo cuộc họp cho ${room.name}`);
+    setBookingModal({ open: true, room: room });
   };
 
   return (
     <div className="p-6 min-h-screen bg-gray-50 dark:bg-slate-900 transition-colors duration-300">
-      {/* HEADER STYLE GIỐNG "Lịch họp của tôi" */}
-<div className="flex items-center gap-4 mb-6 pb-3 border-b border-gray-300 dark:border-gray-700">
-  <div className="p-3 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 shadow-md">
-    <HiBuildingOffice className="text-white text-2xl" />
-  </div>
+      <ToastContainer position="top-right" autoClose={2500} />
 
-  <div>
-    <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
-      Danh sách phòng họp
-    </h2>
-    <p className="text-gray-500 dark:text-gray-400">
-      Xem và đặt phòng họp có sẵn trong hệ thống
-    </p>
-  </div>
-</div>
+      {/* HEADER STYLE GIỐNG "Lịch họp của tôi" */}
+      <div className="flex items-center gap-4 mb-6 pb-3 border-b border-gray-300 dark:border-gray-700">
+        <div className="p-3 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 shadow-md">
+          <HiBuildingOffice className="text-white text-2xl" />
+        </div>
+
+        <div>
+          <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
+            Danh sách phòng họp
+          </h2>
+          <p className="text-gray-500 dark:text-gray-400">
+            Xem và đặt phòng họp có sẵn trong hệ thống
+          </p>
+        </div>
+      </div>
 
       {/* SEARCH + FILTER */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
@@ -188,6 +191,17 @@ const RoomsPage = () => {
           )}
         </div>
       )}
+
+      {/* Modal đặt phòng */}
+      <BookRoomModal
+        open={bookingModal.open}
+        onCancel={() => setBookingModal({ open: false, room: null })}
+        prefilledRoom={bookingModal.room}
+        onSuccess={() => {
+          // Có thể reload rooms nếu cần
+          // fetchRooms();
+        }}
+      />
     </div>
   );
 };
