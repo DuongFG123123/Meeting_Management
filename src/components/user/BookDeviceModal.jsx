@@ -58,9 +58,7 @@ const BookDeviceModal = ({ open, onCancel, prefilledDevice, onSuccess }) => {
   const watchedTime = Form.useWatch("time", form);
   const watchedDuration = Form.useWatch("duration", form);
 
-  /* ===================================================
-          LOAD DEVICES WHEN TIME CHANGES
-  ==================================================== */
+  /* ===== LOAD DEVICES WHEN TIME CHANGES ====== */
   useEffect(() => {
     const fetchDevices = async () => {
       if (!watchedDate || !watchedTime || !watchedDuration) {
@@ -147,9 +145,7 @@ const BookDeviceModal = ({ open, onCancel, prefilledDevice, onSuccess }) => {
     }
   }, [open, prefilledDevice, form]);
 
-  /* ===================================================
-            SEARCH INTERNAL USERS
-  ==================================================== */
+  /* ======  SEARCH INTERNAL USERS ====== */
   const handleSearchUsers = (query) => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
 
