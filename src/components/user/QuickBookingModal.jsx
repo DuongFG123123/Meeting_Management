@@ -1,24 +1,24 @@
-// src/components/user/EditMeetingModal.jsx
+// src/components/user/QuickBookingModal.jsx
 import React, { useEffect, useState, useRef } from "react";
 import {
   Modal,
-  Form,
-  Input,
   DatePicker,
   Select,
+  Input,
   Button,
+  Form,
   Card,
   Divider,
   Checkbox,
   Spin,
 } from "antd";
-import { FiEdit, FiUsers } from "react-icons/fi";
+import { FiPlusCircle, FiUsers } from "react-icons/fi";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import utc from "dayjs/plugin/utc";
 import { toast } from "react-toastify";
 
-import { getRooms, updateMeeting, updateRecurringSeries } from "../../services/meetingService";
+import { createMeeting, getRooms } from "../../services/meetingService";
 import { searchUsers } from "../../services/userService";
 import { getAvailableDevices } from "../../services/deviceService";
 import { useAuth } from "../../context/AuthContext";
@@ -34,8 +34,7 @@ dayjs.extend(utc);
 const { TextArea } = Input;
 const { Option } = Select;
 
-const EditMeetingModal = ({ open, onCancel, meetingDetail, onSuccess }) => {
-  const [form] = Form.useForm();
+const QuickBookingModal = ({ open, onCancel, quickBookingData, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [rooms, setRooms] = useState([]);
   
@@ -45,13 +44,13 @@ const EditMeetingModal = ({ open, onCancel, meetingDetail, onSuccess }) => {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
-  const [showRecurringOptions, setShowRecurringOptions] = useState(false);
 
   // TIME PICKER STATE
   const [clockOpen, setClockOpen] = useState(false);
   const [clockValue, setClockValue] = useState(dayjs());
 
   const debounceTimer = useRef(null);
+  const [form] = Form.useForm();
   const { user } = useAuth();
 
   // Watch form values để tải devices tự động
@@ -60,122 +59,93 @@ const EditMeetingModal = ({ open, onCancel, meetingDetail, onSuccess }) => {
   const watchedDuration = Form.useWatch("duration", form);
 
   /* ===================================================
-                LOAD ROOMS & DEVICES
+                    LOAD ROOMS
   ==================================================== */
   useEffect(() => {
-    if (!open || !meetingDetail) return;
+    if (!open) return;
 
-    const fetchData = async () => {
+    const loadRooms = async () => {
       try {
         const res = await getRooms();
         setRooms(res.data || []);
-      } catch (e) {
-        toast.error("Không thể tải phòng họp!");
+      } catch {
+        toast.error("Không thể tải danh sách phòng họp!");
       }
     };
-    fetchData();
-  }, [open, meetingDetail]);
+    loadRooms();
+  }, [open]);
 
   /* ===================================================
-          POPULATE FORM WITH MEETING DETAILS
+              SET INITIAL FORM VALUES
   ==================================================== */
   useEffect(() => {
-    if (!meetingDetail || !open) return;
+    if (open && quickBookingData?.start) {
+      const { start, end } = quickBookingData;
+      let duration = end.diff(start, "minute");
+      if (duration <= 0) duration = 60;
 
-    const startTime = dayjs(meetingDetail.startTime);
-    const endTime = dayjs(meetingDetail.endTime);
-    const duration = endTime.diff(startTime, "minute");
-
-    // Kiểm tra xem có phải cuộc họp định kỳ không
-    const hasRecurrence = !!meetingDetail.recurrenceRule;
-    setIsRecurring(hasRecurrence);
-    setShowRecurringOptions(hasRecurrence);
-    setClockValue(startTime);
-
-    form.setFieldsValue({
-      title: meetingDetail.title,
-      date: startTime,
-      time: startTime,
-      duration: duration,
-      roomId: meetingDetail.room?.id,
-      deviceIds: meetingDetail.devices?.map(d => d.id) || [],
-      participantIds: meetingDetail.participants?.map(p => p.id).filter(id => id !== user?.id) || [],
-      guestEmails: meetingDetail.guestEmails || [],
-      description: meetingDetail.description || "",
-      isRecurring: hasRecurrence,
-      frequency: meetingDetail.recurrenceRule?.frequency || "DAILY",
-      repeatUntil: meetingDetail.recurrenceRule?.repeatUntil ? dayjs(meetingDetail.recurrenceRule.repeatUntil) : undefined,
-    });
-
-    // Thêm participants hiện tại vào searchResults để hiển thị
-    if (meetingDetail.participants) {
-      setSearchResults(meetingDetail.participants.filter(p => p.id !== user?.id));
-    }
-
-    // Load available devices cho thời gian hiện tại
-    if (startTime && duration) {
-      loadDevicesForTime(startTime, duration);
-    }
-  }, [meetingDetail, open, form, user]);
-
-  /* ===================================================
-          LOAD DEVICES WHEN TIME CHANGES
-  ==================================================== */
-  const loadDevicesForTime = async (date, time, duration) => {
-    if (!date || !time || !duration) {
+      setIsRecurring(false);
+      setClockValue(start);
+      
+      setTimeout(() => {
+        form.setFieldsValue({
+          title: "",
+          date: start,
+          time: start,
+          duration: duration <= 0 ? 60 : duration,
+          roomId: undefined,
+          deviceIds: [],
+          participantIds: [],
+          guestEmails: [],
+          isRecurring: false,
+          frequency: "DAILY",
+          repeatUntil: undefined,
+          description: "",
+        });
+      }, 100);
+      
+      setSearchResults([]);
       setAvailableDevices([]);
-      return;
     }
+  }, [open, quickBookingData, form]);
 
-    setDevicesLoading(true);
-
-    try {
-      const startTimeUTC = dayjs
-        .utc()
-        .year(date.year())
-        .month(date.month())
-        .date(date.date())
-        .hour(time.hour())
-        .minute(time.minute());
-
-      const startTime = startTimeUTC.toISOString();
-      const endTime = startTimeUTC.add(duration, "minute").toISOString();
-
-      const res = await getAvailableDevices(startTime, endTime);
-      
-      // Thêm các devices hiện tại của meeting vào danh sách available
-      // để tránh bị mất khi chúng đang được sử dụng
-      const currentDeviceIds = meetingDetail?.devices?.map(d => d.id) || [];
-      const availableList = res.data || [];
-      
-      // Merge current devices với available devices
-      const currentDevices = meetingDetail?.devices || [];
-      const mergedDevices = [...availableList];
-      
-      currentDevices.forEach(cd => {
-        if (!mergedDevices.find(d => d.id === cd.id)) {
-          mergedDevices.push(cd);
-        }
-      });
-      
-      setAvailableDevices(mergedDevices);
-    } catch (err) {
-      console.error(err);
-      toast.error("Không thể tải thiết bị khả dụng!");
-    } finally {
-      setDevicesLoading(false);
-    }
-  };
-
+  /* ===================================================
+            LOAD DEVICES WHEN TIME CHANGES
+  ==================================================== */
   useEffect(() => {
-    if (!watchedDate || !watchedTime || !watchedDuration) {
-      return;
-    }
+    const fetchDevices = async () => {
+      if (!watchedDate || !watchedTime || !watchedDuration) {
+        setAvailableDevices([]);
+        return;
+      }
 
-    const t = setTimeout(() => {
-      loadDevicesForTime(watchedDate, watchedTime, watchedDuration);
-    }, 500);
-    
+      setDevicesLoading(true);
+
+      try {
+        const startTimeUTC = dayjs
+          .utc()
+          .year(watchedDate.year())
+          .month(watchedDate.month())
+          .date(watchedDate.date())
+          .hour(watchedTime.hour())
+          .minute(watchedTime.minute());
+
+        const startTime = startTimeUTC.toISOString();
+        const endTime = startTimeUTC
+          .add(watchedDuration, "minute")
+          .toISOString();
+
+        const res = await getAvailableDevices(startTime, endTime);
+        setAvailableDevices(res.data || []);
+      } catch (err) {
+        console.error(err);
+        toast.error("Không thể tải thiết bị khả dụng!");
+      } finally {
+        setDevicesLoading(false);
+      }
+    };
+
+    const t = setTimeout(fetchDevices, 500);
     return () => clearTimeout(t);
   }, [watchedDate, watchedTime, watchedDuration]);
 
@@ -186,10 +156,7 @@ const EditMeetingModal = ({ open, onCancel, meetingDetail, onSuccess }) => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
 
     if (!query || !query.trim()) {
-      // Giữ lại participants hiện tại khi clear search
-      if (meetingDetail?.participants) {
-        setSearchResults(meetingDetail.participants.filter(p => p.id !== user?.id));
-      }
+      setSearchResults([]);
       return;
     }
 
@@ -208,7 +175,7 @@ const EditMeetingModal = ({ open, onCancel, meetingDetail, onSuccess }) => {
   };
 
   /* ===================================================
-              VALIDATE BUSINESS TIME
+                VALIDATE BUSINESS TIME
   ==================================================== */
   const validateBusinessTime = (value) => {
     if (!value) return false;
@@ -217,9 +184,9 @@ const EditMeetingModal = ({ open, onCancel, meetingDetail, onSuccess }) => {
   };
 
   /* ===================================================
-                  UPDATE MEETING
+                  SUBMIT MEETING
   ==================================================== */
-  const handleUpdate = async (values) => {
+  const handleCreateMeeting = async (values) => {
     try {
       setLoading(true);
 
@@ -239,74 +206,52 @@ const EditMeetingModal = ({ open, onCancel, meetingDetail, onSuccess }) => {
         .hour(time.hour())
         .minute(time.minute());
 
-      const participantIds = Array.from(
-        new Set([user.id, ...(values.participantIds || [])])
-      );
-
-      // Kiểm tra xem có thay đổi gì không
-      const startTime = startUTC.toISOString();
-      const endTime = startUTC.add(values.duration, "minute").toISOString();
-      
-      const hasChanges = 
-        values.title !== meetingDetail.title ||
-        (values.description || "") !== (meetingDetail.description || "") ||
-        dayjs(startTime).format() !== dayjs(meetingDetail.startTime).format() ||
-        dayjs(endTime).format() !== dayjs(meetingDetail.endTime).format() ||
-        values.roomId !== meetingDetail.room?.id ||
-        JSON.stringify((values.deviceIds || []).sort()) !== JSON.stringify((meetingDetail.devices || []).map(d => d.id).sort()) ||
-        JSON.stringify(participantIds.sort()) !== JSON.stringify((meetingDetail.participants || []).map(p => p.id).sort()) ||
-        JSON.stringify((values.guestEmails || []).sort()) !== JSON.stringify((meetingDetail.guestEmails || []).sort());
-
-      if (!hasChanges && !values.isRecurring) {
-        toast.info("Không có thay đổi nào để cập nhật!");
-        return;
-      }
-
       const payload = {
         title: values.title.trim(),
         description: values.description || "",
-        startTime,
-        endTime,
+        startTime: startUTC.toISOString(),
+        endTime: startUTC.add(values.duration, "minute").toISOString(),
         roomId: values.roomId,
-        participantIds,
+        participantIds: Array.from(
+          new Set([user.id, ...(values.participantIds || [])])
+        ),
         deviceIds: values.deviceIds || [],
         guestEmails: values.guestEmails || [],
+
+        recurrenceRule:
+          values.isRecurring === true
+            ? {
+                frequency: values.frequency,
+                interval: 1,
+                repeatUntil: dayjs(values.repeatUntil).format("YYYY-MM-DD"),
+              }
+            : null,
+
+        onBehalfOfUserId: null,
       };
 
-      // Nếu là cuộc họp định kỳ và chọn cập nhật toàn bộ chuỗi
-      if (values.isRecurring && meetingDetail.recurrenceSeriesId) {
-        payload.recurrenceRule = {
-          frequency: values.frequency || "DAILY",
-          interval: 1,
-          repeatUntil: dayjs(values.repeatUntil).format("YYYY-MM-DD"),
-        };
-        payload.onBehalfOfUserId = null;
-        
-        await updateRecurringSeries(meetingDetail.recurrenceSeriesId, payload);
-        toast.success("🎉 Cập nhật toàn bộ chuỗi cuộc họp định kỳ thành công!");
-      } else {
-        // Cuộc họp đơn lẻ
-        await updateMeeting(meetingDetail.id, payload);
-        toast.success("🎉 Cập nhật cuộc họp thành công!");
-      }
-      
-      onSuccess();
+      await createMeeting(payload);
+
+      toast.success("🎉 Tạo cuộc họp thành công!");
+      form.resetFields();
+      setClockValue(dayjs());
+      setAvailableDevices([]);
+      setIsRecurring(false);
+      onSuccess?.();
       onCancel();
     } catch (err) {
-      console.error("Lỗi cập nhật cuộc họp:", err);
-      const msg = err?.response?.data?.message || err?.response?.data?.error || "Không thể cập nhật cuộc họp!";
-      
-      // Xử lý trường hợp backend trả về object lỗi validation
-      if (err?.response?.data && typeof err.response.data === 'object' && !err.response.data.error && !err.response.data.message) {
-        const errors = Object.entries(err.response.data).map(([field, msg]) => `${field}: ${msg}`).join(', ');
-        toast.error(`Lỗi validation: ${errors}`);
-        return;
-      }
-      
-      toast.error(msg);
+      toast.error(err?.response?.data?.message || "Không thể tạo cuộc họp!");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCancel = () => {
+    form.resetFields();
+    setClockValue(dayjs());
+    setAvailableDevices([]);
+    setIsRecurring(false);
+    onCancel();
   };
 
   /* ===================================================
@@ -315,14 +260,14 @@ const EditMeetingModal = ({ open, onCancel, meetingDetail, onSuccess }) => {
   return (
     <Modal
       open={open}
-      onCancel={onCancel}
+      onCancel={handleCancel}
       footer={null}
       width={650}
       closable={!loading}
       maskClosable={!loading}
       title={
         <span className="flex items-center gap-2 dark:text-white text-lg font-semibold">
-          <FiEdit /> Chỉnh sửa cuộc họp
+          <FiPlusCircle /> Đặt lịch phòng họp nhanh
         </span>
       }
       className="dark:[&_.ant-modal-content]:bg-gray-800 dark:[&_.ant-modal-content]:text-gray-100 
@@ -337,12 +282,9 @@ const EditMeetingModal = ({ open, onCancel, meetingDetail, onSuccess }) => {
           layout="vertical"
           form={form}
           disabled={loading}
-          onFinish={handleUpdate}
+          onFinish={handleCreateMeeting}
           onValuesChange={(vals) => {
-            if (vals.isRecurring !== undefined) {
-              setIsRecurring(vals.isRecurring);
-              setShowRecurringOptions(vals.isRecurring);
-            }
+            if (vals.isRecurring !== undefined) setIsRecurring(vals.isRecurring);
           }}
         >
           {/* TITLE */}
@@ -443,6 +385,7 @@ const EditMeetingModal = ({ open, onCancel, meetingDetail, onSuccess }) => {
             <Form.Item
               name="duration"
               label="Thời lượng"
+              initialValue={60}
               rules={[{ required: true, message: "Chọn thời lượng" }]}
             >
               <Select
@@ -536,7 +479,7 @@ const EditMeetingModal = ({ open, onCancel, meetingDetail, onSuccess }) => {
 
           {/* PARTICIPANTS */}
           <Form.Item 
-            name="participantIds"
+            name="participantIds" 
             label={
               <span>
                 <FiUsers className="inline mr-2" />
@@ -593,6 +536,56 @@ const EditMeetingModal = ({ open, onCancel, meetingDetail, onSuccess }) => {
             />
           </Form.Item>
 
+          <Divider className="dark:border-gray-700" />
+
+          {/* RECURRING MEETING */}
+          <Form.Item
+            name="isRecurring"
+            valuePropName="checked"
+            initialValue={false}
+            className="mb-1"
+          >
+            <Checkbox 
+              onChange={(e) => setIsRecurring(e.target.checked)}
+              className="dark:text-gray-200"
+            >
+              Lặp lại cuộc họp
+            </Checkbox>
+          </Form.Item>
+
+          {isRecurring && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Form.Item
+                name="frequency"
+                label="Tần suất"
+                rules={[{ required: true, message: "Chọn tần suất lặp" }]}
+              >
+                <Select
+                  className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  popupClassName="dark:bg-gray-700 dark:text-gray-100"
+                >
+                  <Option value="DAILY">Hằng ngày</Option>
+                  <Option value="WEEKLY">Hằng tuần</Option>
+                  <Option value="MONTHLY">Hằng tháng</Option>
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                name="repeatUntil"
+                label="Lặp đến ngày"
+                rules={[{ required: true, message: "Chọn ngày kết thúc" }]}
+              >
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  className="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  disabledDate={(current) =>
+                    current && (current <= dayjs().startOf("day") || current.day() === 0 || current.day() === 6)
+                  }
+                />
+              </Form.Item>
+            </div>
+          )}
+
           {/* DESCRIPTION */}
           <Form.Item name="description" label="Ghi chú">
             <TextArea 
@@ -602,53 +595,9 @@ const EditMeetingModal = ({ open, onCancel, meetingDetail, onSuccess }) => {
             />
           </Form.Item>
 
-          <Divider className="dark:border-gray-700" />
-
-          {/* RECURRING OPTIONS */}
-          {meetingDetail?.recurrenceSeriesId && (
-            <>
-              <Form.Item name="isRecurring" valuePropName="checked" className="mb-1">
-                <Checkbox className="dark:text-gray-200">
-                  Cập nhật lặp lại cuộc họp (toàn bộ chuỗi)
-                </Checkbox>
-              </Form.Item>
-
-              {showRecurringOptions && (
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <Form.Item 
-                    name="frequency" 
-                    label="Tần suất lặp"
-                    rules={[{ required: isRecurring, message: "Chọn tần suất" }]}
-                  >
-                    <Select
-                      className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                      popupClassName="dark:bg-gray-700 dark:text-gray-100"
-                    >
-                      <Option value="DAILY">Hằng ngày</Option>
-                      <Option value="WEEKLY">Hằng tuần</Option>
-                      <Option value="MONTHLY">Hằng tháng</Option>
-                    </Select>
-                  </Form.Item>
-
-                  <Form.Item 
-                    name="repeatUntil" 
-                    label="Lặp đến ngày"
-                    rules={[{ required: isRecurring, message: "Chọn ngày kết thúc" }]}
-                  >
-                    <DatePicker
-                      className="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                      format="DD/MM/YYYY"
-                      disabledDate={(current) => current && (current < dayjs().startOf("day") || current.day() === 0 || current.day() === 6)}
-                    />
-                  </Form.Item>
-                </div>
-              )}
-            </>
-          )}
-
           {/* SUBMIT */}
           <div className="flex justify-end gap-3 mt-6">
-            <Button onClick={onCancel} disabled={loading}>
+            <Button onClick={handleCancel} disabled={loading}>
               Hủy
             </Button>
             <Button
@@ -657,7 +606,7 @@ const EditMeetingModal = ({ open, onCancel, meetingDetail, onSuccess }) => {
               loading={loading}
               className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-500 dark:hover:bg-blue-600"
             >
-              Cập nhật
+              Tạo cuộc họp
             </Button>
           </div>
         </Form>
@@ -666,4 +615,4 @@ const EditMeetingModal = ({ open, onCancel, meetingDetail, onSuccess }) => {
   );
 };
 
-export default EditMeetingModal;
+export default QuickBookingModal;
