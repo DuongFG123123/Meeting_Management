@@ -327,12 +327,13 @@ const handleEventMouseLeave = () => {
           {/* Cards tổng quan (Dùng state) */}
           <div className="grid grid-cols-4 gap-4">
             {stats.map((card, i) => ( 
-              <div
-                key={i}
-                className="flex items-center gap-3 bg-white dark:bg-slate-800 
-                           border border-gray-100 dark:border-slate-700 
-                           rounded-2xl p-4 shadow-sm hover:shadow-md transition-all"
-              >
+  <div
+    key={i}
+    onClick={card.label === "Cuộc họp hôm nay" ? handleTodayMeetingsClick : undefined}
+    className="flex items-center gap-3 bg-white dark:bg-slate-800 
+               border border-gray-100 dark:border-slate-700 
+               rounded-2xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer"
+  >
                 <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-lg">
                   {card.icon}
                 </div>
