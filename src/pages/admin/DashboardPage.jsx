@@ -349,7 +349,7 @@ resources.forEach((res, index) => {
           </div>
 
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow border border-gray-100 dark:border-slate-700">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">👥 Phân bổ theo phòng họp</h3>
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">👥 Phòng họp đang sử dụng</h3>
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
                 <Pie data={roomUsageData} cx="50%" cy="50%" labelLine={false} outerRadius={80} dataKey="value">
