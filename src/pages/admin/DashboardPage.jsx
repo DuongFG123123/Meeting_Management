@@ -88,7 +88,10 @@ const getEventTooltipContent = (event) => {
   const endTime = dayjs(event.end).format('HH:mm');
   const dateDisplay = dayjs(event.start).format('DD/MM/YYYY');
   const duration = dayjs(event.end).diff(dayjs(event.start), 'minute');
-  
+  const [todayMeetingsModalVisible, setTodayMeetingsModalVisible] = useState(false);
+  const [todayMeetingsList, setTodayMeetingsList] = useState([]);
+  const [activeMeetingsState, setActiveMeetingsState] = useState([]); // lưu active meetings để dùng ngoài useEffect
+
   return `
     <div style="line-height: 1.6; min-width: 220px;">
       <div style="font-weight: 600; margin-bottom: 6px; font-size: 14px;">${event.title}</div>
