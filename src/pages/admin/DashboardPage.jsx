@@ -239,7 +239,8 @@ const handleEventMouseLeave = () => {
           const end = dayjs(m.endTime);
           return acc + end.diff(start, 'minute');
         }, 0);
-        const avgDuration = activeMeetings.length > 0 ? (totalDuration / activeMeetings.length) : 0;
+        const avgDuration = activeMeetings.length > 0 ? roundToTwo(totalDuration / activeMeetings.length) : 0;
+
         
         const upcomingMeetings = activeMeetings.filter(m => dayjs(m.startTime).isSameOrAfter(now)).length;
 
