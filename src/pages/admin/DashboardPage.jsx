@@ -426,18 +426,21 @@ export default function DashboardPage() {
                         </p>
                       )}
 
-                      {m.participants?.length > 0 && (
-                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          <strong>Người tham gia:</strong>
-                          <ul className="list-disc ml-5 mt-1">
-                            {m.participants.map(p => (
-                              <li key={p.id}>
-                                {p.fullName} - {p.status || "Chưa xác nhận"}
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        <strong>Người tham gia:</strong>
+                        <ul className="list-disc ml-5 mt-1">
+                          {m.participants && m.participants.length > 0 ? (
+                            m.participants.map((p, index) => (
+                              <li key={p.id || index}>
+                                {p.fullName || "Chưa có tên"} - {p.status || "Chưa xác nhận"}
                               </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                            ))
+                          ) : (
+                            <li>Chưa có người tham gia</li>
+                          )}
+                        </ul>
+                      </div>
+
 
                       {m.organizer && (
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
