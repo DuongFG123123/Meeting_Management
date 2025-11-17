@@ -21,7 +21,7 @@ import {
   FiCheckSquare 
 } from "react-icons/fi";
 
-import { Spin, message } from "antd"; 
+import { Spin, message, Modal, Descriptions, Tag } from "antd"; 
 import { getAllRooms } from "../../services/roomService";
 import { getAllMeetings } from "../../services/reportService";
 import dayjs from "dayjs";
@@ -91,11 +91,21 @@ export default function DashboardPage() {
   const [todayMeetingsModalVisible, setTodayMeetingsModalVisible] = useState(false);
   const [todayMeetingsList, setTodayMeetingsList] = useState([]);
 
+  // STATE CHO MODAL CHI TIẾT CUỘC HỌP
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedMeeting, setSelectedMeeting] = useState(null);
+
   // === 3. HÀM MỞ MODAL ===
   const handleTodayMeetingsClick = () => {
     const meetingsToday = activeMeetingsState.filter(m => dayjs(m.startTime).isToday());
     setTodayMeetingsList(meetingsToday);
     setTodayMeetingsModalVisible(true);
+  };
+
+  // Hàm mở modal chi tiết cuộc họp
+  const handleOpenMeetingDetail = (meeting) => {
+    setSelectedMeeting(meeting);
+    setDetailModalVisible(true);
   };
 
   // === 4. TOOLTIP ===
@@ -189,6 +199,88 @@ const CustomRoomTooltip = ({ active, payload }) => {
       if (tooltipRef.current.parentNode) tooltipRef.current.parentNode.removeChild(tooltipRef.current);
       tooltipRef.current = null;
     }
+  };
+
+  // === Thêm: Hàm xử lý khi click sự kiện trên FullCalendar (MỞ POPUP CHI TIẾT CUỘC HỌP) ===
+  // Khi click event trên FullCalendar, ta lấy đúng thông tin meeting và mở popup chi tiết
+  const handleCalendarEventClick = (info) => {
+    // info.event.id là id của event, cần lấy meeting từ danh sách theo id này
+    const meetingId = info.event.id;
+    // Tìm trong danh sách meetings thực/activeMeetingsState
+    // Tìm cả trong calendarEvents hoặc activeMeetingsState hoặc meetingsRes.data?.content nếu cần
+    // Để chắc ăn, kiểm tra cả activeMeetingsState lẫn calendarEvents có id = event.id
+    const findMeeting =
+      activeMeetingsState.find(m => `${m.id}` === `${meetingId}`) ||
+      calendarEvents.find(e => `${e.id}` === `${meetingId}`);
+
+    if (findMeeting) {
+      // Nếu là bản meeting gốc thì mở luôn, nếu là event (event dạng event object của FC) thì chỉ truyền id
+      handleOpenMeetingDetail(findMeeting);
+    } else {
+      // Nếu không tìm thấy, thử tạo meeting giả từ info.event
+      const stub = {
+        id: info.event.id,
+        title: info.event.title,
+        startTime: info.event.start,
+        endTime: info.event.end,
+        room: {
+          name: info.event.extendedProps?.roomName,
+          location: info.event.extendedProps?.location,
+          status: info.event.extendedProps?.status,
+        },
+        status: info.event.extendedProps?.status || "",
+        organizer: { fullName: info.event.extendedProps?.organizer },
+        equipment: [],
+        participants: [],
+        description: "",
+      };
+      handleOpenMeetingDetail(stub);
+    }
+  };
+
+  // === HÀM RENDER NGƯỜI THAM GIA ===
+  const renderParticipants = (organizer, participants) => {
+    if (!participants && !organizer) {
+      return <span className="text-gray-500 dark:text-gray-400">Không có người tham gia.</span>;
+    }
+
+    const getTag = (status) => {
+      switch (status) {
+        case 'ACCEPTED':
+          return <Tag color="success" className="ml-2">Đã chấp nhận</Tag>;
+        case 'DECLINED':
+          return <Tag color="error" className="ml-2">Đã từ chối</Tag>;
+        case 'PENDING':
+          return <Tag color="warning" className="ml-2">Chờ phản hồi</Tag>;
+        default:
+          return null;
+      }
+    };
+
+    const allAttendees = [
+      organizer,
+      ...(participants || [])
+    ].filter(Boolean);
+
+    const uniqueAttendees = allAttendees.filter((p, index, self) =>
+      p.id && index === self.findIndex((t) => t.id === p.id)
+    );
+
+    return (
+      <ul className="list-none p-0 m-0">
+        {uniqueAttendees.map(p => (
+          <li key={p.id} className="flex justify-between items-center py-1">
+            <span className="text-gray-800 dark:text-gray-100">
+              {p.fullName}
+              {p.id === organizer?.id && (
+                <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">(Tổ chức)</span>
+              )}
+            </span>
+            {getTag(p.status)}
+          </li>
+        ))}
+      </ul>
+    );
   };
 
   // === 5. DARK MODE OBSERVER ===
@@ -426,6 +518,7 @@ resources.forEach((res, index) => {
             slotLabelFormat={{ hour: "numeric", minute: "2-digit", hour12: false }}
             eventMouseEnter={handleEventMouseEnter}
             eventMouseLeave={handleEventMouseLeave}
+            eventClick={handleCalendarEventClick}
             resourceLabelContent={(arg) => {
   const isMaintenance = arg.resource._resource.extendedProps.status === "UNDER_MAINTENANCE";
 
@@ -455,7 +548,8 @@ resources.forEach((res, index) => {
     fontWeight: 500,
     overflow: "hidden",
     whiteSpace: "nowrap",
-    textOverflow: "ellipsis"
+    textOverflow: "ellipsis",
+    cursor: "pointer"
   }}>
     {arg.event.title}
   </div>
@@ -472,17 +566,21 @@ resources.forEach((res, index) => {
         {todayMeetingsModalVisible && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-            onClick={() => setTodayMeetingsModalVisible(false)} // click background
+            onClick={() => setTodayMeetingsModalVisible(false)}
           >
             <div
               className="bg-white dark:bg-slate-800 p-6 rounded-xl max-w-xl w-full space-y-4"
-              onClick={(e) => e.stopPropagation()} // ngăn click vào modal bị bubble ra background
+              onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">📋 Cuộc họp hôm nay</h3>
               <div className="max-h-96 overflow-y-auto space-y-4">
                 {todayMeetingsList.length > 0 ? (
                   todayMeetingsList.map(m => (
-                    <div key={m.id} className="p-3 border border-gray-200 dark:border-slate-700 rounded-lg">
+                    <div
+                      key={m.id}
+                      className="p-3 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer transition"
+                      onClick={() => handleOpenMeetingDetail(m)}
+                    >
                       <p className="font-semibold text-gray-700 dark:text-gray-200 text-md">{m.title}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         {dayjs(m.startTime).format("HH:mm")} - {dayjs(m.endTime).format("HH:mm")}
@@ -515,7 +613,6 @@ resources.forEach((res, index) => {
                         </ul>
                       </div>
 
-
                       {m.organizer && (
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                           <strong>Người tổ chức:</strong> {m.organizer.fullName}
@@ -536,6 +633,56 @@ resources.forEach((res, index) => {
             </div>
           </div>
         )}
+
+        {/* Modal chi tiết cuộc họp */}
+        <Modal
+          open={detailModalVisible}
+          onCancel={() => setDetailModalVisible(false)}
+          footer={null}
+          title={<span className="dark:text-white">Chi tiết cuộc họp</span>}
+          width={600}
+          className="dark:[&_.ant-modal-content]:bg-gray-800 dark:[&_.ant-modal-content]:text-gray-200"
+        >
+          {selectedMeeting ? (
+            <Descriptions
+              bordered
+              column={1}
+              className="dark:[&_.ant-descriptions-item-label]:text-gray-300 dark:[&_.ant-descriptions-item-content]:text-gray-100"
+            >
+              <Descriptions.Item label="Tên cuộc họp">
+                {selectedMeeting.title}
+              </Descriptions.Item>
+              <Descriptions.Item label="Thời gian">
+                {`${dayjs(selectedMeeting.startTime).format("HH:mm")} - ${dayjs(selectedMeeting.endTime).format("HH:mm, DD/MM/YYYY")}`}
+              </Descriptions.Item>
+              <Descriptions.Item label="Trạng thái">
+                <Tag color={selectedMeeting.status === 'CONFIRMED' ? 'blue' : 'warning'}>
+                  {selectedMeeting.status}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Phòng họp">
+                {selectedMeeting.room?.name || "Chưa xác định"}
+                {selectedMeeting.room?.location && ` (${selectedMeeting.room.location})`}
+              </Descriptions.Item>
+              {selectedMeeting.equipment?.length > 0 && (
+                <Descriptions.Item label="Thiết bị">
+                  {selectedMeeting.equipment.map(eq => eq.name).join(", ")}
+                </Descriptions.Item>
+              )}
+              <Descriptions.Item label="Người tham gia">
+                {renderParticipants(selectedMeeting.organizer, selectedMeeting.participants)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Ghi chú">
+                {selectedMeeting.description || "Không có"}
+              </Descriptions.Item>
+            </Descriptions>
+          ) : (
+            <div className="flex justify-center py-6">
+              <Spin size="large" />
+            </div>
+          )}
+        </Modal>
+        
       </>
     )}
   </div>
