@@ -103,7 +103,7 @@ export default function DashboardPage() {
 const CustomRoomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
     const data = payload[0];
-    const color = data.color || "#60A5FA"; // màu phòng
+    const color = data.payload.color || data.payload.fill;
     const name = data.name || "Không có tên";
     const value = data.value;
 
