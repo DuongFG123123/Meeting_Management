@@ -280,17 +280,23 @@ const [quickBooking, setQuickBooking] = useState({ open: false, start: null, end
       });
 
       // Map từ dữ liệu ĐÃ LỌC
-      const mappedEvents = filteredData.map((m) => ({
-        id: m.id,
-        title: m.title || "Cuộc họp",
-        start: m.startTime,
-        end: m.endTime,
-        backgroundColor: m.status === 'CONFIRMED' ? "#3b82f6" : "#f59e0b",
-        borderColor: m.status === 'CONFIRMED' ? "#2563eb" : "#d97706",
-        extendedProps: {
-          roomName: m.room?.name || "Chưa xác định",
-        }
-      }));
+      const mappedEvents = filteredData.map((m) => {
+  const startLocal = dayjs(m.startTime).local().format();
+  const endLocal = dayjs(m.endTime).local().format();
+
+  return {
+    id: m.id,
+    title: m.title || "Cuộc họp",
+    start: startLocal,
+    end: endLocal,
+    backgroundColor: m.status === 'CONFIRMED' ? "#3b82f6" : "#f59e0b",
+    borderColor: m.status === 'CONFIRMED' ? "#2563eb" : "#d97706",
+    extendedProps: {
+      roomName: m.room?.name || "Chưa xác định",
+    }
+  };
+});
+
       setEvents(mappedEvents);
     } catch (err) {
       console.error("Lỗi tải lịch họp:", err);
