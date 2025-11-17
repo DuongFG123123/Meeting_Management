@@ -108,8 +108,8 @@ export default function DashboardPage() {
     tooltip.innerHTML = tooltipHtml;
     tooltip.style.position = "absolute";
     tooltip.style.zIndex = 9999;
-    tooltip.style.background = "#222";
-    tooltip.style.color = "#fff";
+    tooltip.style.background = info.event.backgroundColor; // lấy màu event
+    tooltip.style.color = "#fff"; // chữ trắng cho dễ đọc
     tooltip.style.padding = "8px 14px";
     tooltip.style.borderRadius = "8px";
     tooltip.style.boxShadow = "0 2px 12px rgba(0,0,0,0.3)";
@@ -195,6 +195,11 @@ export default function DashboardPage() {
           title: room.name
         }));
         setCalendarResources(resources);
+        // Gán màu cho từng phòng họp theo thứ tự COLORS
+const roomColors = {};
+resources.forEach((res, index) => {
+  roomColors[res.id] = COLORS[index % COLORS.length];
+});
         
         const meetings = meetingsRes.data?.content || [];
         const events = meetings.map(meeting => ({
@@ -203,8 +208,8 @@ export default function DashboardPage() {
           start: meeting.startTime,
           end: meeting.endTime,
           resourceId: meeting.room?.id?.toString(),
-          backgroundColor: meeting.status === 'CONFIRMED' ? "#3B82F6" : "#F59E0B",
-          borderColor: meeting.status === 'CONFIRMED' ? "#2563EB" : "#D97706",
+          backgroundColor: roomColors[meeting.room?.id?.toString()] || "#60A5FA",
+          borderColor: roomColors[meeting.room?.id?.toString()] || "#2563EB",
           extendedProps: {
             organizer: meeting.organizer?.fullName || "Không rõ",
             roomName: meeting.room?.name || "Không có phòng",
@@ -402,8 +407,14 @@ export default function DashboardPage() {
 
         {/* Modal cuộc họp hôm nay */}
         {todayMeetingsModalVisible && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl max-w-xl w-full space-y-4">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            onClick={() => setTodayMeetingsModalVisible(false)} // click background
+          >
+            <div
+              className="bg-white dark:bg-slate-800 p-6 rounded-xl max-w-xl w-full space-y-4"
+              onClick={(e) => e.stopPropagation()} // ngăn click vào modal bị bubble ra background
+            >
               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">📋 Cuộc họp hôm nay</h3>
               <div className="max-h-96 overflow-y-auto space-y-4">
                 {todayMeetingsList.length > 0 ? (
