@@ -195,7 +195,7 @@ export default function DashboardPage() {
           title: room.name
         }));
         setCalendarResources(resources);
-
+        
         const meetings = meetingsRes.data?.content || [];
         const events = meetings.map(meeting => ({
           id: meeting.id.toString(),
@@ -416,7 +416,7 @@ export default function DashboardPage() {
 
                       {m.room && (
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          <strong>Phòng họp:</strong> {m.room.name} ({m.room.location || "Không có địa điểm"})
+                          <strong>Phòng họp:</strong> {m.room?.name || "Chưa xác định"} {m.room?.location ? `(${m.room.location})` : ""}
                         </p>
                       )}
 
