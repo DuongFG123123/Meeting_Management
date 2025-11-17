@@ -402,8 +402,14 @@ export default function DashboardPage() {
 
         {/* Modal cuộc họp hôm nay */}
         {todayMeetingsModalVisible && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl max-w-xl w-full space-y-4">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            onClick={() => setTodayMeetingsModalVisible(false)} // click background
+          >
+            <div
+              className="bg-white dark:bg-slate-800 p-6 rounded-xl max-w-xl w-full space-y-4"
+              onClick={(e) => e.stopPropagation()} // ngăn click vào modal bị bubble ra background
+            >
               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">📋 Cuộc họp hôm nay</h3>
               <div className="max-h-96 overflow-y-auto space-y-4">
                 {todayMeetingsList.length > 0 ? (
