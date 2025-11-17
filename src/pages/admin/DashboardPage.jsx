@@ -130,11 +130,14 @@ export default function DashboardPage() {
       </div>
     `;
   };
+// === FIXED: CustomRoomTooltip lấy màu từ data.payload.color hoặc data.payload.fill, dùng fill cho Pie Cell, và CustomRoomTooltip hiển thị màu đúng ===
 const CustomRoomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
     const data = payload[0];
+    // If using recharts Pie/Cell, the correct color is in 'payload.color' if set, or 'payload.fill'
+    // However, for a correct Pie chart, 'fill' in <Cell> should be the actual color.
     const color = data.payload.color || data.payload.fill;
-    const name = data.name || "Không có tên";
+    const name = data.payload.name || data.name || "Không có tên";
     const value = data.value;
 
     return (
@@ -146,9 +149,10 @@ const CustomRoomTooltip = ({ active, payload }) => {
           border: "none",
           boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
           fontSize: 18,
+          color: isDarkMode ? "#f8fafc" : "#1e293b",
         }}
       >
-        <span style={{ color }}>{name}: {value}</span>
+        <span style={{ fontWeight: 600, color }}>{name}: {value}</span>
       </div>
     );
   }
@@ -332,34 +336,34 @@ const CustomRoomTooltip = ({ active, payload }) => {
         }));
         setCalendarResources(resources);
         // Gán màu cho từng phòng họp theo thứ tự COLORS
-const roomColors = {};
-resources.forEach((res, index) => {
-  roomColors[res.id] =
-  (res.status || "").toUpperCase() === "UNDER_MAINTENANCE"
-    ? "#94a3b8" // xám
-    : COLORS[index % COLORS.length];
-});
-        
+        const roomColors = {};
+        resources.forEach((res, index) => {
+          roomColors[res.id] =
+            (res.status || "").toUpperCase() === "UNDER_MAINTENANCE"
+              ? "#94a3b8"
+              : COLORS[index % COLORS.length];
+        });
+
         const meetings = meetingsRes.data?.content || [];
         const events = meetings.map(meeting => ({
-  id: meeting.id.toString(),
-  title: meeting.title,
-  start: meeting.startTime,
-  end: meeting.endTime,
-  resourceId: meeting.room?.id?.toString(),
-  backgroundColor: roomColors[meeting.room?.id?.toString()] || "#60A5FA",
-  borderColor: roomColors[meeting.room?.id?.toString()] || "#2563EB",
-  opacity:
-  (meeting.room?.status || "").toUpperCase() === "UNDER_MAINTENANCE"
-    ? 0.4
-    : 1,
-  extendedProps: {
-    organizer: meeting.organizer?.fullName || "Không rõ",
-    roomName: meeting.room?.name || "Không có phòng",
-    location: meeting.room?.location || "Không có địa điểm",
-    status: meeting.room?.status
-  }
-}));
+          id: meeting.id.toString(),
+          title: meeting.title,
+          start: meeting.startTime,
+          end: meeting.endTime,
+          resourceId: meeting.room?.id?.toString(),
+          backgroundColor: roomColors[meeting.room?.id?.toString()] || "#60A5FA",
+          borderColor: roomColors[meeting.room?.id?.toString()] || "#2563EB",
+          opacity:
+            (meeting.room?.status || "").toUpperCase() === "UNDER_MAINTENANCE"
+              ? 0.4
+              : 1,
+          extendedProps: {
+            organizer: meeting.organizer?.fullName || "Không rõ",
+            roomName: meeting.room?.name || "Không có phòng",
+            location: meeting.room?.location || "Không có địa điểm",
+            status: meeting.room?.status
+          }
+        }));
         setCalendarEvents(events);
 
         const now = dayjs();
@@ -396,13 +400,28 @@ resources.forEach((res, index) => {
           });
         setMeetingsPerDayData(weekDays);
 
-        // Pie Chart
+        // Pie Chart - Đồng bộ màu với Calendar
         const roomUsage = {};
+        const roomColorMap = {}; // Map màu cho từng phòng
         activeMeetings.forEach(m => {
+          const roomId = m.room?.id?.toString();
           const roomName = m.room?.name || "Không có phòng";
           roomUsage[roomName] = (roomUsage[roomName] || 0) + 1;
+          // Lưu màu từ roomColors
+          if (!roomColorMap[roomName] && roomId) {
+            roomColorMap[roomName] = roomColors[roomId] || COLORS[0];
+          }
         });
-        const pieData = Object.keys(roomUsage).map(name => ({ name, value: roomUsage[name] }));
+        // Make sure color is put into both 'color' and 'fill' for each data item to fix Pie chart color.
+        const pieData = Object.keys(roomUsage).map(name => {
+          const color = roomColorMap[name] || COLORS[0];
+          return {
+            name,
+            value: roomUsage[name],
+            color,
+            fill: color,
+          };
+        });
         setRoomUsageData(pieData);
 
       } catch (err) {
@@ -482,8 +501,8 @@ resources.forEach((res, index) => {
                   {roomUsageData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                      color={COLORS[index % COLORS.length]} // thêm để tooltip dùng
+                      fill={entry.fill || entry.color}
+                      color={entry.color} // dùng màu từ data
                     />
                   ))}
                 </Pie>
