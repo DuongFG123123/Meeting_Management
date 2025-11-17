@@ -44,7 +44,23 @@ const cardTemplates = [
   { label: "Cuộc họp sắp tới", value: "0", icon: <FiCheckSquare /> },
 ];
 
-const COLORS = ["#60A5FA", "#A78BFA", "#F472B6", "#34D399", "#FBBF24"];
+const COLORS = [
+  "#60A5FA", // xanh dương
+  "#A78BFA", // tím
+  "#F472B6", // hồng
+  "#34D399", // xanh lá
+  "#fb5a24ff", // vàng
+  "#F97316", // cam
+  "#06B6D4", // cyan
+  "#10B981", // ngọc
+  "#F43F5E", // đỏ
+  "#6366F1", // tím đậm
+  "#8B5CF6", // tím xanh
+  "#14B8A6", // xanh teal
+  "#E879F9", // hồng nhạt
+  "#4ADE80", // xanh mint
+  "#FB7185", // đỏ nhạt
+];
 
 const formatDuration = (minutes) => {
   if (!minutes || isNaN(minutes) || minutes <= 0) return "0m";
@@ -215,30 +231,39 @@ const CustomRoomTooltip = ({ active, payload }) => {
 
         const resources = (roomsRes.data || []).map(room => ({
           id: room.id.toString(),
-          title: room.name
+          title: room.name,
+          status: room.status
         }));
         setCalendarResources(resources);
         // Gán màu cho từng phòng họp theo thứ tự COLORS
 const roomColors = {};
 resources.forEach((res, index) => {
-  roomColors[res.id] = COLORS[index % COLORS.length];
+  roomColors[res.id] =
+  (res.status || "").toUpperCase() === "UNDER_MAINTENANCE"
+    ? "#94a3b8" // xám
+    : COLORS[index % COLORS.length];
 });
         
         const meetings = meetingsRes.data?.content || [];
         const events = meetings.map(meeting => ({
-          id: meeting.id.toString(),
-          title: meeting.title,
-          start: meeting.startTime,
-          end: meeting.endTime,
-          resourceId: meeting.room?.id?.toString(),
-          backgroundColor: roomColors[meeting.room?.id?.toString()] || "#60A5FA",
-          borderColor: roomColors[meeting.room?.id?.toString()] || "#2563EB",
-          extendedProps: {
-            organizer: meeting.organizer?.fullName || "Không rõ",
-            roomName: meeting.room?.name || "Không có phòng",
-            location: meeting.room?.location || "Không có địa điểm"
-          }
-        }));
+  id: meeting.id.toString(),
+  title: meeting.title,
+  start: meeting.startTime,
+  end: meeting.endTime,
+  resourceId: meeting.room?.id?.toString(),
+  backgroundColor: roomColors[meeting.room?.id?.toString()] || "#60A5FA",
+  borderColor: roomColors[meeting.room?.id?.toString()] || "#2563EB",
+  opacity:
+  (meeting.room?.status || "").toUpperCase() === "UNDER_MAINTENANCE"
+    ? 0.4
+    : 1,
+  extendedProps: {
+    organizer: meeting.organizer?.fullName || "Không rõ",
+    roomName: meeting.room?.name || "Không có phòng",
+    location: meeting.room?.location || "Không có địa điểm",
+    status: meeting.room?.status
+  }
+}));
         setCalendarEvents(events);
 
         const now = dayjs();
@@ -336,7 +361,12 @@ resources.forEach((res, index) => {
               <BarChart data={meetingsPerDayData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? "#334155" : "#e5e7eb"} />
                 <XAxis dataKey="name" stroke={isDarkMode ? "#cbd5e1" : "#475569"} />
-                <YAxis stroke={isDarkMode ? "#cbd5e1" : "#475569"} />
+                <YAxis
+  stroke={isDarkMode ? "#cbd5e1" : "#475569"}
+  allowDecimals={false}
+  tickCount={5}
+  domain={[0, 'dataMax + 1']}
+/>
                 <Tooltip contentStyle={{
                   backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
                   color: isDarkMode ? "#f8fafc" : "#1e293b",
@@ -392,26 +422,40 @@ resources.forEach((res, index) => {
             slotLabelFormat={{ hour: "numeric", minute: "2-digit", hour12: false }}
             eventMouseEnter={handleEventMouseEnter}
             eventMouseLeave={handleEventMouseLeave}
-            resourceLabelContent={(arg) => (
-              <span className={`text-sm font-medium ${isDarkMode ? "text-gray-200" : "text-gray-800"}`}>
-                {arg.resource.title}
-              </span>
-            )}
+            resourceLabelContent={(arg) => {
+  const isMaintenance = arg.resource._resource.extendedProps.status === "UNDER_MAINTENANCE";
+
+  return (
+    <span
+      className={`text-sm font-medium ${
+        isMaintenance
+          ? "text-gray-400 line-through opacity-60"
+          : isDarkMode
+          ? "text-gray-200"
+          : "text-gray-800"
+      }`}
+    >
+      {arg.resource.title}
+    </span>
+  );
+}}
+
             eventContent={(arg) => (
-              <div style={{
-                background: arg.event.backgroundColor,
-                color: "white",
-                borderRadius: 6,
-                padding: "2px 6px",
-                fontSize: 12,
-                fontWeight: 500,
-                overflow: "hidden",
-                whiteSpace: "nowrap",
-                textOverflow: "ellipsis"
-              }}>
-                {arg.event.title}
-              </div>
-            )}
+  <div style={{
+    background: arg.event.backgroundColor,
+    opacity: arg.event.extendedProps.opacity ?? 1,
+    color: "white",
+    borderRadius: 6,
+    padding: "2px 6px",
+    fontSize: 12,
+    fontWeight: 500,
+    overflow: "hidden",
+    whiteSpace: "nowrap",
+    textOverflow: "ellipsis"
+  }}>
+    {arg.event.title}
+  </div>
+)}
             views={{
               resourceTimelineDay: { slotDuration: { hours: 1 }, slotLabelFormat: [{ hour: "2-digit", minute: "2-digit", hour12: false }] },
               resourceTimelineWeek: { slotDuration: { days: 1 }, slotLabelFormat: [{ weekday: "short", day: "numeric" }] },
