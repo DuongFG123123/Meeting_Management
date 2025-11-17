@@ -104,6 +104,7 @@ export default function DashboardPage() {
     const endTime = dayjs(event.end).format('HH:mm');
     const dateDisplay = dayjs(event.start).format('DD/MM/YYYY');
     const durationMins = dayjs(event.end).diff(dayjs(event.start), 'minute');
+    const roomName = event.extendedProps?.roomName || "Chưa xác định";
     return `
       <div style="line-height: 1.6; min-width: 220px;">
         <div style="font-weight: 600; margin-bottom: 6px; font-size: 14px;">${event.title}</div>
@@ -112,6 +113,9 @@ export default function DashboardPage() {
         </div>
         <div style="font-size: 12px; opacity: 0.9; margin-bottom: 3px;">
           <strong>Thời gian:</strong> ${startTime} - ${endTime} (${durationMins}m)
+        </div>
+        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 3px;">
+          <strong>Phòng:</strong> ${roomName}
         </div>
       </div>
     `;
