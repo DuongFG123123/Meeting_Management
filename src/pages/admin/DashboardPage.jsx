@@ -49,7 +49,7 @@ const COLORS = [
   "#A78BFA", 
   "#F472B6", 
   "#34D399", 
-  "#fb5a24ff", // vàng
+  "#fb5a24ff",
   "#F97316", // cam
   "#06B6D4", // cyan
   "#10B981", // ngọc
