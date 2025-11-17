@@ -115,7 +115,7 @@ const CustomRoomTooltip = ({ active, payload }) => {
           borderRadius: 8,
           border: "none",
           boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
-          fontSize: 13,
+          fontSize: 18,
         }}
       >
         <span style={{ color }}>{name}: {value}</span>
