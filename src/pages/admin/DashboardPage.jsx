@@ -227,6 +227,7 @@ const handleEventMouseLeave = () => {
         const now = dayjs();
         // Chỉ tính các cuộc họp đã xác nhận (không bị hủy)
         const activeMeetings = meetings.filter(m => m.status === 'CONFIRMED');
+        setActiveMeetingsState(activeMeetings); // ✅ Lưu vào state để dùng ngoài useEffect
 
         // 1. Tính K-Cards
         const meetingsToday = activeMeetings.filter(m => dayjs(m.startTime).isToday());
