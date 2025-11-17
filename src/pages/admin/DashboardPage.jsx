@@ -91,7 +91,12 @@ const getEventTooltipContent = (event) => {
   const [todayMeetingsModalVisible, setTodayMeetingsModalVisible] = useState(false);
   const [todayMeetingsList, setTodayMeetingsList] = useState([]);
   const [activeMeetingsState, setActiveMeetingsState] = useState([]); // lưu active meetings để dùng ngoài useEffect
-
+  const handleTodayMeetingsClick = () => {
+  // Lấy các cuộc họp hôm nay từ activeMeetingsState
+  const meetingsToday = activeMeetingsState.filter(m => dayjs(m.startTime).isToday());
+  setTodayMeetingsList(meetingsToday);
+  setTodayMeetingsModalVisible(true);
+};
   return `
     <div style="line-height: 1.6; min-width: 220px;">
       <div style="font-weight: 600; margin-bottom: 6px; font-size: 14px;">${event.title}</div>
