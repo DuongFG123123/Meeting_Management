@@ -100,7 +100,30 @@ export default function DashboardPage() {
       </div>
     `;
   };
+const CustomRoomTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0];
+    const color = data.payload.color || data.payload.fill;
+    const name = data.name || "Không có tên";
+    const value = data.value;
 
+    return (
+      <div
+        style={{
+          backgroundColor: isDarkMode ? "#1e293b" : "#fff",
+          padding: "8px 12px",
+          borderRadius: 8,
+          border: "none",
+          boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+          fontSize: 18,
+        }}
+      >
+        <span style={{ color }}>{name}: {value}</span>
+      </div>
+    );
+  }
+  return null;
+};
   const handleEventMouseEnter = (info) => {
     handleEventMouseLeave();
     const tooltipHtml = getEventTooltipContent(info.event);
@@ -326,27 +349,19 @@ resources.forEach((res, index) => {
           </div>
 
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow border border-gray-100 dark:border-slate-700">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">👥 Phân bổ theo phòng họp</h3>
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">👥 Phòng họp đang sử dụng</h3>
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
                 <Pie data={roomUsageData} cx="50%" cy="50%" labelLine={false} outerRadius={80} dataKey="value">
                   {roomUsageData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                      color={COLORS[index % COLORS.length]} // thêm để tooltip dùng
+                    />
                   ))}
                 </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: isDarkMode ? "#1e293b" : "#ffffff",
-                    color: isDarkMode ? "#f8fafc" : "#1e293b",
-                    borderRadius: "8px",
-                    border: "none"
-                  }}
-                  formatter={(value) => {
-                    const total = roomUsageData.reduce((acc, entry) => acc + entry.value, 0);
-                    const percent = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
-                    return `${value} (${percent}%)`;
-                  }}
-                />
+                <Tooltip content={<CustomRoomTooltip />} />
               </PieChart>
             </ResponsiveContainer>
           </div>
