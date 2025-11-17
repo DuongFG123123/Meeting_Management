@@ -45,7 +45,7 @@ const cardTemplates = [
 ];
 
 const COLORS = [
-  "#60A5FA", // xanh dương
+  "#60A5FA", 
   "#A78BFA", // tím
   "#F472B6", // hồng
   "#34D399", // xanh lá
