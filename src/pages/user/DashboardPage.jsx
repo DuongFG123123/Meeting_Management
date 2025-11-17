@@ -1,4 +1,4 @@
-// src/pages/user/UserDashboard.jsx
+// src/pages/user/DashboardPage
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { FiCalendar, FiClock, FiUsers, FiCheckSquare } from "react-icons/fi";
@@ -16,10 +16,10 @@ import isoWeek from 'dayjs/plugin/isoWeek';
 dayjs.locale("vi");
 dayjs.extend(isToday);
 dayjs.extend(isSameOrAfter);
-dayjs.extend(isBetween); // <-- KÍCH HOẠT
+dayjs.extend(isBetween); 
 dayjs.extend(isoWeek);
 
-// Template cho thẻ Stats (Giữ nguyên)
+// Template cho thẻ Stats 
 const statTemplates = [
   {
     title: "Lịch họp hôm nay",
@@ -52,7 +52,7 @@ const statTemplates = [
 ];
 
 
-export default function UserDashboard() {
+export default function DashboardPage(){
   const { user } = useAuth(); // <-- Cần user.id để lọc
   const navigate = useNavigate();
   
@@ -75,7 +75,7 @@ export default function UserDashboard() {
         const allMeetings = res.data?.content || [];
         const now = dayjs();
 
-        // === 🎯 LOGIC SỬA LỖI QUAN TRỌNG ===
+        // === LOGIC SỬA LỖI QUAN TRỌNG ===
         // Lọc các cuộc họp mà user này KHÔNG TỪ CHỐI
         const activeMeetings = allMeetings.filter(m => {
           // 1. Bỏ qua nếu cuộc họp bị HỦY
@@ -92,8 +92,7 @@ export default function UserDashboard() {
             return userParticipant.status !== 'DECLINED';
           }
           
-          // 4. Failsafe: Nếu user là người tổ chức (organizer) 
-          // (và có thể không có trong ds participants), vẫn tính
+          // 4. Failsafe: Nếu user là người tổ chức (organizer) (và có thể không có trong ds participants), vẫn tính
           if (m.organizer?.id === user.id) {
             return true;
           }
@@ -101,8 +100,6 @@ export default function UserDashboard() {
           // Nếu không_phải_người_tổ_chức VÀ không_có_trong_ds_tham_gia -> Bỏ qua
           return false;
         });
-        // === KẾT THÚC SỬA LỖI ===
-
 
         // --- A. Xử lý Lịch họp sắp tới (Dùng activeMeetings đã lọc) ---
         const upcoming = activeMeetings
@@ -143,7 +140,7 @@ export default function UserDashboard() {
   }, [user]); // <-- THÊM 'user' làm dependency
 
 
-  // Handler functions for navigation (Giữ nguyên)
+  // Handler functions for navigation
   const handleCreateMeeting = () => {
     navigate("/user/create-meeting");
   };
@@ -154,7 +151,7 @@ export default function UserDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header (Giữ nguyên) */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
@@ -221,7 +218,7 @@ export default function UserDashboard() {
                   <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                     <FiUsers size={16} />
                     
-                    {/* === 🎯 SỬA LỖI ĐẾM SỐ NGƯỜI THAM GIA === */}
+                    {/* === SỬA LỖI ĐẾM SỐ NGƯỜI THAM GIA === */}
                     <span>
                       {/* Chỉ đếm những người 'ACCEPTED' */}
                       {meeting.participants?.filter(p => p.status === 'ACCEPTED').length || 0} người
@@ -241,7 +238,7 @@ export default function UserDashboard() {
       )}
 
 
-      {/* Quick Actions (Giữ nguyên) */}
+      {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <button
           className="bg-blue-600 text-white rounded-xl p-6 text-left hover:bg-blue-700 transition shadow-md"

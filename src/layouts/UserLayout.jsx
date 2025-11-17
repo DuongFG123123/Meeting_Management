@@ -9,7 +9,7 @@ import * as meetingService from '../services/meetingService'; // <-- THÊM MỚI
 
 import {
   FiHome, FiCalendar, FiPlusCircle, FiBriefcase, FiClock, FiUser, FiMenu,
-  FiBell, FiSettings, FiLock, FiLogOut, FiLoader, FiInbox,
+  FiBell, FiSettings, FiLock, FiLogOut, FiLoader, FiInbox, FiMonitor,
   FiCheck, // <-- Icon Chấp nhận
   FiX,     // <-- Icon Từ chối
 } from "react-icons/fi";
@@ -20,6 +20,7 @@ const userMenu = [
   { to: "/user/my-meetings", label: "Lịch họp của tôi", icon: <FiCalendar size={18} /> },
   { to: "/user/create-meeting", label: "Tạo cuộc họp", icon: <FiPlusCircle size={18} /> },
   { to: "/user/rooms", label: "Phòng họp", icon: <FiBriefcase size={18} /> },
+  { to: "/user/devices", label: "Thiết bị", icon: <FiMonitor size={18} /> },
   { to: "/user/history", label: "Lịch sử họp", icon: <FiClock size={18} /> },
   // { to: "/user/profile", label: "Thông tin cá nhân", icon: <FiUser size={18} /> },
 ];
@@ -61,14 +62,10 @@ const NotificationItem = ({ notification, onMarkRead }) => {
   const handleNavigate = () => {
     if (notification.meetingId) {
       // Nếu là lời mời, đưa đến trang chi tiết
-      // (Bạn cần tạo route /user/meetings/:id sau này)
-      // navigate(`/user/meetings/${notification.meetingId}`);
-      
       // Tạm thời, đưa đến trang "Lịch họp của tôi"
       navigate('/user/my-meetings');
       
-      // Nếu đây không phải là lời mời (đã đọc),
-      // thì chỉ cần đánh dấu là đã đọc (nếu chưa)
+      // Nếu đây không phải là lời mời (đã đọc), thì chỉ cần đánh dấu là đã đọc (nếu chưa)
       if (!notification.read) {
          onMarkRead(notification.id);
       }
@@ -123,7 +120,6 @@ const NotificationItem = ({ notification, onMarkRead }) => {
     </div>
   );
 }
-
 
 // === COMPONENT LAYOUT CHÍNH (Giữ nguyên logic tải thông báo) ===
 export default function UserLayout() {
@@ -195,8 +191,7 @@ export default function UserLayout() {
     }
   };
 
-
-  // --- Xử lý click-outside (Không thay đổi) ---
+  // --- Xử lý click-outside ---
   useEffect(() => {
     function handleClickOutside(event) {
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
@@ -212,14 +207,14 @@ export default function UserLayout() {
     };
   }, []);
 
-  // --- Tải số lượng (Không thay đổi) ---
+  // --- Tải số lượng ---
   useEffect(() => {
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // --- Xử lý click Dropdown (Không thay đổi) ---
+  // --- Xử lý click Dropdown ---
   const handleNotificationClick = () => {
     const opening = !isNotificationOpen;
     setIsNotificationOpen(opening);
@@ -237,7 +232,7 @@ export default function UserLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
-      {/* Header (Không thay đổi) */}
+      {/* Header */}
       <header className="h-14 bg-[#0b132b] text-white dark:bg-slate-900 flex items-center justify-between px-5 shadow-md transition-colors z-30 relative">
         <div className="flex items-center gap-3">
           <button
@@ -258,7 +253,7 @@ export default function UserLayout() {
             {user?.username || "User"}
           </span>
 
-          {/* NÚT CHUÔNG (Không thay đổi) */}
+          {/* NÚT CHUÔNG */}
           <div className="relative" ref={notificationRef}>
             <button
               onClick={handleNotificationClick}
@@ -371,9 +366,9 @@ export default function UserLayout() {
         </div>
       </header>
 
-      {/* Body (Không thay đổi) */}
+      {/* Body */}
       <div className="flex flex-1 relative">
-        {/* Sidebar (Không thay đổi) */}
+        {/* Sidebar */}
         <aside
           className={`fixed md:static top-14 md:top-0 left-0 bg-white dark:bg-slate-900 
                      border-r dark:border-slate-800 shadow-md w-64 h-[calc(100%-56px)] md:h-auto 
@@ -417,7 +412,7 @@ export default function UserLayout() {
           </div>
         </aside>
         
-        {/* Overlay cho mobile (Không thay đổi) */}
+        {/* Overlay cho mobile */}
         {isSidebarOpen && (
           <div
             className="fixed inset-0 bg-black bg-opacity-30 md:hidden z-10"
@@ -425,7 +420,7 @@ export default function UserLayout() {
           ></div>
         )}
 
-        {/* Main content (Không thay đổi) */}
+        {/* Main content */}
         <div className="flex-1">
           <main className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 transition-colors">
             <Outlet />

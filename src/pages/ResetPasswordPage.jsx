@@ -1,7 +1,7 @@
 // src/pages/ResetPasswordPage.jsx
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import api from '../utils/api'; // (File Axios của bạn)
+import api from '../utils/api'; 
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();

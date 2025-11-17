@@ -9,7 +9,7 @@ import { toast } from "react-toastify";
 import { FiUsers, FiPlus, FiTrash2, FiEdit2, FiSearch } from "react-icons/fi";
 import { motion } from "framer-motion";
 import "react-toastify/dist/ReactToastify.css";
-
+import Pagination from "../../components/Pagination";
 /* Tuỳ chỉnh màu cho Toast theo theme */
 const toastColors = {
   success: "#079830ff", // xanh ngọc dịu
@@ -36,14 +36,13 @@ export default function UsersPage() {
 
   // Tìm kiếm / lọc
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all"); // all | active | inactive
+  const [statusFilter, setStatusFilter] = useState("all");
 
   // Modal thêm
   const [showAddModal, setShowAddModal] = useState(false);
   const [newUser, setNewUser] = useState({
     fullName: "",
     username: "",
-    password: "",
     role: "ROLE_USER",
   });
 
@@ -57,7 +56,7 @@ export default function UsersPage() {
       setLoading(true);
       const res = await getAllUsers();
       let data = Array.isArray(res.data) ? res.data : res.data.data || [];
-      // Sắp xếp giảm dần theo id (user mới nhất lên đầu)
+      // Sắp xếp giảm dần theo id
       data = [...data].sort((a, b) => (b.id || 0) - (a.id || 0));
       setUsers(data);
     } catch (err) {
@@ -74,24 +73,8 @@ export default function UsersPage() {
 
   /* Kiểm tra dữ liệu nhập */
   const validateUserInput = () => {
-    if (!newUser.fullName && !newUser.username && !newUser.password) {
-      toast.warning("Vui lòng điền đầy đủ thông tin!");
-      return false;
-    }
-    if (!newUser.fullName) {
-      toast.warning("Vui lòng nhập Họ và tên!");
-      return false;
-    }
-    if (!newUser.username) {
-      toast.warning("Vui lòng nhập Tên người dùng!");
-      return false;
-    }
-    if (!newUser.password) {
-      toast.warning("Vui lòng nhập Mật khẩu!");
-      return false;
-    }
-    if (newUser.password.length < 6) {
-      toast.warning("Mật khẩu phải có ít nhất 6 ký tự!");
+    if (!newUser.fullName.trim() || !newUser.username.trim()) {
+      toast.warning("Vui lòng điền đầy đủ Họ tên và Email!");
       return false;
     }
     return true;
@@ -105,17 +88,15 @@ export default function UsersPage() {
       setCreating(true);
       const payload = {
         username: newUser.username,
-        password: newUser.password,
         fullName: newUser.fullName,
         roles: [newUser.role],
       };
 
       const res = await createUser(payload);
-      toast.success("Tạo người dùng thành công!");
+      toast.success("Tạo người dùng thành công! Mật khẩu đã được gửi qua email.");
       setNewUser({
         fullName: "",
         username: "",
-        password: "",
         role: "ROLE_USER",
       });
       setShowAddModal(false);
@@ -136,17 +117,15 @@ export default function UsersPage() {
       const msg =
         err.response?.data?.message ||
         err.response?.data?.username ||
-        err.response?.data?.password ||
         err.response?.data?.fullName ||
         "Không thể tạo người dùng!";
 
       if (
         msg.toLowerCase().includes("exists") ||
-        msg.toLowerCase().includes("duplicate")
+        msg.toLowerCase().includes("duplicate") ||
+        msg.toLowerCase().includes("đã được sử dụng")
       ) {
-        toast.warning("Không thể thêm — dữ liệu này đã tồn tại!");
-      } else if (msg.toLowerCase().includes("size")) {
-        toast.warning("Mật khẩu phải có ít nhất 6 ký tự!");
+        toast.warning("Email (username) này đã tồn tại!");
       } else {
         toast.error(" " + msg);
       }
@@ -290,6 +269,10 @@ export default function UsersPage() {
     startIndex,
     startIndex + pageSize
   );
+  
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   return (
     <div className="p-8 min-h-screen transition-colors bg-gray-50 dark:bg-gray-900">
@@ -400,7 +383,7 @@ export default function UsersPage() {
               <tr>
                 <th className="p-4 text-base font-semibold w-16 text-center">STT</th>
                 <th className="p-4 text-base font-semibold">Họ và tên</th>
-                <th className="p-4 text-base font-semibold">Tên người dùng</th>
+                <th className="p-4 text-base font-semibold">Email</th>
                 <th className="p-4 text-base font-semibold">Vai trò</th>
                 <th className="p-4 text-base font-semibold text-center">Trạng thái</th>
                 <th className="p-4 text-base font-semibold text-center">Hành động</th>
@@ -503,35 +486,13 @@ export default function UsersPage() {
         </div>
       </motion.div>
 
-      {/* 📄 Phân trang */}
-      {filteredUsers.length > pageSize && (
-        <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-gray-700 mt-4">
-          {/* Thông tin tổng */}
-          <span className="text-base text-gray-600 dark:text-gray-400">
-            Đang hiển thị {paginatedUsers.length} trên tổng số {filteredUsers.length} người dùng
-          </span>
-          {/* Điều hướng trang */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50 transition-colors"
-            >
-              Trang trước
-            </button>
-            <span className="px-3 py-1 text-base text-gray-700 dark:text-gray-300">
-              Trang {currentPage} / {Math.ceil(filteredUsers.length / pageSize)}
-            </span>
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, Math.ceil(filteredUsers.length / pageSize)))}
-              disabled={currentPage === Math.ceil(filteredUsers.length / pageSize)}
-              className="px-3 py-1 text-base bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50 transition-colors"
-            >
-              Trang sau
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Phân trang */}
+      <Pagination
+        totalItems={filteredUsers.length}
+        pageSize={pageSize}
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
+      />
 
       {/* MODAL THÊM NGƯỜI DÙNG */}
       {showAddModal && (
@@ -580,7 +541,7 @@ export default function UsersPage() {
                 {/* Tên người dùng */}
                 <div>
                   <label className="block text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Tên người dùng <span className="text-red-500">*</span>
+                    Email <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -589,25 +550,6 @@ export default function UsersPage() {
                       setNewUser({ ...newUser, username: e.target.value })
                     }
                     placeholder="VD: admin@gmail.com"
-                    disabled={creating}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-900
-                      placeholder-gray-400 dark:placeholder-gray-500
-                      focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-400 focus:border-transparent
-                      transition-all duration-200 text-base"
-                  />
-                </div>
-                {/* Mật khẩu */}
-                <div>
-                  <label className="block text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Mật khẩu <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    value={newUser.password}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, password: e.target.value })
-                    }
-                    placeholder="Mật khẩu ≥ 6 ký tự"
                     disabled={creating}
                     className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-900
                       placeholder-gray-400 dark:placeholder-gray-500
