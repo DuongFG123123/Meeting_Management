@@ -316,8 +316,9 @@ export default function DashboardPage() {
         footer={
           <div className="flex justify-end">
             <button
-              className="ant-btn ant-btn-default"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded font-semibold shadow transition dark:bg-blue-500 dark:hover:bg-blue-600"
               onClick={handleCloseMeetingDetail}
+              autoFocus
             >
               Đóng
             </button>
