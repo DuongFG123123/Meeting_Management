@@ -321,6 +321,12 @@ export default function AdminLayout() {
             </button>
             {isSettingsOpen && (
               <div className="absolute top-12 right-0 w-52 bg-white dark:bg-slate-800 rounded-lg shadow-xl border dark:border-slate-700 py-2">
+                <button
+                  className="w-full text-left flex items-center justify-between px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+                >
+                  <span>Chế độ sáng / tối</span>
+                  <ThemeToggle />
+                </button>
                 <NavLink
                   to="/admin/change-password" // <-- Giữ nguyên link của Admin
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
