@@ -14,8 +14,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { 
-  FiUsers, 
+import {  
   FiClock, 
   FiCalendar, 
   FiCheckSquare 
@@ -39,7 +38,6 @@ dayjs.extend(isBetween);
 
 const cardTemplates = [
   { label: "Cuộc họp hôm nay", value: "0", icon: <FiCalendar /> },
-  { label: "Người tham gia (hôm nay)", value: "0", icon: <FiUsers /> },
   { label: "Thời lượng họp TB", value: "0", icon: <FiClock /> },
   { label: "Cuộc họp sắp tới", value: "0", icon: <FiCheckSquare /> },
 ];
@@ -383,9 +381,8 @@ const CustomRoomTooltip = ({ active, payload }) => {
 
         setStats([
           { ...cardTemplates[0], value: meetingsToday.length.toString() },
-          { ...cardTemplates[1], value: participantsToday.toString() },
-          { ...cardTemplates[2], value: formatDuration(avgDuration) },
-          { ...cardTemplates[3], value: upcomingMeetings.toString() },
+          { ...cardTemplates[1], value: formatDuration(avgDuration) },
+          { ...cardTemplates[2], value: upcomingMeetings.toString() },
         ]);
 
         // Bar Chart
@@ -438,10 +435,17 @@ const CustomRoomTooltip = ({ active, payload }) => {
   return (
   <div className="p-6 space-y-6 transition-all duration-500">
     {/* Header */}
-    <div className="flex items-center justify-between mb-2">
-      <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Meeting Overview</h2>
-      <p className="text-gray-500 dark:text-gray-400 text-sm">Tổng quan hệ thống cuộc họp và hoạt động</p>
-    </div>
+    <div className="flex items-center justify-between 
+  mb-4 sticky top-0 z-20 
+  bg-white dark:bg-slate-900 
+  py-4">
+  <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
+    Meeting Overview
+  </h2>
+  <p className="text-gray-500 dark:text-gray-400 text-sm">
+    Tổng quan hệ thống cuộc họp và hoạt động
+  </p>
+</div>
 
     {loading ? (
       <div className="flex justify-center items-center h-[70vh]">
@@ -450,7 +454,7 @@ const CustomRoomTooltip = ({ active, payload }) => {
     ) : (
       <>
         {/* Cards */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           {stats.map((card, i) => (
             <div
               key={i}
