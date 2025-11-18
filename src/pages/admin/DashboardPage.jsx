@@ -39,7 +39,6 @@ dayjs.extend(isBetween);
 
 const cardTemplates = [
   { label: "Cuộc họp hôm nay", value: "0", icon: <FiCalendar /> },
-  { label: "Người tham gia (hôm nay)", value: "0", icon: <FiUsers /> },
   { label: "Thời lượng họp TB", value: "0", icon: <FiClock /> },
   { label: "Cuộc họp sắp tới", value: "0", icon: <FiCheckSquare /> },
 ];
