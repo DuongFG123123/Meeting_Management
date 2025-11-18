@@ -161,6 +161,19 @@ const ReportPage = () => {
       y: { ticks: { color: textColor }, grid: { color: gridColor } },
     },
   };
+  const pieOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: "bottom",
+      labels: { color: textColor },
+    },
+    tooltip: {
+      enabled: true,
+    },
+  },
+};
 
   return (
     <div
@@ -271,7 +284,7 @@ const ReportPage = () => {
                 >
                   {cancelStatsData.length ? (
                     <div className="w-[400px] h-[400px]">
-                      <Pie data={cancelChartData} options={chartOptions} />
+                      <Pie data={cancelChartData} options={pieOptions} />
                     </div>
                   ) : (
                     <p className="text-gray-500">
