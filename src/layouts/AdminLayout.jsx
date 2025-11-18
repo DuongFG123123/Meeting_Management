@@ -386,7 +386,6 @@ export default function AdminLayout() {
           <div className="mt-auto px-5 py-4 border-t border-gray-100 dark:border-slate-800">
             <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
               <span>Phiên bản 1.0</span>
-              <ThemeToggle />
             </div>
           </div>
         </aside>
