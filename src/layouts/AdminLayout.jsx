@@ -29,7 +29,7 @@ const adminMenu = [
 ];
 
 
-const themeRef = useRef(null);
+
 // === 2. COMPONENT CON ĐÃ ĐƯỢC NÂNG CẤP ===
 const NotificationItem = ({ notification, onMarkRead }) => {
   const navigate = useNavigate();
@@ -120,6 +120,8 @@ const NotificationItem = ({ notification, onMarkRead }) => {
 export default function AdminLayout() {
   const { logout, user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  const themeRef = useRef(null);
   
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -323,10 +325,13 @@ export default function AdminLayout() {
             {isSettingsOpen && (
               <div className="absolute top-12 right-0 w-52 bg-white dark:bg-slate-800 rounded-lg shadow-xl border dark:border-slate-700 py-2">
                 <button
-                  className="w-full text-left flex items-center justify-between px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+                  onClick={() => themeRef.current?.click()}
+                  className="w-full text-left flex items-center justify-between px-4 py-2.5 
+                            text-sm text-gray-700 dark:text-gray-200 
+                            hover:bg-gray-100 dark:hover:bg-slate-700"
                 >
                   <span>Chế độ sáng / tối</span>
-                  <ThemeToggle />
+                  <ThemeToggle ref={themeRef} />
                 </button>
                 <NavLink
                   to="/admin/change-password" // <-- Giữ nguyên link của Admin
