@@ -449,7 +449,7 @@ const CustomRoomTooltip = ({ active, payload }) => {
     ) : (
       <>
         {/* Cards */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           {stats.map((card, i) => (
             <div
               key={i}
