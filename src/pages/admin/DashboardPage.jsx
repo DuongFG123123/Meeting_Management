@@ -435,10 +435,17 @@ const CustomRoomTooltip = ({ active, payload }) => {
   return (
   <div className="p-6 space-y-6 transition-all duration-500">
     {/* Header */}
-    <div className="flex items-center justify-between mb-2">
-      <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Meeting Overview</h2>
-      <p className="text-gray-500 dark:text-gray-400 text-sm">Tổng quan hệ thống cuộc họp và hoạt động</p>
-    </div>
+    <div className="flex items-center justify-between 
+  mb-4 sticky top-0 z-20 
+  bg-white dark:bg-slate-900 
+  py-4">
+  <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
+    Meeting Overview
+  </h2>
+  <p className="text-gray-500 dark:text-gray-400 text-sm">
+    Tổng quan hệ thống cuộc họp và hoạt động
+  </p>
+</div>
 
     {loading ? (
       <div className="flex justify-center items-center h-[70vh]">
