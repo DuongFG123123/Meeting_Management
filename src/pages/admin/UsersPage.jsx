@@ -384,7 +384,6 @@ export default function UsersPage() {
                 <th className="p-4 text-base font-semibold w-16 text-center">STT</th>
                 <th className="p-4 text-base font-semibold">Họ và tên</th>
                 <th className="p-4 text-base font-semibold">Email</th>
-                <th className="p-4 text-base font-semibold">Vai trò</th>
                 <th className="p-4 text-base font-semibold text-center">Trạng thái</th>
                 <th className="p-4 text-base font-semibold text-center">Hành động</th>
               </tr>
@@ -558,7 +557,7 @@ export default function UsersPage() {
                   />
                 </div>
                 {/* Vai trò */}
-                <div>
+                {/* <div>
                   <label className="block text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Vai trò <span className="text-red-500">*</span>
                   </label>
@@ -575,7 +574,7 @@ export default function UsersPage() {
                     <option value="ROLE_USER">User</option>
                     <option value="ROLE_ADMIN">Admin</option>
                   </select>
-                </div>
+                </div> */}
               </div>
               <div className="flex justify-end gap-3 mt-8">
                 <button
@@ -633,27 +632,6 @@ export default function UsersPage() {
                 </p>
               </div>
               <div className="space-y-4">
-                {/* Vai trò */}
-                <div>
-                  <label className="block text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Vai trò
-                  </label>
-                  <select
-                    value={selectedUser.role}
-                    onChange={(e) =>
-                      setSelectedUser({
-                        ...selectedUser,
-                        role: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-gray-900
-                      focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-400 focus:border-transparent
-                      transition-all duration-200 text-base"
-                  >
-                    <option value="ROLE_USER">User</option>
-                    <option value="ROLE_ADMIN">Admin</option>
-                  </select>
-                </div>
                 {/* Trạng thái */}
                 <div>
                   <label className="block text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
