@@ -23,6 +23,8 @@ import { FiCalendar, FiPlusCircle, FiUsers, FiEdit, FiAlertTriangle } from "reac
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import utc from "dayjs/plugin/utc";
+// === ĐÃ THÊM DÒNG DƯỚI ĐÂY: import isSameOrBefore ===
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import { useAuth } from "../../context/AuthContext";
 
 import { toast, ToastContainer } from "react-toastify";
@@ -32,8 +34,11 @@ import EditMeetingModal from "../../components/user/EditMeetingModal";
 import DeleteMeetingModal from "../../components/user/DeleteMeetingModal";
 import QuickBookingModal from "../../components/user/QuickBookingModal";
 
+// Vẫn giữ nguyên, chỉ thêm isSameOrBefore dưới đây
 dayjs.locale("vi");
 dayjs.extend(utc);
+// === ĐÃ THÊM DÒNG DƯỚI ĐÂY: dùng plugin isSameOrBefore cho dayjs ===
+dayjs.extend(isSameOrBefore);
 
 // ---- GIỜ HÀNH CHÍNH ----
 const WORK_HOUR_START = 8; // 8h sáng
@@ -221,6 +226,10 @@ function injectNoBusinessTimeStyle() {
 const MyMeetingPage = () => {
   // State quản lý lịch họp
   const [events, setEvents] = useState([]);
+
+  // === ĐÃ THÊM: state mới để quản lý background events ===
+  const [backgroundEventsData, setBackgroundEventsData] = useState([]);
+
   const [loading, setLoading] = useState(false);
 
   // State modal chi tiết
@@ -280,17 +289,23 @@ const [quickBooking, setQuickBooking] = useState({ open: false, start: null, end
       });
 
       // Map từ dữ liệu ĐÃ LỌC
-      const mappedEvents = filteredData.map((m) => ({
-        id: m.id,
-        title: m.title || "Cuộc họp",
-        start: m.startTime,
-        end: m.endTime,
-        backgroundColor: m.status === 'CONFIRMED' ? "#3b82f6" : "#f59e0b",
-        borderColor: m.status === 'CONFIRMED' ? "#2563eb" : "#d97706",
-        extendedProps: {
-          roomName: m.room?.name || "Chưa xác định",
-        }
-      }));
+      const mappedEvents = filteredData.map((m) => {
+  const startLocal = dayjs(m.startTime).local().format();
+  const endLocal = dayjs(m.endTime).local().format();
+
+  return {
+    id: m.id,
+    title: m.title || "Cuộc họp",
+    start: startLocal,
+    end: endLocal,
+    backgroundColor: m.status === 'CONFIRMED' ? "#3b82f6" : "#f59e0b",
+    borderColor: m.status === 'CONFIRMED' ? "#2563eb" : "#d97706",
+    extendedProps: {
+      roomName: m.room?.name || "Chưa xác định",
+    }
+  };
+});
+
       setEvents(mappedEvents);
     } catch (err) {
       console.error("Lỗi tải lịch họp:", err);
@@ -577,13 +592,21 @@ const [quickBooking, setQuickBooking] = useState({ open: false, start: null, end
             allDaySlot={false}
             slotMinTime="06:00:00"
             slotMaxTime="19:30:00"
-            events={events}
+            // ĐÃ SỬA: chỉ truyền các sự kiện và backgroundEventsData (KHÔNG còn phụ thuộc calendarRef)
+            events={[
+              ...events,
+              ...backgroundEventsData
+            ]}
 
             eventClick={handleEventClick}
             eventMouseEnter={handleEventMouseEnter}
             eventMouseLeave={handleEventMouseLeave}
             height="75vh"
             locale="vi"
+            // ĐÃ THÊM: callback datesSet để cập nhật background events khi thay đổi view/ngày
+            datesSet={(arg) => {
+              setBackgroundEventsData(getNonBusinessHourBackgroundEvents(arg.start, arg.end));
+            }}
             selectable={true}
             selectMirror={true}
             // ---------
@@ -617,8 +640,7 @@ const [quickBooking, setQuickBooking] = useState({ open: false, start: null, end
               startTime: '08:00',
               endTime: '18:00',
             }}
-            // Sử dụng backgroundEvents để làm mờ vùng không business hour và quá khứ, ĐÃ BỔ SUNG BLOCK T7, CN
-            backgroundEvents={(arg) => getNonBusinessHourBackgroundEvents(arg.start, arg.end)}
+            // ĐÃ XÓA: backgroundEvents vì đã truyền background events qua prop events theo yêu cầu
             // THÊM RED LINE: chỉ cần thuộc tính này trong fullcalendar để hiện line thời gian thực
             nowIndicator={true}
           />
@@ -732,3 +754,11 @@ const [quickBooking, setQuickBooking] = useState({ open: false, start: null, end
 };
 
 export default MyMeetingPage;
+
+// ===== CÁC THAY ĐỔI CHÍNH ĐÃ THỰC HIỆN =====
+// 1. Thêm state mới 'backgroundEventsData' (dòng sau [events, setEvents])
+// 2. Thay đổi prop events FullCalendar thành: events={[...events, ...backgroundEventsData]}
+// 3. Thêm callback datesSet để cập nhật background events cho view hiện tại
+// 4. Không còn gọi getApi() trong render, không có backgroundEvents prop trong FullCalendar nữa
+
+// === ĐÃ SỬA: ĐÃ IMPORT plugin isSameOrBefore và extend vào dayjs ở đầu file ===

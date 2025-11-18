@@ -276,16 +276,25 @@ const CreateMeetingPage = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* DATE */}
               <Form.Item
-                name="date"
-                label="Ngày họp"
-                rules={[{ required: true, message: "Chọn ngày họp" }]}
-              >
-                <DatePicker
-                  className="w-full"
-                  format="DD/MM/YYYY"
-                  disabledDate={(d) => d && d < dayjs().startOf("day")}
-                />
-              </Form.Item>
+  name="date"
+  label="Ngày họp"
+  rules={[{ required: true, message: "Chọn ngày họp" }]}
+>
+  <DatePicker
+    className="w-full"
+    format="DD/MM/YYYY"
+    disabledDate={(d) => {
+      if (!d) return true;
+
+      // Không cho chọn ngày quá khứ
+      if (d < dayjs().startOf("day")) return true;
+
+      // Không cho chọn T7 (6) và CN (0)
+      const dayOfWeek = d.day();
+      return dayOfWeek === 0 || dayOfWeek === 6;
+    }}
+  />
+</Form.Item>
 
               {/* TIME PICKER */}
               <Form.Item
