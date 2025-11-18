@@ -14,8 +14,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { 
-  FiUsers, 
+import {  
   FiClock, 
   FiCalendar, 
   FiCheckSquare 
@@ -382,9 +381,8 @@ const CustomRoomTooltip = ({ active, payload }) => {
 
         setStats([
           { ...cardTemplates[0], value: meetingsToday.length.toString() },
-          { ...cardTemplates[1], value: participantsToday.toString() },
-          { ...cardTemplates[2], value: formatDuration(avgDuration) },
-          { ...cardTemplates[3], value: upcomingMeetings.toString() },
+          { ...cardTemplates[1], value: formatDuration(avgDuration) },
+          { ...cardTemplates[2], value: upcomingMeetings.toString() },
         ]);
 
         // Bar Chart
