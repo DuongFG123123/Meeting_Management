@@ -328,42 +328,40 @@ useEffect(() => {
 
           {/* NÚT CÀI ĐẶT */}
           <div className="relative" ref={settingsRef}>
-            <button
-              onClick={handleSettingsClick}
-              className="w-9 h-9 rounded-lg bg-[#1c2541] flex items-center justify-center hover:bg-[#3a506b] transition"
-            >
-              <FiSettings size={20} />
-            </button>
-            {isSettingsOpen && (
-              <div className="absolute top-12 right-0 w-52 bg-white dark:bg-slate-800 rounded-lg shadow-xl border dark:border-slate-700 py-2">
-                <button
-                  onClick={() => setDarkMode(!darkMode)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
-                >
-                  <ThemeToggle darkMode={darkMode} setDarkMode={setDarkMode} />
-                  <span>Chế độ sáng / tối</span>
-                </button>
-                <NavLink
-                  to="/admin/change-password" // <-- Giữ nguyên link của Admin
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
-                  onClick={() => setIsSettingsOpen(false)} 
-                >
-                  <FiLock size={16} />
-                  <span>Đổi mật khẩu</span>
-                </NavLink>
-                <button
-                  onClick={() => {
-                    logout();
-                    setIsSettingsOpen(false);
-                  }}
-                  className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700"
-                >
-                  <FiLogOut size={16} />
-                  <span>Đăng xuất</span>
-                </button>
-              </div>
-            )}
-          </div>
+  <button
+    onClick={handleSettingsClick}
+    className="w-9 h-9 rounded-lg bg-[#1c2541] flex items-center justify-center hover:bg-[#3a506b] transition"
+  >
+    <FiSettings size={20} />
+  </button>
+  {isSettingsOpen && (
+    <div className="absolute top-12 right-0 w-52 bg-white dark:bg-slate-800 rounded-lg shadow-xl border dark:border-slate-700 py-2">
+      
+      {/* Nút đổi chế độ sáng/tối */}
+      <ThemeToggle />
+
+      <NavLink
+        to="/admin/change-password"
+        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+        onClick={() => setIsSettingsOpen(false)} 
+      >
+        <FiLock size={16} />
+        <span>Đổi mật khẩu</span>
+      </NavLink>
+
+      <button
+        onClick={() => {
+          logout();
+          setIsSettingsOpen(false);
+        }}
+        className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700"
+      >
+        <FiLogOut size={16} />
+        <span>Đăng xuất</span>
+      </button>
+    </div>
+  )}
+</div>
         </div>
       </header>
 
