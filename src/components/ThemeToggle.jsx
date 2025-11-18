@@ -20,15 +20,12 @@ const ThemeToggle = forwardRef((props, ref) => {
     <button
       ref={ref}
       onClick={() => setDarkMode(!darkMode)}
-      className="flex items-center gap-2 px-3 py-1.5 rounded-xl 
-                 bg-gray-100 hover:bg-gray-200 
-                 dark:bg-slate-800 dark:hover:bg-slate-700
-                 text-gray-700 dark:text-gray-100
-                 text-xs font-medium transition-all duration-200"
+      className="w-9 h-9 flex items-center justify-center rounded-full 
+                bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700
+                transition-colors duration-200"
       title={darkMode ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
     >
-      {darkMode ? <FiSun size={14} /> : <FiMoon size={14} />}
-      <span>{darkMode ? "Sáng" : "Tối"}</span>
+      {darkMode ? <FiSun size={16} /> : <FiMoon size={16} />}
     </button>
   );
 });
