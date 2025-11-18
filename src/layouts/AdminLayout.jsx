@@ -29,6 +29,7 @@ const adminMenu = [
 ];
 
 
+const themeRef = useRef(null);
 // === 2. COMPONENT CON ĐÃ ĐƯỢC NÂNG CẤP ===
 const NotificationItem = ({ notification, onMarkRead }) => {
   const navigate = useNavigate();
