@@ -1,13 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, forwardRef } from "react";
 import { FiSun, FiMoon } from "react-icons/fi";
 
-export default function ThemeToggle() {
-  // đọc từ localStorage để nhớ lựa chọn
+const ThemeToggle = forwardRef((props, ref) => {
   const [darkMode, setDarkMode] = useState(
     typeof window !== "undefined" && localStorage.getItem("theme") === "dark"
   );
 
-  // mỗi khi darkMode đổi -> thêm / bỏ class "dark" trên <html>
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
@@ -20,6 +18,7 @@ export default function ThemeToggle() {
 
   return (
     <button
+      ref={ref}
       onClick={() => setDarkMode(!darkMode)}
       className="flex items-center gap-2 px-3 py-1.5 rounded-xl 
                  bg-gray-100 hover:bg-gray-200 
@@ -32,4 +31,6 @@ export default function ThemeToggle() {
       <span>{darkMode ? "Sáng" : "Tối"}</span>
     </button>
   );
-}
+});
+
+export default ThemeToggle;
