@@ -29,6 +29,7 @@ const adminMenu = [
 ];
 
 
+
 // === 2. COMPONENT CON ĐÃ ĐƯỢC NÂNG CẤP ===
 const NotificationItem = ({ notification, onMarkRead }) => {
   const navigate = useNavigate();
@@ -119,6 +120,20 @@ const NotificationItem = ({ notification, onMarkRead }) => {
 export default function AdminLayout() {
   const { logout, user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+const [darkMode, setDarkMode] = useState(
+  typeof window !== "undefined" && localStorage.getItem("theme") === "dark"
+);
+
+useEffect(() => {
+  if (darkMode) {
+    document.documentElement.classList.add("dark");
+    localStorage.setItem("theme", "dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+    localStorage.setItem("theme", "light");
+  }
+}, [darkMode]);
   
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -313,35 +328,40 @@ export default function AdminLayout() {
 
           {/* NÚT CÀI ĐẶT */}
           <div className="relative" ref={settingsRef}>
-            <button
-              onClick={handleSettingsClick}
-              className="w-9 h-9 rounded-lg bg-[#1c2541] flex items-center justify-center hover:bg-[#3a506b] transition"
-            >
-              <FiSettings size={20} />
-            </button>
-            {isSettingsOpen && (
-              <div className="absolute top-12 right-0 w-52 bg-white dark:bg-slate-800 rounded-lg shadow-xl border dark:border-slate-700 py-2">
-                <NavLink
-                  to="/admin/change-password" // <-- Giữ nguyên link của Admin
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
-                  onClick={() => setIsSettingsOpen(false)} 
-                >
-                  <FiLock size={16} />
-                  <span>Đổi mật khẩu</span>
-                </NavLink>
-                <button
-                  onClick={() => {
-                    logout();
-                    setIsSettingsOpen(false);
-                  }}
-                  className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700"
-                >
-                  <FiLogOut size={16} />
-                  <span>Đăng xuất</span>
-                </button>
-              </div>
-            )}
-          </div>
+  <button
+    onClick={handleSettingsClick}
+    className="w-9 h-9 rounded-lg bg-[#1c2541] flex items-center justify-center hover:bg-[#3a506b] transition"
+  >
+    <FiSettings size={20} />
+  </button>
+  {isSettingsOpen && (
+    <div className="absolute top-12 right-0 w-52 bg-white dark:bg-slate-800 rounded-lg shadow-xl border dark:border-slate-700 py-2">
+      
+      {/* Nút đổi chế độ sáng/tối */}
+      <ThemeToggle />
+
+      <NavLink
+        to="/admin/change-password"
+        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+        onClick={() => setIsSettingsOpen(false)} 
+      >
+        <FiLock size={16} />
+        <span>Đổi mật khẩu</span>
+      </NavLink>
+
+      <button
+        onClick={() => {
+          logout();
+          setIsSettingsOpen(false);
+        }}
+        className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700"
+      >
+        <FiLogOut size={16} />
+        <span>Đăng xuất</span>
+      </button>
+    </div>
+  )}
+</div>
         </div>
       </header>
 
@@ -383,12 +403,6 @@ export default function AdminLayout() {
               </NavLink>
             ))}
           </nav>
-          <div className="mt-auto px-5 py-4 border-t border-gray-100 dark:border-slate-800">
-            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-              <span>Phiên bản 1.0</span>
-              <ThemeToggle />
-            </div>
-          </div>
         </aside>
         
         {/* Overlay cho mobile */}
