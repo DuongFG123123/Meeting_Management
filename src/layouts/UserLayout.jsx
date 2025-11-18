@@ -233,7 +233,7 @@ export default function UserLayout() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
       {/* Header */}
-      <header className="h-14 bg-[#0b132b] text-white dark:bg-slate-900 flex items-center justify-between px-5 shadow-md transition-colors z-30 relative">
+      <header className="h-14 bg-[#0b132b] text-white dark:bg-slate-900 flex items-center justify-between px-5 shadow-md transition-colors z-40 fixed top-0 left-0 right-0">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsSidebarOpen((prev) => !prev)}
