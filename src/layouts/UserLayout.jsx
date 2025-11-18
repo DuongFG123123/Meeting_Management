@@ -318,38 +318,42 @@ export default function UserLayout() {
             )}
           </div>
 
-          {/* NÚT CÀI ĐẶT (Đã cập nhật) */}
-          <div className="relative" ref={settingsRef}>
-            <button
-              onClick={handleSettingsClick}
-              className="w-9 h-9 rounded-lg bg-[#1c2541] flex items-center justify-center hover:bg-[#3a506b] transition"
-            >
-              <FiSettings size={20} />
-            </button>
+          {/* NÚT CÀI ĐẶT */}
+<div className="relative" ref={settingsRef}>
+  <button
+    onClick={handleSettingsClick}
+    className="w-9 h-9 rounded-lg bg-[#1c2541] flex items-center justify-center hover:bg-[#3a506b] transition"
+  >
+    <FiSettings size={20} />
+  </button>
+
             {isSettingsOpen && (
               <div className="absolute top-12 right-0 w-52 bg-white dark:bg-slate-800 rounded-lg shadow-xl border dark:border-slate-700 py-2">
                 
-                {/* === MỤC MỚI ĐƯỢC THÊM === */}
+                {/* Nút đổi chế độ sáng/tối */}
+                <ThemeToggle />
+
+                {/* Thông tin cá nhân */}
                 <NavLink
                   to="/user/profile"
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
-                  onClick={() => setIsSettingsOpen(false)} 
+                  onClick={() => setIsSettingsOpen(false)}
                 >
-                  <FiUser size={16} /> {/* <-- Icon mới */}
+                  <FiUser size={16} />
                   <span>Thông tin cá nhân</span>
                 </NavLink>
 
-                {/* (Mục cũ - Đổi mật khẩu) */}
+                {/* Đổi mật khẩu */}
                 <NavLink
                   to="/user/change-password"
                   className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
-                  onClick={() => setIsSettingsOpen(false)} 
+                  onClick={() => setIsSettingsOpen(false)}
                 >
                   <FiLock size={16} />
                   <span>Đổi mật khẩu</span>
                 </NavLink>
-                
-                {/* (Mục cũ - Đăng xuất) */}
+
+                {/* Đăng xuất */}
                 <button
                   onClick={() => {
                     logout();
@@ -404,12 +408,6 @@ export default function UserLayout() {
               </NavLink>
             ))}
           </nav>
-          <div className="mt-auto px-5 py-4 border-t border-gray-100 dark:border-slate-800">
-            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-              <span>Phiên bản 1.0</span>
-              <ThemeToggle />
-            </div>
-          </div>
         </aside>
         
         {/* Overlay cho mobile */}
