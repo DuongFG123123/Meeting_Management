@@ -124,64 +124,56 @@ const paginatedDevices = filteredDevices.slice(
 
   // Khi tạo mới thiết bị, show thiết bị lên đầu 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    // Validate tên thiết bị
-    if (!formData.name.trim()) {
-      toast.warning("⚠️ Vui lòng nhập tên thiết bị!");
-      return;
-    }
+  // Validate tên thiết bị
+  if (!formData.name.trim()) {
+    toast.warning("⚠️ Vui lòng nhập tên thiết bị!");
+    return;
+  }
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      // Chuẩn bị dữ liệu gửi lên server
-      const submitData = {
-        name: formData.name.trim(),
-        description: formData.description.trim(),
-        status: formData.status
+    const submitData = {
+      name: formData.name.trim(),
+      description: formData.description.trim(),
+      status: formData.status,
+    };
+
+    if (editingDevice) {
+      // Cập nhật thiết bị
+      await updateDevice(editingDevice.id, submitData);
+      toast.success("Cập nhật thiết bị thành công!");
+      await fetchDevices();
+      handleCloseModal();
+    } else {
+      // Thêm mới thiết bị
+      const res = await createDevice(submitData);
+      toast.success("Thêm thiết bị mới thành công!");
+
+      let createdDevice = res?.data;
+      if (createdDevice && createdDevice.data) createdDevice = createdDevice.data;
+
+      createdDevice = {
+        ...createdDevice,
+        status: createdDevice.status || submitData.status || "AVAILABLE",
       };
 
-      if (editingDevice) {
-        // Cập nhật thiết bị
-        await updateDevice(editingDevice.id, submitData);
-        toast.success("Cập nhật thiết bị thành công!");
-        // Refresh danh sách và đóng modal như cũ
-        await fetchDevices();
-        handleCloseModal();
-      } else {
-        // Thêm mới thiết bị
-        const res = await createDevice(submitData);
-        toast.success("Thêm thiết bị mới thành công!");
-        // Đảm bảo phần chèn thiết bị mới hoạt động chuẩn giống UsersPage
-        let createdDevice = res?.data;
-        // Nếu backend trả về dưới dạng { data: {...} }
-        if (createdDevice && createdDevice.data) createdDevice = createdDevice.data;
-
-        // Đảm bảo các trường status hợp lệ (fallback: AVAILABLE nếu thiếu)
-        createdDevice = {
-          ...createdDevice,
-          status: createdDevice.status || submitData.status || "AVAILABLE"
-        };
-
-        // Sắp xếp như trang User: chèn lên đầu, đồng thời đảm bảo id mới nhất lên trên
-        setDevices(prev => {
-          const newDevices = [{ ...createdDevice }, ...prev];
-          return newDevices.sort((a, b) => (b.id || 0) - (a.id || 0));
-        });
-        setFilteredDevices(prev => {
-          const newDevices = [{ ...createdDevice }, ...prev];
-          return newDevices.sort((a, b) => (b.id || 0) - (a.id || 0));
-        });
-      }
-    } catch (error) {
-      const errorMsg = error?.response?.data?.message || error?.message || "Có lỗi xảy ra";
-      toast.error(`${editingDevice ? "Cập nhật" : "Thêm"} thiết bị thất bại: ${errorMsg}`);
-      console.error("Submit error:", error?.response?.data || error);
-    } finally {
-      setLoading(false);
+      // ⬇️ Chỉ cần setDevices — KHÔNG setFilteredDevices nữa
+      setDevices(prev => {
+        const newDevices = [{ ...createdDevice }, ...prev];
+        return newDevices.sort((a, b) => (b.id || 0) - (a.id || 0));
+      });
     }
-  };
+  } catch (error) {
+    const errorMsg = error?.response?.data?.message || error?.message || "Có lỗi xảy ra";
+    toast.error(`${editingDevice ? "Cập nhật" : "Thêm"} thiết bị thất bại: ${errorMsg}`);
+    console.error("Submit error:", error?.response?.data || error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   /**
    * Mở modal xác nhận xóa thiết bị
