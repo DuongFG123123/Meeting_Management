@@ -120,9 +120,11 @@ const CreateMeetingPage = () => {
           .minute(watchedTime.minute());
 
         const startTime = startTimeUTC.toISOString();
-        const endTime = startTimeUTC
-          .add(watchedDuration, "minute")
-          .toISOString();
+        // ⭐ Lấy đúng thời lượng (ưu tiên customHour)
+        const customHour = Form.useWatch("customHour", form);
+        const realDuration = customHour ? customHour * 60 : watchedDuration;
+
+        const endTime = startTimeUTC.add(realDuration, "minute").toISOString();
 
         const res = await getAvailableDevices(startTime, endTime);
         setAvailableDevices(res.data || []);
@@ -194,7 +196,10 @@ const CreateMeetingPage = () => {
         .date(date.date())
         .hour(time.hour())
         .minute(time.minute());
-
+      // ⭐ Tính thời lượng cuối cùng
+      const finalDuration = values.customHour
+        ? values.customHour * 60
+        : values.duration;
       const payload = {
         title: values.title.trim(),
         description: values.description || "",
