@@ -55,7 +55,7 @@ const CreateMeetingPage = () => {
   const watchedDate = Form.useWatch("date", form);
   const watchedTime = Form.useWatch("time", form);
   const watchedDuration = Form.useWatch("duration", form);
-
+  const watchedCustomHour = Form.useWatch("customHour", form);
   // TIME PICKER STATE
   const [clockOpen, setClockOpen] = useState(false);
   const [clockValue, setClockValue] = useState(dayjs());
@@ -121,8 +121,9 @@ const CreateMeetingPage = () => {
 
         const startTime = startTimeUTC.toISOString();
         // ⭐ Lấy đúng thời lượng (ưu tiên customHour)
-        const customHour = Form.useWatch("customHour", form);
-        const realDuration = customHour ? customHour * 60 : watchedDuration;
+        const realDuration = watchedCustomHour
+        ? watchedCustomHour * 60
+        : watchedDuration;
 
         const endTime = startTimeUTC.add(realDuration, "minute").toISOString();
 
@@ -138,7 +139,7 @@ const CreateMeetingPage = () => {
 
     const t = setTimeout(fetchDevices, 500);
     return () => clearTimeout(t);
-  }, [watchedDate, watchedTime, watchedDuration]);
+}, [watchedDate, watchedTime, watchedDuration, watchedCustomHour]);
 
   /* ===================================================
                 SEARCH INTERNAL USERS
@@ -201,31 +202,31 @@ const CreateMeetingPage = () => {
         ? values.customHour * 60
         : values.duration;
       const payload = {
-        title: values.title.trim(),
-        description: values.description || "",
-        startTime: startUTC.toISOString(),
-        endTime: startUTC.add(values.duration, "minute").toISOString(),
-        roomId: values.roomId,
-        participantIds: Array.from(
-          new Set([user.id, ...(values.participantIds || [])])
-        ),
-        deviceIds: values.deviceIds || [],
-        guestEmails: values.guestEmails || [],
+      title: values.title.trim(),
+      description: values.description || "",
+      startTime: startUTC.toISOString(),
+      endTime: startUTC.add(finalDuration, "minute").toISOString(),
 
-        // ⭐⭐⭐ RECURRING RULE ⭐⭐⭐
-        recurrenceRule:
-          values.isRecurring === true
-            ? {
-                frequency: values.frequency,
-                interval: 1,
-                repeatUntil: dayjs(values.repeatUntil).format("YYYY-MM-DD"),
-              }
-            : null,
+      roomId: values.roomId,
+      participantIds: Array.from(
+        new Set([user.id, ...(values.participantIds || [])])
+      ),
+      deviceIds: values.deviceIds || [],
+      guestEmails: values.guestEmails || [],
 
-        onBehalfOfUserId: null,
-      };
+      recurrenceRule:
+        values.isRecurring === true
+          ? {
+              frequency: values.frequency,
+              interval: 1,
+              repeatUntil: dayjs(values.repeatUntil).format("YYYY-MM-DD"),
+            }
+          : null,
 
-      await createMeeting(payload);
+      onBehalfOfUserId: null,
+    };
+
+    await createMeeting(payload);
 
       toast.success("🎉 Tạo cuộc họp thành công!");
       form.resetFields();
