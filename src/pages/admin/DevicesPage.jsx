@@ -148,24 +148,30 @@ const paginatedDevices = filteredDevices.slice(
       await fetchDevices();
       handleCloseModal();
     } else {
-      // Thêm mới thiết bị
-      const res = await createDevice(submitData);
-      toast.success("Thêm thiết bị mới thành công!");
+  // Thêm mới thiết bị
+const res = await createDevice(submitData);
+toast.success("Thêm thiết bị mới thành công!");
 
-      let createdDevice = res?.data;
-      if (createdDevice && createdDevice.data) createdDevice = createdDevice.data;
+let createdDevice = res?.data;
+if (createdDevice && createdDevice.data) createdDevice = createdDevice.data;
 
-      createdDevice = {
-        ...createdDevice,
-        status: createdDevice.status || submitData.status || "AVAILABLE",
-      };
+createdDevice = {
+  ...createdDevice,
+  status: createdDevice.status || submitData.status || "AVAILABLE",
+};
 
-      // ⬇️ Chỉ cần setDevices — KHÔNG setFilteredDevices nữa
-      setDevices(prev => {
-        const newDevices = [{ ...createdDevice }, ...prev];
-        return newDevices.sort((a, b) => (b.id || 0) - (a.id || 0));
-      });
-    }
+// Cập nhật list thiết bị
+setDevices(prev => {
+  const newDevices = [{ ...createdDevice }, ...prev];
+  return newDevices.sort((a, b) => (b.id || 0) - (a.id || 0));
+});
+
+// 🕒 Đợi 0.3s rồi tắt modal (mượt hơn)
+setTimeout(() => {
+  handleCloseModal();
+}, 300);
+}
+
   } catch (error) {
     const errorMsg = error?.response?.data?.message || error?.message || "Có lỗi xảy ra";
     toast.error(`${editingDevice ? "Cập nhật" : "Thêm"} thiết bị thất bại: ${errorMsg}`);
