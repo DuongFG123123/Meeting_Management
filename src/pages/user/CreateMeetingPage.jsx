@@ -362,43 +362,53 @@ const CreateMeetingPage = () => {
               </Form.Item>
 
               {/* THỜI LƯỢNG + KHÁC (GIỜ) */}
-<div className="flex gap-4">
-  {/* Select thời lượng cố định */}
-  <Form.Item
-    name="duration"
-    label="Thời lượng"
-    initialValue={60}
-    style={{ flex: 1 }}
-  >
-    <Select>
-      <Option value={15}>15 phút</Option>
-      <Option value={30}>30 phút</Option>
-      <Option value={45}>45 phút</Option>
-      <Option value={60}>1 giờ</Option>
-      <Option value={90}>1 giờ 30 phút</Option>
-      <Option value={120}>2 giờ</Option>
-    </Select>
-  </Form.Item>
+            <div className="flex gap-4">
+              {/* Select thời lượng cố định */}
+              <Form.Item
+                name="duration"
+                label="Thời lượng"
+                initialValue={60}
+                style={{ flex: 1 }}
+              >
+                <Select>
+                  <Option value={15}>15 phút</Option>
+                  <Option value={30}>30 phút</Option>
+                  <Option value={45}>45 phút</Option>
+                  <Option value={60}>1 giờ</Option>
+                  <Option value={90}>1 giờ 30 phút</Option>
+                  <Option value={120}>2 giờ</Option>
+                </Select>
+              </Form.Item>
 
-  {/* Nhập giờ tự do */}
-  <Form.Item
-    name="customHour"
-    label="Khác (giờ)"
-    style={{ width: 140 }}
-    rules={[
-      ({ getFieldValue }) => ({
-        validator(_, value) {
-          if (!value) return Promise.resolve(); // bỏ trống thì ok
-          if (isNaN(value) || value <= 0)
-            return Promise.reject("Giờ phải lớn hơn 0");
-          return Promise.resolve();
-        },
-      }),
-    ]}
-  >
-    <Input type="number" min={0.1} step={0.1} placeholder="VD: 1.5" />
-  </Form.Item>
-</div>
+              {/* Nhập giờ tự do */}
+              <Form.Item
+              name="customHour"
+              label="Khác (giờ)"
+              style={{ width: 140 }}
+              rules={[
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value) return Promise.resolve();
+                    if (isNaN(value) || value <= 0) return Promise.reject("Giờ phải lớn hơn 0");
+                    return Promise.resolve();
+                  },
+                }),
+              ]}
+            >
+              <Input
+                type="number"
+                min={0.1}
+                step={0.1}
+                placeholder="VD: 1.5"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val) {
+                    form.setFieldsValue({ duration: undefined }); // clear Select khi nhập khác
+                  }
+                }}
+              />
+            </Form.Item>
+            </div>
             </div>
 
             {/* ROOM */}
